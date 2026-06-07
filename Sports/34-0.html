@@ -1296,11 +1296,18 @@ function downloadShareImage() {
   ctx.font = '10px sans-serif';
   ctx.fillText('stljakeh.github.io/Sports/34-0.html', W / 2, 830);
 
-  // Download
-  var link = document.createElement('a');
-  link.download = '34-0-result.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  // Show in modal
+  var dataUrl = canvas.toDataURL('image/png');
+  var modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:660px;padding:20px;">
+      <img src="` + dataUrl + `" style="width:100%;border-radius:8px;display:block;" alt="34-0 Result">
+      <div style="text-align:center;margin-top:12px;color:#888;font-size:0.75rem;">
+        Press and hold on iOS to save · <a download="34-0-result.png" href="` + dataUrl + `" style="color:#E80A4D;text-decoration:none;font-weight:600;">Download</a>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
 }
 
 // ========== INIT ==========
