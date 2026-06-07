@@ -397,6 +397,11 @@ const MAX_SEASON = 2026;
 const POOL_SIZE = 20;
 const TOTAL_GAMES = 34;
 const DRAW_RATE = 0.18;
+const DIFFICULTIES = {
+  easy: { label: 'Easy', poolSize: 30, ratingBonus: 5, drawRate: 0.10, oppMin: 35, oppRange: 30, noiseRange: 8, desc: 'More teams, higher ratings, weaker opponents' },
+  normal: { label: 'Normal', poolSize: 20, ratingBonus: 0, drawRate: 0.18, oppMin: 45, oppRange: 40, noiseRange: 10, desc: 'Balanced challenge' },
+  hard: { label: 'Hard', poolSize: 10, ratingBonus: -5, drawRate: 0.25, oppMin: 50, oppRange: 45, noiseRange: 14, desc: 'Fewer teams, lower ratings, stronger opponents' },
+};
 
 // ========== MLS TEAMS ==========
 const allMlsTeams = [
@@ -435,6 +440,7 @@ const allMlsTeams = [
 // ========== STATE ==========
 const state = {
   phase: 'splash',
+  difficulty: null,
   formation: null,
   slots: [],
   activeSlot: -1,
@@ -456,6 +462,7 @@ function createSlots(f) {
 }
 
 function resetState() {
+  state.difficulty = null;
   state.formation = null;
   state.slots = [];
   state.activeSlot = -1;
@@ -494,7 +501,7 @@ function extractStat(athlete, name) {
   return 0;
 }
 
-function computeRating(athlete) {
+function computeRating(athlete, noiseRange, bonus) {
   const pos = (athlete.position && athlete.position.abbreviation) || 'M';
   const apps = extractStat(athlete, 'appearances');
   const goals = extractStat(athlete, 'totalGoals');
@@ -509,12 +516,13 @@ function computeRating(athlete) {
   } else {
     base = 35 + apps * 0.2 + goals * 1.6 + assists * 0.6;
   }
-  const noise = Math.random() * 10 - 5;
-  return Math.round(Math.max(40, Math.min(99, base + noise)));
+  const nr = noiseRange || 10;
+  const noise = Math.random() * nr - nr / 2;
+  return Math.round(Math.max(40, Math.min(99, base + noise + (bonus || 0))));
 }
 
 // ========== POOL PRE-FETCH ==========
-async function preFetchPool(size) {
+async function preFetchPool(size, noiseRange, bonus) {
   const pool = [];
   const usedCombos = new Set();
   while (pool.length < size) {
@@ -528,7 +536,7 @@ async function preFetchPool(size) {
     const enriched = roster.map(a => ({
       id: a.id,
       fullName: a.fullName,
-      rating: computeRating(a),
+      rating: computeRating(a, noiseRange, bonus),
       pos: (a.position && a.position.abbreviation) || 'M',
     }));
     enriched.sort((a, b) => (a.pos !== b.pos ? (a.pos < b.pos ? -1 : 1) : (b.rating || 0) - (a.rating || 0)));
@@ -606,10 +614,11 @@ function fillSlot(player, slotIdx) {
 function startSeason() {
   const ratings = state.slots.map(s => s.player.rating);
   state.teamRating = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
+  const diff = DIFFICULTIES[state.difficulty];
   state.games = [];
   for (let i = 0; i < TOTAL_GAMES; i++) {
     const team = allMlsTeams[Math.floor(Math.random() * allMlsTeams.length)];
-    const rating = Math.round(45 + Math.random() * 40);
+    const rating = Math.round(diff.oppMin + Math.random() * diff.oppRange);
     state.games.push({ team, rating, result: null, score: null });
   }
   state.currentGame = 0;
@@ -619,9 +628,9 @@ function startSeason() {
 }
 
 // ========== SEASON LOGIC ==========
-function simulateGame(userRating, oppRating) {
+function simulateGame(userRating, oppRating, drawRate) {
   const winProb = userRating / (userRating + oppRating);
-  const adjWinProb = winProb * (1 - DRAW_RATE);
+  const adjWinProb = winProb * (1 - (drawRate || DRAW_RATE));
   const r = Math.random();
   if (r < adjWinProb) return 'W';
   if (r < adjWinProb + DRAW_RATE) return 'D';
@@ -649,7 +658,8 @@ function advanceGame() {
   const idx = state.currentGame;
   if (idx >= TOTAL_GAMES) return null;
   const game = state.games[idx];
-  const outcome = simulateGame(state.teamRating, game.rating);
+  const diff = DIFFICULTIES[state.difficulty];
+  const outcome = simulateGame(state.teamRating, game.rating, diff.drawRate);
   const score = generateScore(outcome, state.teamRating, game.rating);
   game.result = outcome;
   game.score = score;
@@ -674,22 +684,32 @@ function render() {
 }
 
 function renderSplash(app) {
+  const diffCards = Object.entries(DIFFICULTIES).map(([key, d]) => `
+    <div class="formation-card" onclick="selectDifficulty('${key}')">
+      <div class="f-name">${d.label}</div>
+      <div class="f-detail">${d.desc}</div>
+    </div>
+  `).join('');
   app.innerHTML = `
     <div class="splash">
       <h1>34-0</h1>
       <p class="tagline">Draft. Simulate. Conquer.</p>
-      <p class="goal">Draft a team of MLS players from across history and try to go a perfect 34-0-0. Pick your formation, then fill each position one at a time from randomly rolled teams. Can you finish flawless?</p>
-      <button class="btn btn-primary" onclick="startDraft()">Start Draft</button>
+      <p class="goal">Draft a team of MLS players from across history and try to go a perfect 34-0-0. Pick your difficulty, choose a formation, then fill each position from randomly rolled teams. Can you finish flawless?</p>
+      <div style="max-width:500px;margin:0 auto;">
+        <div class="formation-grid">${diffCards}</div>
+      </div>
     </div>
   `;
 }
 
-function startDraft() {
+function selectDifficulty(key) {
+  state.difficulty = key;
   state.phase = 'formation';
   render();
 }
 
 function renderFormation(app) {
+  const diff = DIFFICULTIES[state.difficulty];
   const cards = Object.entries(FORMATIONS).map(([key, f]) => `
     <div class="formation-card" onclick="selectFormation('${key}')">
       <div class="f-name">${f.label}</div>
@@ -698,7 +718,7 @@ function renderFormation(app) {
   `).join('');
   app.innerHTML = `
     <div class="page-title"><h1>34-0</h1></div>
-    <p class="subtitle">Choose your formation</p>
+    <p class="subtitle"><span style="color:#E80A4D;">${diff.label}</span> &middot; Choose your formation</p>
     <div class="formation-grid">${cards}</div>
   `;
 }
@@ -708,7 +728,8 @@ async function selectFormation(key) {
   state.slots = createSlots(state.formation);
   const app = document.getElementById('app');
   app.innerHTML = `<div class="loading"><div class="lds-ring"><div></div></div>Fetching historic rosters...</div>`;
-  state.teamPool = await preFetchPool(POOL_SIZE);
+  const diff = DIFFICULTIES[state.difficulty];
+  state.teamPool = await preFetchPool(diff.poolSize, diff.noiseRange, diff.ratingBonus);
   if (state.teamPool.length < 11) {
     app.innerHTML = `<div style="text-align:center;padding:60px;color:#f44336;">Couldn't build a valid draft pool. <button class="btn btn-primary" onclick="selectFormation('${key}')">Retry</button></div>`;
     return;
@@ -905,9 +926,10 @@ function renderSeason(app) {
     `<span class="rt-player">${posLabels[s.pos]} ${s.player.fullName} (${s.player.rating})</span>`
   ).join('');
 
+  const diffLabel = DIFFICULTIES[state.difficulty].label;
   app.innerHTML = `
     <div class="page-title"><h1>34-0</h1></div>
-    <p class="subtitle">${state.formation.label} · ${state.teamRating} avg rating</p>
+    <p class="subtitle">${diffLabel} &middot; ${state.formation.label} &middot; ${state.teamRating} avg rating</p>
 
     <div class="season-header">
       <div class="record-display">
@@ -986,7 +1008,7 @@ function renderResult(app) {
           ? 'You did it. A flawless season. Every game. Every opponent. Undefeated.'
           : `Your ${state.formation.label} squad finished ${recordStr}. ${state.record.w >= 20 ? 'A strong season!' : state.record.w >= 10 ? 'A respectable campaign.' : 'Tough season — better luck next time.'}`}
         <br><br>
-        <span style="color:#555;">Team rating: ${state.teamRating} · Formation: ${state.formation.label}</span>
+        <span style="color:#555;">${DIFFICULTIES[state.difficulty].label} · ${state.formation.label} · Team rating: ${state.teamRating}</span>
       </div>
       <div class="result-team">${teamHtml}</div>
       <div class="result-actions">
@@ -998,7 +1020,7 @@ function renderResult(app) {
 
 function restart() {
   resetState();
-  state.phase = 'formation';
+  state.phase = 'splash';
   render();
 }
 
