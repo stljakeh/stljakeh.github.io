@@ -362,7 +362,8 @@ async function refresh() {
   spinner.classList.remove('hidden');
   label.textContent = 'Updating';
 
-  await Promise.all(TEAMS.map(t => fetchTeam(t)));
+  window._mlsOverall = {};
+  await Promise.all([...TEAMS.map(t => fetchTeam(t)), fetchMlsStandings()]);
 
   const now = new Date();
   const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -412,6 +413,29 @@ async function fetchTeam(team) {
   renderTeam(team, data, lastEvent, nextEvent);
 }
 
+async function fetchMlsStandings() {
+  try {
+    const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/standings');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const entries = data?.standings?.entries;
+    if (!entries) return;
+    for (const entry of entries) {
+      const tid = entry.team?.id;
+      if (!tid) continue;
+      const rankStat = entry.stats?.find(s => s.name === 'rank');
+      if (rankStat && rankStat.value != null) {
+        const r = Math.round(rankStat.value);
+        window._mlsOverall[tid] = r + suffix(r);
+      }
+    }
+  } catch (e) { /* non-fatal */ }
+}
+function suffix(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
 function findStat(stats, name) {
   const s = stats.find(s => s.name === name);
   return s ? s.value : null;
@@ -442,7 +466,14 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const t = data.team;
   const record = t.record && t.record.items ? t.record.items[0] : null;
   const statsArr = record ? (record.stats || []) : [];
-  const standingSummary = team.standingOverride || t.standingSummary || '';
+  let standingSummary = team.standingOverride || t.standingSummary || '';
+  standingSummary = standingSummary.replace('NL Cent', 'NL Central');
+  if (standingSummary.includes('in MLS')) {
+    standingSummary = standingSummary.replace('in MLS', 'in Western Conference');
+    if (window._mlsOverall && window._mlsOverall[team.id]) {
+      standingSummary += ` | ${window._mlsOverall[team.id]} in MLS`;
+    }
+  }
 
   const wins = findStat(statsArr, 'wins') || 0;
   const losses = findStat(statsArr, 'losses') || 0;
