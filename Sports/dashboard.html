@@ -298,7 +298,7 @@ const TEAMS = [
     id: '112651',
     name: 'BattleHawks',
     league: 'UFL',
-    leagueFull: 'XFL Conference',
+    leagueFull: 'UFL',
     sport: 'football',
     leagueSlug: 'ufl',
     cardClass: 'battlehawks',
@@ -339,7 +339,7 @@ function buildCards() {
           <div class="team-icon">${t.icon}</div>
           <div>
             <div class="team-name">${t.name}</div>
-            <div class="team-league">${t.league} &middot; ${t.leagueFull}</div>
+            <div class="team-league">${t.league}${t.leagueFull && t.leagueFull !== t.league ? ' &middot; ' + t.leagueFull : ''}</div>
           </div>
         </div>
         <span class="status-badge ${t.statusClass}" id="badge-${t.cardClass}">${t.statusText}</span>
@@ -447,7 +447,7 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const wins = findStat(statsArr, 'wins') || 0;
   const losses = findStat(statsArr, 'losses') || 0;
   const ties = findStat(statsArr, 'ties') || 0;
-  const otLosses = findStat(statsArr, 'OTLosses') || 0;
+  const otLosses = findStat(statsArr, 'otLosses') || 0;
   const pts = findStat(statsArr, 'points');
   const streakVal = findStat(statsArr, 'streak');
 
