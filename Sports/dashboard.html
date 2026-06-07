@@ -392,7 +392,8 @@ async function fetchTeam(team) {
     const schedResp = await fetch(`${baseUrl}/schedule`);
     if (schedResp.ok) {
       const schedData = await schedResp.json();
-      const events = schedData.events || [];
+      let events = schedData.events || [];
+      events.sort((a, b) => new Date(a.date) - new Date(b.date));
       for (let i = events.length - 1; i >= 0; i--) {
         const e = events[i];
         const st = e.competitions?.[0]?.status?.type;
