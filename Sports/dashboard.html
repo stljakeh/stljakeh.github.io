@@ -393,20 +393,15 @@ async function fetchTeam(team) {
     if (schedResp.ok) {
       const schedData = await schedResp.json();
       let events = schedData.events || [];
-      events.sort((a, b) => new Date(a.date) - new Date(b.date));
-      for (let i = events.length - 1; i >= 0; i--) {
-        const e = events[i];
-        const st = e.competitions?.[0]?.status?.type;
-        if (st && (st.completed === true || st.state === 'post')) {
-          lastEvent = e;
-          break;
-        }
-      }
+      let lastDate = null, nextDate = null;
       for (const e of events) {
         const st = e.competitions?.[0]?.status?.type;
-        if (st && (st.completed === false || st.state === 'pre' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
-          nextEvent = e;
-          break;
+        const d = new Date(e.date);
+        if (!isFinite(d)) continue;
+        if (st && (st.completed === true || st.state === 'post')) {
+          if (!lastDate || d > lastDate) { lastDate = d; lastEvent = e; }
+        } else if (st && (st.completed === false || st.state === 'pre' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
+          if (!nextDate || d < nextDate) { nextDate = d; nextEvent = e; }
         }
       }
     }
