@@ -344,6 +344,7 @@ nav .current {
 .result-screen .big-record.perfect { color: #4caf50; animation: glow 2s ease-in-out infinite; }
 @keyframes glow { 0%, 100% { text-shadow: 0 0 10px rgba(76,175,80,0.3); } 50% { text-shadow: 0 0 30px rgba(76,175,80,0.7); } }
 .result-screen .big-record.normal { color: #e0e0e0; }
+.result-screen .big-record.champion { color: #FFD700; animation: glow 2s ease-in-out infinite; }
 .result-screen .result-title { font-size: 1.2rem; color: #888; margin-bottom: 24px; }
 .result-screen .result-detail { font-size: 0.85rem; color: #666; margin-bottom: 32px; line-height: 1.6; }
 .result-screen .result-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
@@ -355,6 +356,41 @@ nav .current {
   border-radius: 12px;
   font-size: 0.75rem;
 }
+
+/* ===== PLAYOFFS ===== */
+.standings-wrap { display: flex; gap: 20px; width: 100%; }
+.standings-conf { flex: 1; min-width: 0; }
+.standings-conf h2 { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; text-align: center; }
+.standings-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.standings-table th { color: #555; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; padding: 4px 6px; text-align: center; border-bottom: 1px solid #2a2a2a; }
+.standings-table td { padding: 5px 6px; text-align: center; border-bottom: 1px solid #1a1a1a; }
+.standings-table tr.user-row { background: rgba(232,10,77,0.15); }
+.standings-table tr.user-row td { color: #e0e0e0; font-weight: 600; }
+.standings-table tr.playoff-line td { border-bottom: 2px solid #E80A4D; }
+.standings-table .s-team { text-align: left; }
+.standings-table .s-pts { font-weight: 700; color: #4caf50; }
+.standings-table .s-rating { color: #888; }
+.standings-table .s-seed { font-weight: 700; color: #E80A4D; }
+.bracket {
+  display: flex; justify-content: center; gap: 24px;
+  padding: 16px; background: #1a1a1a; border-radius: 12px; border: 1px solid #2a2a2a; margin-bottom: 16px;
+  overflow-x: auto; flex-wrap: wrap;
+}
+.bracket-round { min-width: 120px; }
+.bracket-round h3 { font-size: 0.65rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; text-align: center; }
+.bracket-matchup {
+  background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 6px 10px; margin-bottom: 6px;
+  font-size: 0.7rem; text-align: center;
+}
+.bracket-matchup .bm-team { padding: 2px 0; }
+.bracket-matchup .bm-team.active { color: #e0e0e0; font-weight: 700; }
+.bracket-matchup .bm-team.eliminated { color: #444; }
+.bracket-matchup .bm-team.winner { color: #4caf50; }
+.bracket-matchup .bm-team.loser { color: #555; }
+.bracket-matchup .bm-score { font-size: 0.6rem; color: #666; }
+.series-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px; }
+.series-badge.active { background: #1a3a1a; color: #4caf50; }
+.series-badge.eliminated { background: #3a1a1a; color: #f44336; }
 
 /* ===== LOADING ===== */
 .loading { text-align: center; padding: 60px; color: #666; font-size: 0.9rem; }
@@ -380,6 +416,10 @@ nav .current {
   .modal-box { padding: 24px; }
   .splash h1 { font-size: 3rem; }
   .result-screen .big-record { font-size: 3rem; }
+  .standings-wrap { flex-direction: column; }
+  .standings-table { font-size: 0.7rem; }
+  .standings-table td, .standings-table th { padding: 3px 4px; }
+  .bracket { gap: 12px; }
 }
 </style>
 </head>
@@ -420,37 +460,40 @@ const DIFFICULTIES = {
 
 // ========== MLS TEAMS ==========
 const allMlsTeams = [
-  { id: '18418', name: 'Atlanta United FC', abbr: 'ATL' },
-  { id: '20906', name: 'Austin FC', abbr: 'ATX' },
-  { id: '9720',  name: 'CF Montréal', abbr: 'MTL' },
-  { id: '21300', name: 'Charlotte FC', abbr: 'CLT' },
-  { id: '182',   name: 'Chicago Fire FC', abbr: 'CHI' },
-  { id: '184',   name: 'Colorado Rapids', abbr: 'COL' },
-  { id: '183',   name: 'Columbus Crew', abbr: 'CLB' },
-  { id: '193',   name: 'D.C. United', abbr: 'DC' },
-  { id: '18267', name: 'FC Cincinnati', abbr: 'CIN' },
-  { id: '185',   name: 'FC Dallas', abbr: 'DAL' },
-  { id: '6077',  name: 'Houston Dynamo FC', abbr: 'HOU' },
-  { id: '20232', name: 'Inter Miami CF', abbr: 'MIA' },
-  { id: '187',   name: 'LA Galaxy', abbr: 'LA' },
-  { id: '18966', name: 'LAFC', abbr: 'LAFC' },
-  { id: '17362', name: 'Minnesota United FC', abbr: 'MIN' },
-  { id: '18986', name: 'Nashville SC', abbr: 'NSH' },
-  { id: '189',   name: 'New England Revolution', abbr: 'NE' },
-  { id: '17606', name: 'New York City FC', abbr: 'NYC' },
-  { id: '12011', name: 'Orlando City SC', abbr: 'ORL' },
-  { id: '10739', name: 'Philadelphia Union', abbr: 'PHI' },
-  { id: '9723',  name: 'Portland Timbers', abbr: 'POR' },
-  { id: '4771',  name: 'Real Salt Lake', abbr: 'RSL' },
-  { id: '190',   name: 'Red Bull New York', abbr: 'RBNY' },
-  { id: '22529', name: 'San Diego FC', abbr: 'SD' },
-  { id: '191',   name: 'San Jose Earthquakes', abbr: 'SJ' },
-  { id: '9726',  name: 'Seattle Sounders FC', abbr: 'SEA' },
-  { id: '186',   name: 'Sporting Kansas City', abbr: 'SKC' },
-  { id: '21812', name: 'St. Louis CITY SC', abbr: 'STL' },
-  { id: '7318',  name: 'Toronto FC', abbr: 'TOR' },
-  { id: '9727',  name: 'Vancouver Whitecaps', abbr: 'VAN' },
+  { id: '18418', name: 'Atlanta United FC', abbr: 'ATL', conf: 'east' },
+  { id: '20906', name: 'Austin FC', abbr: 'ATX', conf: 'west' },
+  { id: '9720',  name: 'CF Montréal', abbr: 'MTL', conf: 'east' },
+  { id: '21300', name: 'Charlotte FC', abbr: 'CLT', conf: 'east' },
+  { id: '182',   name: 'Chicago Fire FC', abbr: 'CHI', conf: 'east' },
+  { id: '184',   name: 'Colorado Rapids', abbr: 'COL', conf: 'west' },
+  { id: '183',   name: 'Columbus Crew', abbr: 'CLB', conf: 'east' },
+  { id: '193',   name: 'D.C. United', abbr: 'DC', conf: 'east' },
+  { id: '18267', name: 'FC Cincinnati', abbr: 'CIN', conf: 'east' },
+  { id: '185',   name: 'FC Dallas', abbr: 'DAL', conf: 'west' },
+  { id: '6077',  name: 'Houston Dynamo FC', abbr: 'HOU', conf: 'west' },
+  { id: '20232', name: 'Inter Miami CF', abbr: 'MIA', conf: 'east' },
+  { id: '187',   name: 'LA Galaxy', abbr: 'LA', conf: 'west' },
+  { id: '18966', name: 'LAFC', abbr: 'LAFC', conf: 'west' },
+  { id: '17362', name: 'Minnesota United FC', abbr: 'MIN', conf: 'west' },
+  { id: '18986', name: 'Nashville SC', abbr: 'NSH', conf: 'east' },
+  { id: '189',   name: 'New England Revolution', abbr: 'NE', conf: 'east' },
+  { id: '17606', name: 'New York City FC', abbr: 'NYC', conf: 'east' },
+  { id: '12011', name: 'Orlando City SC', abbr: 'ORL', conf: 'east' },
+  { id: '10739', name: 'Philadelphia Union', abbr: 'PHI', conf: 'east' },
+  { id: '9723',  name: 'Portland Timbers', abbr: 'POR', conf: 'west' },
+  { id: '4771',  name: 'Real Salt Lake', abbr: 'RSL', conf: 'west' },
+  { id: '190',   name: 'Red Bull New York', abbr: 'RBNY', conf: 'east' },
+  { id: '22529', name: 'San Diego FC', abbr: 'SD', conf: 'west' },
+  { id: '191',   name: 'San Jose Earthquakes', abbr: 'SJ', conf: 'west' },
+  { id: '9726',  name: 'Seattle Sounders FC', abbr: 'SEA', conf: 'west' },
+  { id: '186',   name: 'Sporting Kansas City', abbr: 'SKC', conf: 'west' },
+  { id: '21812', name: 'St. Louis CITY SC', abbr: 'STL', conf: 'west' },
+  { id: '7318',  name: 'Toronto FC', abbr: 'TOR', conf: 'east' },
+  { id: '9727',  name: 'Vancouver Whitecaps', abbr: 'VAN', conf: 'west' },
 ];
+const USER_TEAM_ID = '21812';
+const USER_CONF = 'west';
+const PLAYOFF_TEAMS = 9;
 
 // ========== STATE ==========
 const state = {
@@ -466,6 +509,21 @@ const state = {
   currentGame: 0,
   record: { w: 0, d: 0, l: 0 },
   playerStats: {},
+  // Playoff state
+  teamBaseRatings: null,
+  standings: null,
+  userSeed: null,
+  userConfSeed: null,
+  playoffPhase: null,
+  playoffRound: 0,
+  playoffMatchupIdx: 0,
+  seriesWins: { us: 0, them: 0 },
+  seriesGames: [],
+  currentPlayoffOpponent: null,
+  playoffOppSeed: null,
+  playoffRecord: { w: 0, l: 0 },
+  wonPlayoffs: false,
+  playoffLog: [],
 };
 
 function createSlots(f) {
@@ -489,6 +547,20 @@ function resetState() {
   state.currentGame = 0;
   state.record = { w: 0, d: 0, l: 0 };
   state.playerStats = {};
+  state.teamBaseRatings = null;
+  state.standings = null;
+  state.userSeed = null;
+  state.userConfSeed = null;
+  state.playoffPhase = null;
+  state.playoffRound = 0;
+  state.playoffMatchupIdx = 0;
+  state.seriesWins = { us: 0, them: 0 };
+  state.seriesGames = [];
+  state.currentPlayoffOpponent = null;
+  state.playoffOppSeed = null;
+  state.playoffRecord = { w: 0, l: 0 };
+  state.wonPlayoffs = false;
+  state.playoffLog = [];
 }
 
 // ========== API ==========
@@ -651,10 +723,19 @@ function startSeason() {
   const ratings = state.slots.map(s => s.player.rating);
   state.teamRating = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
   const diff = DIFFICULTIES[state.difficulty];
+
+  // Assign base ratings to all MLS teams
+  state.teamBaseRatings = {};
+  const otherTeams = allMlsTeams.filter(t => t.id !== USER_TEAM_ID);
+  otherTeams.forEach(t => {
+    state.teamBaseRatings[t.id] = Math.round(40 + Math.random() * 35);
+  });
+  state.teamBaseRatings[USER_TEAM_ID] = state.teamRating;
+
   state.games = [];
   for (let i = 0; i < TOTAL_GAMES; i++) {
-    const team = allMlsTeams[Math.floor(Math.random() * allMlsTeams.length)];
-    const rating = Math.round(diff.oppMin + Math.random() * diff.oppRange);
+    const team = otherTeams[Math.floor(Math.random() * otherTeams.length)];
+    const rating = state.teamBaseRatings[team.id];
     state.games.push({ team, rating, result: null, score: null });
   }
   state.currentGame = 0;
@@ -756,6 +837,512 @@ function advanceGame() {
 function isSeasonComplete() { return state.currentGame >= TOTAL_GAMES; }
 function isPerfect() { return state.record.w === TOTAL_GAMES && state.record.d === 0 && state.record.l === 0; }
 
+// ========== STANDINGS GENERATION ==========
+function generateStandings() {
+  if (state.standings) return;
+  const diff = DIFFICULTIES[state.difficulty];
+  const teams = allMlsTeams.map(t => {
+    if (t.id === USER_TEAM_ID) {
+      return {
+        ...t,
+        rating: state.teamRating,
+        w: state.record.w,
+        d: state.record.d,
+        l: state.record.l,
+        pts: state.record.w * 3 + state.record.d,
+        userTeam: true,
+      };
+    }
+    // Auto-sim other teams' 34-game seasons
+    const rating = state.teamBaseRatings[t.id] || 50;
+    let w = 0, d = 0, l = 0;
+    const otherTeams = allMlsTeams.filter(x => x.id !== t.id);
+    for (let i = 0; i < TOTAL_GAMES; i++) {
+      const opp = otherTeams[Math.floor(Math.random() * otherTeams.length)];
+      const oppR = state.teamBaseRatings[opp.id] || 50;
+      const result = simulateGame(rating, oppR, diff.drawRate);
+      if (result === 'W') w++;
+      else if (result === 'D') d++;
+      else l++;
+    }
+    return {
+      ...t,
+      rating,
+      w, d, l,
+      pts: w * 3 + d,
+      userTeam: false,
+    };
+  });
+
+  const east = teams.filter(t => t.conf === 'east').sort((a, b) => b.pts - a.pts || b.w - a.w);
+  const west = teams.filter(t => t.conf === 'west').sort((a, b) => b.pts - a.pts || b.w - a.w);
+  state.standings = { east, west };
+
+  // Find user seed
+  const userConf = teams.filter(t => t.conf === USER_CONF).sort((a, b) => b.pts - a.pts || b.w - a.w);
+  for (let i = 0; i < userConf.length; i++) {
+    if (userConf[i].userTeam) {
+      state.userConfSeed = i + 1;
+      state.userSeed = userConf[i];
+      break;
+    }
+  }
+}
+
+// ========== PLAYOFF SIMULATION ==========
+function simulatePlayoffGame(userRating, oppRating) {
+  const winProb = userRating / (userRating + oppRating);
+  const r = Math.random();
+  if (r < winProb) return 'W';
+  return 'L';
+}
+
+function generatePlayoffScore(result, userRating, oppRating) {
+  const diff = userRating - oppRating;
+  const base = Math.max(1, Math.min(5, Math.round(1.5 + (diff / 25) + (Math.random() - 0.3))));
+  if (result === 'W') {
+    const ourGoals = Math.max(1, base + 1);
+    const theirGoals = Math.max(0, Math.min(ourGoals - 1, Math.round(base * 0.3 + Math.random() * 0.5)));
+    return { us: ourGoals, them: theirGoals };
+  } else {
+    const theirGoals = Math.max(1, base + 2);
+    const ourGoals = Math.max(0, Math.min(theirGoals - 1, Math.round(base * 0.2 + Math.random() * 0.5)));
+    return { us: ourGoals, them: theirGoals };
+  }
+}
+
+function simPlayoffSeries(teamRating, oppRating, gamesToWin) {
+  let ourWins = 0, theirWins = 0;
+  while (ourWins < gamesToWin && theirWins < gamesToWin) {
+    const result = simulatePlayoffGame(teamRating, oppRating);
+    if (result === 'W') ourWins++;
+    else theirWins++;
+  }
+  return { ourWins, theirWins, won: ourWins > theirWins };
+}
+
+function simSinglePlayoffGame(teamRating, oppRating) {
+  const result = simulatePlayoffGame(teamRating, oppRating);
+  const score = generatePlayoffScore(result, teamRating, oppRating);
+  return { result, score, won: result === 'W' };
+}
+
+function autoSimTeamSeason(teamId) {
+  const rating = state.teamBaseRatings[teamId] || 50;
+  const diff = DIFFICULTIES[state.difficulty];
+  let w = 0, d = 0, l = 0;
+  const others = allMlsTeams.filter(t => t.id !== teamId);
+  for (let i = 0; i < TOTAL_GAMES; i++) {
+    const opp = others[Math.floor(Math.random() * others.length)];
+    const oppR = state.teamBaseRatings[opp.id] || 50;
+    const result = simulateGame(rating, oppR, diff.drawRate);
+    if (result === 'W') w++;
+    else if (result === 'D') d++;
+    else l++;
+  }
+  return { w, d, l, pts: w * 3 + d, rating };
+}
+
+function getPlayoffOppInfo(confStandings, seed) {
+  const entry = confStandings.find(t => !t.userTeam && confStandings.indexOf(t) + 1 === seed);
+  return entry || confStandings[seed - 1];
+}
+
+function findUserMatchupOpponent(confStandings, userSeed) {
+  // Wild card: user is 8 or 9
+  if (userSeed === 8) return { opponent: confStandings[8], oppSeed: 9, round: 'Wild Card', bo3: false };
+  if (userSeed === 9) return { opponent: confStandings[7], oppSeed: 8, round: 'Wild Card', bo3: false };
+  // Round 1 (Bo3): standard seeding
+  const pairings = [
+    { seed: 1, oppSeed: 8 }, // wild card winner → seed 1 opponent is the WC winner (8 or 9)
+    { seed: 2, oppSeed: 7 },
+    { seed: 3, oppSeed: 6 },
+    { seed: 4, oppSeed: 5 },
+    { seed: 5, oppSeed: 4 },
+    { seed: 6, oppSeed: 3 },
+    { seed: 7, oppSeed: 2 },
+  ];
+  for (const p of pairings) {
+    if (p.seed === userSeed) {
+      const opp = confStandings[p.oppSeed - 1];
+      return { opponent: opp, oppSeed: p.oppSeed, round: 'Round 1', bo3: true };
+    }
+  }
+  return null;
+}
+
+function determinePlayoffPath() {
+  generateStandings();
+  const conf = state.standings[USER_CONF];
+  const seed = state.userConfSeed;
+  if (!seed || seed > PLAYOFF_TEAMS) return null;
+
+  const path = [];
+  const wcTeams = [];
+
+  // Pre-compute wild card if user isn't 1-7 (auto sim)
+  if (seed >= 8) {
+    // User plays wild card
+    const opp = seed === 8 ? conf[8] : conf[7];
+    path.push({ round: 'Wild Card', opponent: opp, oppSeed: opp.userTeam ? null : (seed === 8 ? 9 : 8), bo3: false });
+  } else {
+    // Auto-sim wild card between 8 and 9
+    const wcResult = simSinglePlayoffGame(
+      conf[7].rating,
+      conf[8].rating
+    );
+    const wcWinner = wcResult.won ? conf[7] : conf[8];
+    const wcWinnerSeed = wcResult.won ? 8 : 9;
+    // User (seed 1-7) faces appropriate opponent
+    const userMatchup = findUserMatchupOpponent(conf, seed);
+    if (userMatchup) {
+      let opp;
+      if (seed === 1) {
+        opp = wcWinner;
+      } else {
+        opp = userMatchup.opponent;
+      }
+      path.push({
+        round: userMatchup.round,
+        opponent: opp,
+        oppSeed: userMatchup.oppSeed,
+        bo3: userMatchup.bo3,
+      });
+    }
+  }
+
+  // Semifinal
+  // Determine possible opponents based on bracket path
+  path.push({ round: 'Conference Semifinal', opponent: null, oppSeed: null, bo3: false });
+  path.push({ round: 'Conference Final', opponent: null, oppSeed: null, bo3: false });
+  path.push({ round: 'MLS Cup', opponent: null, oppSeed: null, bo3: false });
+
+  return path;
+}
+
+function autoSimEastBracket() {
+  const conf = state.standings.east;
+  if (!conf || conf.length < 9) return null;
+
+  // Wild card
+  const wc = simSinglePlayoffGame(conf[7].rating, conf[8].rating);
+  const wcWinner = wc.won ? conf[7] : conf[8];
+
+  // Round 1 (Bo3)
+  const r1 = [
+    { a: conf[0], b: wcWinner, bo3: true },
+    { a: conf[1], b: conf[6], bo3: true },
+    { a: conf[2], b: conf[5], bo3: true },
+    { a: conf[3], b: conf[4], bo3: true },
+  ];
+  const r1Winners = r1.map(m => {
+    const res = simPlayoffSeries(m.a.rating, m.b.rating, 2);
+    return res.won ? m.a : m.b;
+  });
+
+  // Semifinals
+  const semi1 = simSinglePlayoffGame(r1Winners[0].rating, r1Winners[3].rating);
+  const semi2 = simSinglePlayoffGame(r1Winners[1].rating, r1Winners[2].rating);
+  const semiWinners = [semi1.won ? r1Winners[0] : r1Winners[3], semi2.won ? r1Winners[1] : r1Winners[2]];
+
+  // Conference final
+  const confFinal = simSinglePlayoffGame(semiWinners[0].rating, semiWinners[1].rating);
+  return confFinal.won ? semiWinners[0] : semiWinners[1];
+}
+
+function enterPlayoffs() {
+  generateStandings();
+  const conf = state.standings[USER_CONF];
+  const seed = state.userConfSeed;
+  if (!seed || seed > PLAYOFF_TEAMS) return;
+  state.playoffRecord = { w: 0, l: 0 };
+  state.playoffLog = [];
+
+  if (seed >= 8) {
+    // Wild Card
+    const opp = seed === 8 ? conf[8] : conf[7];
+    state.currentPlayoffOpponent = { team: opp, seed: seed === 8 ? 9 : 8 };
+    state.playoffRound = -1;
+  } else {
+    // Auto-sim wild card between 8 and 9
+    const wc = simSinglePlayoffGame(conf[7].rating, conf[8].rating);
+    const wcWinner = wc.won ? conf[7] : conf[8];
+    const wcWinnerSeed = wc.won ? 8 : 9;
+    const pairings = { 1: null, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2 };
+    let oppTeam, oppSeed;
+    if (seed === 1) {
+      oppTeam = wcWinner;
+      oppSeed = wcWinnerSeed;
+    } else {
+      oppSeed = pairings[seed];
+      oppTeam = conf[oppSeed - 1];
+    }
+    state.currentPlayoffOpponent = { team: oppTeam, seed: oppSeed };
+    state.playoffRound = 0;
+  }
+  state.playoffPhase = 'pregame';
+  state.seriesWins = { us: 0, them: 0 };
+  state.seriesGames = [];
+  state.phase = 'playoff';
+  render();
+}
+
+function advancePlayoff() {
+  const opp = state.currentPlayoffOpponent;
+  if (!opp) return null;
+
+  const isBo3 = state.playoffRound === 0;
+  const userRating = state.teamRating;
+  const oppRating = opp.team.rating;
+
+  if (isBo3) {
+    const result = simulatePlayoffGame(userRating, oppRating);
+    const score = generatePlayoffScore(result, userRating, oppRating);
+    state.seriesGames.push({ result, score });
+    if (result === 'W') state.seriesWins.us++;
+    else state.seriesWins.them++;
+
+    if (state.seriesWins.us >= 2 || state.seriesWins.them >= 2) {
+      // Series over
+      const won = state.seriesWins.us >= 2;
+      if (won) state.playoffRecord.w++;
+      else state.playoffRecord.l++;
+      state.playoffLog.push({ round: 'Round 1', opponent: opp.team.name, won, seriesWins: { ...state.seriesWins } });
+      return { result, score, seriesOver: true, won, isBo3: true, seriesWins: { ...state.seriesWins }, gameNum: state.seriesGames.length };
+    }
+    return { result, score, seriesOver: false, won: result === 'W', isBo3: true, seriesWins: { ...state.seriesWins }, gameNum: state.seriesGames.length };
+  } else {
+    // Single game
+    const result = simulatePlayoffGame(userRating, oppRating);
+    const score = generatePlayoffScore(result, userRating, oppRating);
+    const won = result === 'W';
+    if (won) state.playoffRecord.w++;
+    else state.playoffRecord.l++;
+    return { result, score, seriesOver: true, won, isBo3: false, seriesWins: { us: won ? 1 : 0, them: won ? 0 : 1 }, gameNum: 1 };
+  }
+}
+
+// ========== PLAYOFF RENDER ==========
+function renderPlayoff(app) {
+  const opp = state.currentPlayoffOpponent;
+  if (!opp || !opp.team) { state.phase = 'result'; render(); return; }
+
+  const seed = state.userConfSeed;
+  const roundLabels = { '-1': 'Wild Card', '0': 'Round 1', '1': 'Conference Semifinal', '2': 'Conference Final', '3': 'MLS Cup' };
+  const roundLabel = roundLabels[String(state.playoffRound)] || 'Playoff';
+  const isBo3 = state.playoffRound === 0;
+  const seriesGames = state.seriesGames.length;
+  const seriesTotal = isBo3 ? ` (Game ${seriesGames + 1} of up to 3)` : '';
+
+  const oppRating = opp.team.rating || 50;
+  const winProb = state.teamRating / (state.teamRating + oppRating);
+  const seedDisplay = opp.seed !== null && opp.seed !== undefined ? `#${opp.seed}` : '';
+
+  let seriesScoreHtml = '';
+  if (isBo3) {
+    const svg = `<span class="series-badge ${state.seriesWins.us > 0 ? 'active' : ''}">${state.seriesWins.us}</span>`;
+    const ovg = `<span class="series-badge ${state.seriesWins.them > 0 ? (state.seriesWins.them >= 2 ? 'eliminated' : 'active') : ''}">${state.seriesWins.them}</span>`;
+    seriesScoreHtml = `<div style="text-align:center;font-size:1rem;margin-bottom:12px;">Series: ${svg} – ${ovg}</div>`;
+  }
+
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">${DIFFICULTIES[state.difficulty].label} &middot; ${roundLabel}</p>
+
+    ${seriesScoreHtml}
+
+    <div class="game-preview">
+      <div class="gp-num">${roundLabel}${seriesTotal}</div>
+      <div class="gp-matchup">#${seed} ${state.teamRating} vs ${seedDisplay} ${opp.team.abbr} (${oppRating})</div>
+      <div class="gp-detail">${opp.team.name} &middot; Your rating: ${state.teamRating} &middot; Opponent rating: ${oppRating}</div>
+      <div class="gp-win-prob">Win probability: <strong>${(winProb * 100).toFixed(0)}%</strong></div>
+    </div>
+
+    <div style="text-align:center;margin-top:8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="playPlayoffGame()">Play Game</button>
+      <button class="btn btn-secondary" onclick="simAllPlayoffs()">Sim All Playoffs</button>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="stats-bar">
+        <span>Playoff Record: <strong>${state.playoffRecord.w}W – ${state.playoffRecord.l}L</strong></span>
+        <span>Round: <strong>${roundLabel}</strong></span>
+      </div>
+    </div>
+
+    <div class="result-team" style="margin-top:12px;">
+      ${state.slots.map(s =>
+        `<span class="rt-player">${POS_LABELS[s.pos]} ${s.player.fullName} (${s.player.rating})</span>`
+      ).join('')}
+    </div>
+  `;
+}
+
+function playPlayoffGame() {
+  const result = advancePlayoff();
+  if (!result) return;
+  showPlayoffGameResult(result);
+  setTimeout(() => {
+    closeModal();
+    if (result.seriesOver) {
+      handlePlayoffAdvancement(result.won);
+    } else {
+      state.playoffPhase = 'pregame';
+      render();
+    }
+  }, 2200);
+}
+
+function showPlayoffGameResult(result) {
+  const modal = document.getElementById('modal');
+  const color = result.won ? 'win' : 'loss';
+  const label = result.won ? 'WIN' : 'LOSS';
+  const opp = state.currentPlayoffOpponent;
+  const isBo3 = result.isBo3;
+  let seriesDetail = '';
+  if (isBo3) {
+    seriesDetail = `<div style="color:#888;font-size:0.75rem;margin-top:4px;">Series: ${result.seriesWins.us} – ${result.seriesWins.them}</div>`;
+  }
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="m-result ${color}">${label}</div>
+      <div class="m-score">${result.score.us} - ${result.score.them}</div>
+      <div class="m-sub">vs ${opp.team.name} #${opp.seed}</div>
+      ${seriesDetail}
+      ${result.isBo3 && !result.seriesOver ? `<div style="color:#ff9800;font-size:0.8rem;margin-top:8px;">Next game in series...</div>` : ''}
+      ${result.seriesOver ? `<div style="color:#4caf50;font-size:0.85rem;font-weight:700;margin-top:8px;">${result.won ? 'Series won!' : 'Eliminated'}</div>` : ''}
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
+function simAllPlayoffs() {
+  while (true) {
+    const result = advancePlayoff();
+    if (!result) break;
+    if (!result.seriesOver) continue;
+    const keepGoing = handlePlayoffAdvancement(result.won, true);
+    if (!keepGoing) break;
+  }
+  render();
+}
+
+function handlePlayoffAdvancement(won, silent) {
+  const seed = state.userConfSeed;
+  const conf = state.standings[USER_CONF];
+
+  if (!won) {
+    state.phase = 'champion';
+    state.wonPlayoffs = false;
+    state.playoffLog.push({ round: 'Eliminated', won: false });
+    if (!silent) render();
+    return false;
+  }
+
+  // Wild Card won → advance to Round 1 vs seed 1
+  if (state.playoffRound === -1) {
+    state.currentPlayoffOpponent = { team: conf[0], seed: 1 };
+    state.seriesWins = { us: 0, them: 0 };
+    state.seriesGames = [];
+    state.playoffRound = 0;
+    state.playoffLog.push({ round: 'Wild Card', opponent: conf[0].name, won: true });
+    if (!silent) { state.playoffPhase = 'pregame'; render(); }
+    return true;
+  }
+
+  // Round 1 (Bo3) won → advance to Conference Semifinal
+  if (state.playoffRound === 0) {
+    // Determine which bracket half the user is in
+    const topHalfSeeds = [[1, 8], [4, 5]];
+    const bottomHalfSeeds = [[2, 7], [3, 6]];
+
+    let userHalf, otherHalf;
+    if (seed <= 1 || seed === 8 || seed === 9 || seed === 4 || seed === 5) {
+      userHalf = topHalfSeeds;
+      otherHalf = bottomHalfSeeds;
+    } else {
+      userHalf = bottomHalfSeeds;
+      otherHalf = topHalfSeeds;
+    }
+
+    // Auto-sim the other matchup in user's half to find opponent
+    const otherMatchup = userHalf.find(pair => !pair.includes(seed) && !(seed >= 8 && pair.includes(8)));
+    let oppTeam;
+    if (otherMatchup) {
+      const a = conf[otherMatchup[0] - 1];
+      const b = otherMatchup[1] <= conf.length ? conf[otherMatchup[1] - 1] : null;
+      if (a && b) {
+        const res = simPlayoffSeries(a.rating, b.rating, 2);
+        oppTeam = res.won ? a : b;
+      } else if (a) {
+        oppTeam = a;
+      }
+    }
+
+    state.currentPlayoffOpponent = { team: oppTeam, seed: null };
+    state.seriesWins = { us: 0, them: 0 };
+    state.seriesGames = [];
+    state.playoffRound = 1;
+    state.playoffLog.push({ round: 'Round 1', won: true });
+    if (!silent) { state.playoffPhase = 'pregame'; render(); }
+    return true;
+  }
+
+  // Conference Semifinal won → advance to Conference Final
+  if (state.playoffRound === 1) {
+    state.playoffLog.push({ round: 'Conference Semifinal', won: true });
+    // Auto-sim the other semifinal: (2/7) vs (3/6) or (1/4/5/8/9) opposite
+    const topHalfSeeds = [[1, 8], [4, 5]];
+    const bottomHalfSeeds = [[2, 7], [3, 6]];
+    let userHalf, otherHalf;
+    if (seed <= 1 || seed === 8 || seed === 9 || seed === 4 || seed === 5) {
+      userHalf = topHalfSeeds;
+      otherHalf = bottomHalfSeeds;
+    } else {
+      userHalf = bottomHalfSeeds;
+      otherHalf = topHalfSeeds;
+    }
+    // Auto-sim the two other-half matchups to find the conference final opponent
+    const otherRes1 = otherHalf[0] ? simPlayoffSeries(conf[(otherHalf[0][0] || 2) - 1].rating, conf[Math.min(otherHalf[0][1] || 7, conf.length) - 1].rating, 2) : null;
+    const otherRes2 = otherHalf[1] ? simPlayoffSeries(conf[(otherHalf[1][0] || 3) - 1].rating, conf[Math.min(otherHalf[1][1] || 6, conf.length) - 1].rating, 2) : null;
+    const otherSemiA = otherRes1 ? (otherRes1.won ? conf[(otherHalf[0][0] || 2) - 1] : conf[Math.min(otherHalf[0][1] || 7, conf.length) - 1]) : null;
+    const otherSemiB = otherRes2 ? (otherRes2.won ? conf[(otherHalf[1][0] || 3) - 1] : conf[Math.min(otherHalf[1][1] || 6, conf.length) - 1]) : null;
+    const confFinal = otherSemiA && otherSemiB ? simSinglePlayoffGame(otherSemiA.rating, otherSemiB.rating) : null;
+    const oppTeam = confFinal ? (confFinal.won ? otherSemiA : otherSemiB) : (otherSemiA || otherSemiB);
+    state.currentPlayoffOpponent = { team: oppTeam, seed: null };
+    state.playoffRound = 2;
+    state.seriesWins = { us: 0, them: 0 };
+    state.seriesGames = [];
+    if (!silent) { state.playoffPhase = 'pregame'; render(); }
+    return true;
+  }
+
+  // Conference Final won → advance to MLS Cup
+  if (state.playoffRound === 2) {
+    state.playoffLog.push({ round: 'Conference Final', won: true });
+    const eastChamp = autoSimEastBracket();
+    state.currentPlayoffOpponent = { team: eastChamp, seed: 'E' };
+    state.playoffRound = 3;
+    state.seriesWins = { us: 0, them: 0 };
+    state.seriesGames = [];
+    if (!silent) { state.playoffPhase = 'pregame'; render(); }
+    return true;
+  }
+
+  // MLS Cup won → CHAMPION
+  if (state.playoffRound === 3) {
+    state.playoffLog.push({ round: 'MLS Cup', won: true });
+    state.wonPlayoffs = true;
+    state.phase = 'champion';
+    if (!silent) render();
+    return false;
+  }
+
+  state.phase = 'champion';
+  if (!silent) render();
+  return false;
+}
+
 // ========== RENDER ==========
 function render() {
   const app = document.getElementById('app');
@@ -765,6 +1352,9 @@ function render() {
     case 'draft': renderDraft(app); break;
     case 'season': renderSeason(app); break;
     case 'result': renderResult(app); break;
+    case 'standings': renderStandings(app); break;
+    case 'playoff': renderPlayoff(app); break;
+    case 'champion': renderChampion(app); break;
   }
 }
 
@@ -1064,7 +1654,7 @@ function playGame() {
   showGameResult(result);
   setTimeout(() => {
     closeModal();
-    if (isSeasonComplete()) { state.phase = 'result'; render(); }
+    if (isSeasonComplete()) { generateStandings(); state.phase = 'result'; render(); }
     else { render(); }
   }, 2000);
 }
@@ -1091,12 +1681,13 @@ function simAll() {
   while (!isSeasonComplete()) {
     advanceGame();
   }
+  generateStandings();
   state.phase = 'result';
   render();
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('active'); }
-function showResult() { state.phase = 'result'; render(); }
+function showResult() { generateStandings(); state.phase = 'result'; render(); }
 
 function renderResult(app) {
   const perfect = isPerfect();
@@ -1104,6 +1695,12 @@ function renderResult(app) {
   const teamHtml = state.slots.map(s =>
     `<span class="rt-player">${POS_LABELS[s.pos]} ${s.player.fullName} (${s.player.rating}) &middot; ${s.player.teamAbbr} ${s.player.year}</span>`
   ).join('');
+
+  const seed = state.userConfSeed;
+  const qualified = seed && seed <= PLAYOFF_TEAMS;
+  const playoffBtn = qualified
+    ? `<button class="btn btn-primary" onclick="showStandings()">Playoff Standings</button>`
+    : `<div style="color:#f44336;font-size:0.85rem;margin-bottom:8px;">Missed playoffs — finished #${seed} in conference</div>`;
 
   app.innerHTML = `
     <div class="result-screen">
@@ -1113,8 +1710,107 @@ function renderResult(app) {
         ${perfect
           ? 'You did it. A flawless season. Every game. Every opponent. Undefeated.'
           : `Your ${state.formation.label} squad finished ${recordStr}. ${state.record.w >= 20 ? 'A strong season!' : state.record.w >= 10 ? 'A respectable campaign.' : 'Tough season — better luck next time.'}`}
+        ${qualified ? `<br><br><span style="color:#4caf50;">Qualified for playoffs as #${seed} seed in the West!</span>` : ''}
         <br><br>
         <span style="color:#555;">${DIFFICULTIES[state.difficulty].label} · ${state.formation.label} · Team rating: ${state.teamRating}</span>
+      </div>
+
+      <div class="result-team">${teamHtml}</div>
+      <div class="result-actions">
+        ${playoffBtn}
+        <button class="btn btn-secondary" onclick="restart()">Try Again</button>
+        <button class="btn btn-secondary" onclick="downloadShareImage()">Share Result</button>
+      </div>
+    </div>
+  `;
+}
+
+function showStandings() {
+  generateStandings();
+  state.phase = 'standings';
+  render();
+}
+
+function renderStandings(app) {
+  generateStandings();
+  const { east, west } = state.standings;
+  const seed = state.userConfSeed;
+  const qualified = seed && seed <= PLAYOFF_TEAMS;
+
+  function tableHtml(conf, label) {
+    const rows = conf.map((t, i) => {
+      const s = i + 1;
+      const isUser = t.userTeam;
+      const isCutoff = s === PLAYOFF_TEAMS;
+      return `<tr class="${isUser ? 'user-row' : ''}">
+        <td class="s-seed">${s}</td>
+        <td class="s-team">${t.abbr}</td>
+        <td>${t.w}–${t.d}–${t.l}</td>
+        <td class="s-pts">${t.pts}</td>
+        <td class="s-rating">${t.rating}</td>
+      </tr>${isCutoff ? '<tr class="playoff-line"><td colspan="5"></td></tr>' : ''}`;
+    }).join('');
+    return `<div class="standings-conf">
+      <h2>${label}</h2>
+      <table class="standings-table">
+        <tr><th>#</th><th class="s-team">Team</th><th>W-D-L</th><th>Pts</th><th>Rtg</th></tr>
+        ${rows}
+      </table>
+    </div>`;
+  }
+
+  const userInfo = qualified
+    ? `<div style="text-align:center;margin-bottom:16px;color:#4caf50;font-size:0.9rem;">
+        You finished #${seed} in the West — qualified for playoffs!
+       </div>`
+    : `<div style="text-align:center;margin-bottom:16px;color:#f44336;font-size:0.9rem;">
+        You finished #${seed} in the West — missed the playoffs.
+       </div>`;
+
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">Final Standings</p>
+    ${userInfo}
+    <div class="standings-wrap">
+      ${tableHtml(west, 'Western Conference')}
+      ${tableHtml(east, 'Eastern Conference')}
+    </div>
+    <div style="text-align:center;margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      ${qualified ? `<button class="btn btn-primary" onclick="enterPlayoffs()">Enter Playoffs</button>` : ''}
+      <button class="btn btn-secondary" onclick="restart()">Try Again</button>
+    </div>
+  `;
+}
+
+function renderChampion(app) {
+  const won = state.wonPlayoffs;
+  const recordStr = `${state.record.w}W-${state.record.d}D-${state.record.l}L`;
+  const playoffStr = `${state.playoffRecord.w}W – ${state.playoffRecord.l}L`;
+  const teamHtml = state.slots.map(s =>
+    `<span class="rt-player">${POS_LABELS[s.pos]} ${s.player.fullName} (${s.player.rating}) &middot; ${s.player.teamAbbr} ${s.player.year}</span>`
+  ).join('');
+
+  let title, detail, bigClass;
+  if (won) {
+    title = 'MLS CUP CHAMPIONS!';
+    detail = 'You did it. From the draft to the final — champions.';
+    bigClass = 'champion';
+  } else {
+    const lastRound = state.playoffLog.filter(r => r.round !== 'Eliminated').pop();
+    const round = lastRound ? lastRound.round : 'Playoffs';
+    title = `Eliminated — ${round}`;
+    detail = `Your run ended in the ${round}. Playoff record: ${playoffStr}`;
+    bigClass = 'normal';
+  }
+
+  app.innerHTML = `
+    <div class="result-screen">
+      <div class="big-record ${bigClass}">${won ? 'CHAMPIONS' : recordStr}</div>
+      <div class="result-title">${title}</div>
+      <div class="result-detail">
+        ${detail}
+        <br><br>
+        <span style="color:#555;">Season: ${recordStr} · Playoffs: ${playoffStr} · ${DIFFICULTIES[state.difficulty].label} · ${state.formation.label}</span>
       </div>
 
       <div class="result-team">${teamHtml}</div>
@@ -1232,10 +1928,13 @@ function downloadShareImage() {
   ctx.fillText(recordStr, W - 30, 20);
 
   const perfect = isPerfect();
-  const verdict = perfect ? 'PERFECT SEASON! 34-0-0!' :
-    state.record.w >= 20 ? 'A strong season!' :
-    state.record.w >= 10 ? 'A respectable campaign.' : 'Tough season.';
-  ctx.fillStyle = perfect ? '#FFD700' : '#888';
+  const champion = state.wonPlayoffs;
+  let verdict;
+  if (champion && perfect) verdict = 'PERFECT SEASON & MLS CUP CHAMPIONS!';
+  else if (champion) verdict = 'MLS CUP CHAMPIONS!';
+  else if (perfect) verdict = 'PERFECT SEASON! 34-0-0!';
+  else verdict = state.record.w >= 20 ? 'A strong season!' : state.record.w >= 10 ? 'A respectable campaign.' : 'Tough season.';
+  ctx.fillStyle = (perfect || champion) ? '#FFD700' : '#888';
   ctx.font = '12px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(verdict, W / 2, 52);
@@ -1290,6 +1989,21 @@ function downloadShareImage() {
   if (topMotm) leaders.push('MOTM: ' + topMotm.name + ' (' + topMotm.motm + ')');
   ctx.fillStyle = '#888';
   ctx.fillText(leaders.join('  \u00b7  '), W / 2, 600);
+
+  // Playoff result
+  if (state.wonPlayoffs) {
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('MLS CUP CHAMPIONS', W / 2, 635);
+  } else if (state.playoffRecord.w > 0 || state.playoffRecord.l > 0) {
+    const playoffRec = state.playoffRecord.w + 'W-' + state.playoffRecord.l + 'L';
+    const lastRound = state.playoffLog.filter(r => r.round !== 'Eliminated').pop();
+    ctx.fillStyle = '#888';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Playoffs: ' + playoffRec + '  |  ' + (lastRound ? lastRound.round : ''), W / 2, 635);
+  }
 
   // Footer
   ctx.fillStyle = '#555';
