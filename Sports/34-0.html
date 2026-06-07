@@ -296,6 +296,47 @@ nav .current {
 .game-cell.current { border-color: #E80A4D; animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 12px;
+  font-size: 0.75rem;
+  color: #888;
+}
+.stats-bar strong { color: #e0e0e0; }
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 0.75rem;
+}
+.stats-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #333;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.stats-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #252525;
+  color: #ccc;
+}
+.stats-table td.num {
+  text-align: center;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
 /* ===== MODAL ===== */
 .modal-overlay {
   display: none;
@@ -450,6 +491,7 @@ const state = {
   games: [],
   currentGame: 0,
   record: { w: 0, d: 0, l: 0 },
+  playerStats: {},
 };
 
 function createSlots(f) {
@@ -472,6 +514,7 @@ function resetState() {
   state.games = [];
   state.currentGame = 0;
   state.record = { w: 0, d: 0, l: 0 };
+  state.playerStats = {};
 }
 
 // ========== API ==========
@@ -642,6 +685,10 @@ function startSeason() {
   }
   state.currentGame = 0;
   state.record = { w: 0, d: 0, l: 0 };
+  state.playerStats = {};
+  state.slots.forEach(s => {
+    state.playerStats[s.player.id] = { goals: 0, assists: 0, cleanSheets: 0, motm: 0, pos: s.player.pos, name: s.player.fullName };
+  });
   state.phase = 'season';
   render();
 }
@@ -673,6 +720,49 @@ function generateScore(result, userRating, oppRating) {
   }
 }
 
+function distributeStats(score) {
+  const us = score.us;
+  const cleanSheet = score.them === 0;
+  const contrib = {};
+  state.slots.forEach(s => contrib[s.player.id] = { g: 0, a: 0 });
+
+  const goalPool = [];
+  state.slots.forEach(s => {
+    const w = { F: 65, M: 25, D: 8, G: 2 }[s.player.pos] || 0;
+    for (let i = 0; i < w; i++) goalPool.push(s.player.id);
+  });
+  for (let i = 0; i < us; i++) {
+    const id = goalPool[Math.floor(Math.random() * goalPool.length)];
+    contrib[id].g++;
+  }
+
+  const assistPool = [];
+  state.slots.forEach(s => {
+    const w = { G: 2, D: 13, M: 50, F: 35 }[s.player.pos] || 0;
+    for (let i = 0; i < w; i++) assistPool.push(s.player.id);
+  });
+  for (let i = 0; i < us; i++) {
+    if (Math.random() < 0.6) {
+      const id = assistPool[Math.floor(Math.random() * assistPool.length)];
+      contrib[id].a++;
+    }
+  }
+
+  let motmId = null, motmScore = -1;
+  for (const s of state.slots) {
+    const pid = s.player.id;
+    const c = contrib[pid];
+    state.playerStats[pid].goals += c.g;
+    state.playerStats[pid].assists += c.a;
+    const cs = cleanSheet && (s.player.pos === 'G' || s.player.pos === 'D') ? 1 : 0;
+    state.playerStats[pid].cleanSheets += cs;
+    const perf = c.g * 3 + c.a * 2 + cs * 2 + Math.random() * 3;
+    if (perf > motmScore) { motmScore = perf; motmId = pid; }
+  }
+  if (motmId) state.playerStats[motmId].motm++;
+  return motmId;
+}
+
 function advanceGame() {
   const idx = state.currentGame;
   if (idx >= TOTAL_GAMES) return null;
@@ -682,6 +772,8 @@ function advanceGame() {
   const score = generateScore(outcome, state.teamRating, game.rating);
   game.result = outcome;
   game.score = score;
+  const motmId = distributeStats(score);
+  game.motm = motmId;
   state.record[outcome === 'W' ? 'w' : outcome === 'D' ? 'd' : 'l']++;
   state.currentGame++;
   return { outcome, score, game };
@@ -947,6 +1039,22 @@ function renderSeason(app) {
   ).join('');
 
   const diffLabel = DIFFICULTIES[state.difficulty].label;
+
+  // Stats leaderboard
+  const ps = state.playerStats;
+  const topScorer = Object.values(ps).sort((a, b) => b.goals - a.goals)[0];
+  const topAssist = Object.values(ps).sort((a, b) => b.assists - a.assists)[0];
+  const topCS = Object.values(ps).sort((a, b) => b.cleanSheets - a.cleanSheets)[0];
+  const topMotm = Object.values(ps).sort((a, b) => b.motm - a.motm)[0];
+  const statsBar = `
+    <div class="stats-bar">
+      <span>⚽ Goals: <strong>${topScorer ? topScorer.name + ' (' + topScorer.goals + ')' : '0'}</strong></span>
+      <span>🎯 Assists: <strong>${topAssist ? topAssist.name + ' (' + topAssist.assists + ')' : '0'}</strong></span>
+      <span>🧤 Clean Sheets: <strong>${topCS ? topCS.name + ' (' + topCS.cleanSheets + ')' : '0'}</strong></span>
+      <span>⭐ MOTM: <strong>${topMotm ? topMotm.name + ' (' + topMotm.motm + ')' : '0'}</strong></span>
+    </div>
+  `;
+
   app.innerHTML = `
     <div class="page-title"><h1>34-0</h1></div>
     <p class="subtitle">${diffLabel} &middot; ${state.formation.label} &middot; ${state.teamRating} avg rating</p>
@@ -962,6 +1070,8 @@ function renderSeason(app) {
         <span>Games: <strong>${state.currentGame}/${TOTAL_GAMES}</strong></span>
       </div>
     </div>
+
+    ${statsBar}
 
     ${gamePreview}
     ${playBtn}
@@ -990,12 +1100,14 @@ function showGameResult(result) {
   const labels = { W: 'WIN', D: 'DRAW', L: 'LOSS' };
   const colors = { W: 'win', D: 'draw', L: 'loss' };
   const game = state.games[state.currentGame - 1];
+  const motmName = game.motm ? state.playerStats[game.motm]?.name || '' : '';
   modal.innerHTML = `
     <div class="modal-box">
       <div class="m-result ${colors[result.outcome]}">${labels[result.outcome]}</div>
       <div class="m-score">${result.score.us} - ${result.score.them}</div>
       <div class="m-sub">vs ${game.team.name} · Record: ${state.record.w}W-${state.record.d}D-${state.record.l}L</div>
-      <div style="color:#555;font-size:0.7rem;">Game ${state.currentGame} of ${TOTAL_GAMES}</div>
+      ${motmName ? `<div style="color:#ff9800;font-size:0.8rem;margin-top:8px;">⭐ ${motmName}</div>` : ''}
+      <div style="color:#555;font-size:0.7rem;margin-top:4px;">Game ${state.currentGame} of ${TOTAL_GAMES}</div>
     </div>
   `;
   modal.classList.add('active');
@@ -1030,6 +1142,15 @@ function renderResult(app) {
         <br><br>
         <span style="color:#555;">${DIFFICULTIES[state.difficulty].label} · ${state.formation.label} · Team rating: ${state.teamRating}</span>
       </div>
+
+      <table class="stats-table">
+        <tr><th>Pos</th><th>Player</th><th class="num">G</th><th class="num">A</th><th class="num">CS</th><th class="num">MOTM</th></tr>
+        ${state.slots.map(s => {
+          const ps = state.playerStats[s.player.id] || { goals: 0, assists: 0, cleanSheets: 0, motm: 0 };
+          return `<tr><td>${POS_LABELS[s.pos]}</td><td>${s.player.fullName}</td><td class="num">${ps.goals}</td><td class="num">${ps.assists}</td><td class="num">${ps.cleanSheets}</td><td class="num">${ps.motm}</td></tr>`;
+        }).join('')}
+      </table>
+
       <div class="result-team">${teamHtml}</div>
       <div class="result-actions">
         <button class="btn btn-primary" onclick="restart()">Try Again</button>
