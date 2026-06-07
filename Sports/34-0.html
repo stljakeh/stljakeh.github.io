@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>34-0 - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+nav .nav-links { display: flex; gap: 20px; align-items: center; }
+nav a {
+  color: #888;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  text-transform: uppercase;
+}
+nav a:hover { color: #fff; }
+nav .current {
+  color: #e0e0e0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+#app { width: 100%; max-width: 900px; }
+.page-title { text-align: center; margin-bottom: 8px; }
+.page-title h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: 6px; }
+.subtitle { text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 24px; }
+
+/* ===== SPLASH ===== */
+.splash { text-align: center; padding: 60px 20px; }
+.splash h1 { font-size: 5rem; font-weight: 800; letter-spacing: 8px; margin-bottom: 8px; }
+.splash .tagline { color: #666; font-size: 1rem; margin-bottom: 40px; }
+.splash .goal { color: #555; font-size: 0.85rem; line-height: 1.6; max-width: 500px; margin: 0 auto 32px; }
+
+/* ===== FORMATION SELECTOR ===== */
+.formation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  max-width: 700px;
+  margin: 32px auto;
+}
+.formation-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.formation-card:hover { border-color: #E80A4D; background: #222; }
+.formation-card .f-name { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 8px; }
+.formation-card .f-detail { font-size: 0.75rem; color: #888; line-height: 1.6; }
+
+/* ===== PITCH / SLOT GRID ===== */
+.pitch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pitch-header .ph-info { font-size: 0.8rem; color: #888; }
+.pitch-header .ph-info strong { color: #e0e0e0; }
+.pitch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 12px;
+  background: #111;
+  border-radius: 16px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 16px;
+}
+.pitch-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.pitch-row.gk-row { margin-bottom: 6px; }
+.pitch-slot {
+  width: 90px;
+  min-height: 80px;
+  padding: 10px 8px;
+  background: #1a1a1a;
+  border: 2px solid;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.pitch-slot:hover { transform: scale(1.05); background: #222; }
+.pitch-slot .ps-pos {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 2px;
+}
+.pitch-slot .ps-name { font-size: 0.7rem; font-weight: 600; line-height: 1.2; margin-top: 4px; }
+.pitch-slot .ps-rating { font-size: 0.65rem; color: #4caf50; margin-top: 2px; }
+.pitch-slot .ps-empty { font-size: 0.65rem; color: #555; font-style: italic; margin-top: 4px; }
+.pitch-slot.empty { border-style: dashed; opacity: 0.7; }
+.pitch-slot.filled { cursor: pointer; }
+.pitch-slot.pool-empty { border-color: #444 !important; opacity: 0.3; cursor: not-allowed; }
+.pool-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+/* ===== PICK VIEW ===== */
+.pick-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pick-team-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pick-team-info .pti-badge {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #E80A4D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+}
+.pick-team-info .pti-name { font-weight: 700; font-size: 0.9rem; }
+.pick-team-info .pti-year { color: #888; font-size: 0.75rem; }
+.player-grid { display: grid; gap: 8px; }
+.player-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.player-card:hover { border-color: #E80A4D; background: #222; }
+.player-card .pc-name { font-weight: 600; font-size: 0.85rem; }
+.player-card .pc-rating {
+  background: #2a2a2a;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4caf50;
+}
+.player-card .pc-pos {
+  font-size: 0.7rem;
+  color: #888;
+  margin-left: 8px;
+  font-weight: 700;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-block;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: #E80A4D; color: #fff; }
+.btn-primary:hover { background: #c00940; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; }
+.btn-secondary:hover { background: #3a3a3a; }
+
+/* ===== SEASON ===== */
+.season-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.record-display { display: flex; gap: 16px; align-items: center; }
+.record-display .r-item { text-align: center; }
+.record-display .r-num { font-size: 1.3rem; font-weight: 800; }
+.record-display .r-label { font-size: 0.65rem; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+.record-display .r-win .r-num { color: #4caf50; }
+.record-display .r-draw .r-num { color: #ff9800; }
+.record-display .r-loss .r-num { color: #f44336; }
+.rating-bar { display: flex; gap: 16px; font-size: 0.8rem; color: #888; }
+.rating-bar strong { color: #e0e0e0; }
+.game-preview {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.game-preview .gp-num { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.game-preview .gp-matchup { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+.game-preview .gp-detail { font-size: 0.8rem; color: #888; line-height: 1.5; }
+.game-preview .gp-win-prob { margin-top: 8px; font-size: 0.85rem; }
+.game-preview .gp-win-prob strong { color: #4caf50; }
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.game-cell {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 0.7rem;
+}
+.game-cell .gc-num { font-size: 0.6rem; color: #555; margin-bottom: 3px; }
+.game-cell .gc-opp { color: #aaa; margin-bottom: 3px; }
+.game-cell .gc-result {
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.game-cell .gc-result.win { background: #1a3a1a; color: #4caf50; }
+.game-cell .gc-result.draw { background: #3a2a0a; color: #ff9800; }
+.game-cell .gc-result.loss { background: #3a1a1a; color: #f44336; }
+.game-cell.upcoming { opacity: 0.4; }
+.game-cell.current { border-color: #E80A4D; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+.modal-box .m-result { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; }
+.modal-box .m-result.win { color: #4caf50; }
+.modal-box .m-result.draw { color: #ff9800; }
+.modal-box .m-result.loss { color: #f44336; }
+.modal-box .m-score { font-size: 1.2rem; color: #aaa; margin-bottom: 16px; }
+.modal-box .m-sub { font-size: 0.8rem; color: #666; margin-bottom: 20px; line-height: 1.5; }
+
+/* ===== RESULT ===== */
+.result-screen { text-align: center; padding: 40px 20px; }
+.result-screen .big-record { font-size: 4rem; font-weight: 800; letter-spacing: 4px; margin-bottom: 8px; }
+.result-screen .big-record.perfect { color: #4caf50; animation: glow 2s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { text-shadow: 0 0 10px rgba(76,175,80,0.3); } 50% { text-shadow: 0 0 30px rgba(76,175,80,0.7); } }
+.result-screen .big-record.normal { color: #e0e0e0; }
+.result-screen .result-title { font-size: 1.2rem; color: #888; margin-bottom: 24px; }
+.result-screen .result-detail { font-size: 0.85rem; color: #666; margin-bottom: 32px; line-height: 1.6; }
+.result-screen .result-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.result-screen .result-team { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 24px; }
+.result-screen .result-team .rt-player {
+  padding: 4px 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  font-size: 0.75rem;
+}
+
+/* ===== LOADING ===== */
+.loading { text-align: center; padding: 60px; color: #666; font-size: 0.9rem; }
+.loading .lds-ring { position: relative; display: inline-block; width: 40px; height: 40px; margin-bottom: 16px; }
+.loading .lds-ring div {
+  box-sizing: border-box; display: block; position: absolute; width: 32px; height: 32px;
+  margin: 4px; border: 3px solid #E80A4D; border-radius: 50%; animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #E80A4D transparent transparent transparent;
+}
+@keyframes lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ===== MISC ===== */
+.hidden { display: none; }
+.footer { margin-top: 24px; font-size: 0.75rem; color: #444; text-align: center; }
+
+@media (max-width: 640px) {
+  body { padding: 16px; }
+  .page-title h1 { font-size: 1.8rem; letter-spacing: 3px; }
+  .formation-grid { grid-template-columns: repeat(2, 1fr); }
+  .pitch-slot { width: 70px; min-height: 65px; padding: 8px 4px; }
+  .pitch-slot .ps-name { font-size: 0.6rem; }
+  .game-grid { grid-template-columns: repeat(3, 1fr); }
+  .modal-box { padding: 24px; }
+  .splash h1 { font-size: 3rem; }
+  .result-screen .big-record { font-size: 3rem; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <span class="current">34-0</span>
+  </div>
+  <div style="font-size:0.7rem;color:#444;letter-spacing:1px;text-transform:uppercase;">Draft &middot; Sim &middot; Conquer</div>
+</nav>
+
+<div id="app"></div>
+<div id="modal" class="modal-overlay"></div>
+
+<script>
+// ========== CONFIGURATION ==========
+const FORMATIONS = {
+  '4-3-3': { gk: 1, def: 4, mid: 3, fwd: 3, label: '4-3-3', desc: '1 GK · 4 DEF · 3 MID · 3 FWD' },
+  '4-4-2': { gk: 1, def: 4, mid: 4, fwd: 2, label: '4-4-2', desc: '1 GK · 4 DEF · 4 MID · 2 FWD' },
+  '3-5-2': { gk: 1, def: 3, mid: 5, fwd: 2, label: '3-5-2', desc: '1 GK · 3 DEF · 5 MID · 2 FWD' },
+  '3-4-3': { gk: 1, def: 3, mid: 4, fwd: 3, label: '3-4-3', desc: '1 GK · 3 DEF · 4 MID · 3 FWD' },
+  '5-3-2': { gk: 1, def: 5, mid: 3, fwd: 2, label: '5-3-2', desc: '1 GK · 5 DEF · 3 MID · 2 FWD' },
+};
+const POS_COLORS = { G: '#C41E3A', D: '#003087', M: '#E80A4D', F: '#00529B' };
+const POS_LABELS = { G: 'GK', D: 'DEF', M: 'MID', F: 'FWD' };
+const MIN_SEASON = 1996;
+const MAX_SEASON = 2026;
+const POOL_SIZE = 20;
+const TOTAL_GAMES = 34;
+const DRAW_RATE = 0.18;
+
+// ========== MLS TEAMS ==========
+const allMlsTeams = [
+  { id: '18418', name: 'Atlanta United FC', abbr: 'ATL' },
+  { id: '20906', name: 'Austin FC', abbr: 'ATX' },
+  { id: '9720',  name: 'CF Montréal', abbr: 'MTL' },
+  { id: '21300', name: 'Charlotte FC', abbr: 'CLT' },
+  { id: '182',   name: 'Chicago Fire FC', abbr: 'CHI' },
+  { id: '184',   name: 'Colorado Rapids', abbr: 'COL' },
+  { id: '183',   name: 'Columbus Crew', abbr: 'CLB' },
+  { id: '193',   name: 'D.C. United', abbr: 'DC' },
+  { id: '18267', name: 'FC Cincinnati', abbr: 'CIN' },
+  { id: '185',   name: 'FC Dallas', abbr: 'DAL' },
+  { id: '6077',  name: 'Houston Dynamo FC', abbr: 'HOU' },
+  { id: '20232', name: 'Inter Miami CF', abbr: 'MIA' },
+  { id: '187',   name: 'LA Galaxy', abbr: 'LA' },
+  { id: '18966', name: 'LAFC', abbr: 'LAFC' },
+  { id: '17362', name: 'Minnesota United FC', abbr: 'MIN' },
+  { id: '18986', name: 'Nashville SC', abbr: 'NSH' },
+  { id: '189',   name: 'New England Revolution', abbr: 'NE' },
+  { id: '17606', name: 'New York City FC', abbr: 'NYC' },
+  { id: '12011', name: 'Orlando City SC', abbr: 'ORL' },
+  { id: '10739', name: 'Philadelphia Union', abbr: 'PHI' },
+  { id: '9723',  name: 'Portland Timbers', abbr: 'POR' },
+  { id: '4771',  name: 'Real Salt Lake', abbr: 'RSL' },
+  { id: '190',   name: 'Red Bull New York', abbr: 'RBNY' },
+  { id: '22529', name: 'San Diego FC', abbr: 'SD' },
+  { id: '191',   name: 'San Jose Earthquakes', abbr: 'SJ' },
+  { id: '9726',  name: 'Seattle Sounders FC', abbr: 'SEA' },
+  { id: '186',   name: 'Sporting Kansas City', abbr: 'SKC' },
+  { id: '21812', name: 'St. Louis CITY SC', abbr: 'STL' },
+  { id: '7318',  name: 'Toronto FC', abbr: 'TOR' },
+  { id: '9727',  name: 'Vancouver Whitecaps', abbr: 'VAN' },
+];
+
+// ========== STATE ==========
+const state = {
+  phase: 'splash',
+  formation: null,
+  slots: [],
+  activeSlot: -1,
+  teamPool: [],
+  usedPool: new Set(),
+  teamRating: 0,
+  games: [],
+  currentGame: 0,
+  record: { w: 0, d: 0, l: 0 },
+};
+
+function createSlots(f) {
+  const arr = [];
+  for (let i = 0; i < f.gk; i++) arr.push({ pos: 'G', player: null, teamEntry: null });
+  for (let i = 0; i < f.def; i++) arr.push({ pos: 'D', player: null, teamEntry: null });
+  for (let i = 0; i < f.mid; i++) arr.push({ pos: 'M', player: null, teamEntry: null });
+  for (let i = 0; i < f.fwd; i++) arr.push({ pos: 'F', player: null, teamEntry: null });
+  return arr;
+}
+
+function resetState() {
+  state.formation = null;
+  state.slots = [];
+  state.activeSlot = -1;
+  state.teamPool = [];
+  state.usedPool = new Set();
+  state.teamRating = 0;
+  state.games = [];
+  state.currentGame = 0;
+  state.record = { w: 0, d: 0, l: 0 };
+}
+
+// ========== API ==========
+async function fetchRoster(teamId, season) {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/${teamId}/roster?season=${season}`;
+  const resp = await fetch(url);
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  if (!data.athletes || data.athletes.length === 0) return null;
+  return data.athletes;
+}
+
+// ========== PLAYER RATINGS ==========
+function extractStat(athlete, name) {
+  const stats = athlete.statistics;
+  if (!stats) return 0;
+  for (const sk in stats) {
+    const splits = stats[sk];
+    if (!splits || !splits.categories) continue;
+    for (const cat of splits.categories) {
+      if (!cat.stats) continue;
+      for (const s of cat.stats) {
+        if (s.name === name && s.value != null) return s.value;
+      }
+    }
+  }
+  return 0;
+}
+
+function computeRating(athlete) {
+  const pos = (athlete.position && athlete.position.abbreviation) || 'M';
+  const apps = extractStat(athlete, 'appearances');
+  const goals = extractStat(athlete, 'totalGoals');
+  const assists = extractStat(athlete, 'goalAssists');
+  let base;
+  if (pos === 'G') {
+    base = 40 + apps * 0.4 + extractStat(athlete, 'saves') * 0.2;
+  } else if (pos === 'D') {
+    base = 48 + apps * 0.25 + goals * 1.5;
+  } else if (pos === 'M') {
+    base = 40 + apps * 0.3 + (goals + assists) * 1.2;
+  } else {
+    base = 35 + apps * 0.2 + goals * 1.6 + assists * 0.6;
+  }
+  const noise = Math.random() * 10 - 5;
+  return Math.round(Math.max(40, Math.min(99, base + noise)));
+}
+
+// ========== POOL PRE-FETCH ==========
+async function preFetchPool(size) {
+  const pool = [];
+  const usedCombos = new Set();
+  while (pool.length < size) {
+    const team = allMlsTeams[Math.floor(Math.random() * allMlsTeams.length)];
+    const year = MIN_SEASON + Math.floor(Math.random() * (MAX_SEASON - MIN_SEASON + 1));
+    const key = `${team.id}-${year}`;
+    if (usedCombos.has(key)) continue;
+    usedCombos.add(key);
+    const roster = await fetchRoster(team.id, year);
+    if (!roster || roster.length === 0) continue;
+    const enriched = roster.map(a => ({
+      id: a.id,
+      fullName: a.fullName,
+      rating: computeRating(a),
+      pos: (a.position && a.position.abbreviation) || 'M',
+    }));
+    enriched.sort((a, b) => (a.pos !== b.pos ? (a.pos < b.pos ? -1 : 1) : (b.rating || 0) - (a.rating || 0)));
+    pool.push({ team: { id: team.id, name: team.name, abbr: team.abbr }, year, roster: enriched });
+  }
+  return pool;
+}
+
+// ========== DRAFT LOGIC ==========
+function allSlotsFilled() {
+  return state.slots.every(s => s.player !== null);
+}
+
+function filledCount() {
+  return state.slots.filter(s => s.player !== null).length;
+}
+
+function findTeamForPosition(pos) {
+  const available = [];
+  for (let i = 0; i < state.teamPool.length; i++) {
+    if (state.usedPool.has(i)) continue;
+    if (state.teamPool[i].roster.some(p => p.pos === pos)) {
+      available.push({ idx: i, entry: state.teamPool[i] });
+    }
+  }
+  if (available.length === 0) return null;
+  const pick = available[Math.floor(Math.random() * available.length)];
+  state.usedPool.add(pick.idx);
+  return pick.entry;
+}
+
+function selectSlot(index) {
+  const slot = state.slots[index];
+  if (!slot) return;
+
+  if (slot.player) {
+    state.activeSlot = index;
+    render();
+    return;
+  }
+
+  const teamEntry = findTeamForPosition(slot.pos);
+  if (teamEntry) {
+    slot.teamEntry = teamEntry;
+    state.activeSlot = index;
+    render();
+  }
+}
+
+function cancelPick() {
+  state.activeSlot = -1;
+  render();
+}
+
+function fillSlot(player, slotIdx) {
+  const slot = state.slots[slotIdx];
+  if (!slot) return;
+  slot.player = {
+    fullName: player.fullName,
+    pos: player.pos,
+    rating: player.rating,
+    id: player.id,
+    teamName: slot.teamEntry ? slot.teamEntry.team.name : '',
+    teamAbbr: slot.teamEntry ? slot.teamEntry.team.abbr : '',
+    year: slot.teamEntry ? slot.teamEntry.year : '',
+  };
+  state.activeSlot = -1;
+  if (allSlotsFilled()) {
+    startSeason();
+  } else {
+    render();
+  }
+}
+
+function startSeason() {
+  const ratings = state.slots.map(s => s.player.rating);
+  state.teamRating = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
+  state.games = [];
+  for (let i = 0; i < TOTAL_GAMES; i++) {
+    const team = allMlsTeams[Math.floor(Math.random() * allMlsTeams.length)];
+    const rating = Math.round(45 + Math.random() * 40);
+    state.games.push({ team, rating, result: null, score: null });
+  }
+  state.currentGame = 0;
+  state.record = { w: 0, d: 0, l: 0 };
+  state.phase = 'season';
+  render();
+}
+
+// ========== SEASON LOGIC ==========
+function simulateGame(userRating, oppRating) {
+  const winProb = userRating / (userRating + oppRating);
+  const adjWinProb = winProb * (1 - DRAW_RATE);
+  const r = Math.random();
+  if (r < adjWinProb) return 'W';
+  if (r < adjWinProb + DRAW_RATE) return 'D';
+  return 'L';
+}
+
+function generateScore(result, userRating, oppRating) {
+  const diff = userRating - oppRating;
+  const base = Math.max(0, Math.min(4, Math.round(1 + (diff / 30) + (Math.random() - 0.3))));
+  if (result === 'W') {
+    const ourGoals = Math.max(1, base + 1);
+    const theirGoals = Math.max(0, Math.min(ourGoals - 1, Math.round(base * 0.4 + Math.random())));
+    return { us: ourGoals, them: theirGoals };
+  } else if (result === 'D') {
+    const g = Math.round(Math.random() * 2);
+    return { us: g, them: g };
+  } else {
+    const theirGoals = Math.max(1, base + 2);
+    const ourGoals = Math.max(0, Math.min(theirGoals - 1, Math.round(base * 0.3 + Math.random() - 0.3)));
+    return { us: ourGoals, them: theirGoals };
+  }
+}
+
+function advanceGame() {
+  const idx = state.currentGame;
+  if (idx >= TOTAL_GAMES) return null;
+  const game = state.games[idx];
+  const outcome = simulateGame(state.teamRating, game.rating);
+  const score = generateScore(outcome, state.teamRating, game.rating);
+  game.result = outcome;
+  game.score = score;
+  state.record[outcome === 'W' ? 'w' : outcome === 'D' ? 'd' : 'l']++;
+  state.currentGame++;
+  return { outcome, score, game };
+}
+
+function isSeasonComplete() { return state.currentGame >= TOTAL_GAMES; }
+function isPerfect() { return state.record.w === TOTAL_GAMES && state.record.d === 0 && state.record.l === 0; }
+
+// ========== RENDER ==========
+function render() {
+  const app = document.getElementById('app');
+  switch (state.phase) {
+    case 'splash': renderSplash(app); break;
+    case 'formation': renderFormation(app); break;
+    case 'draft': renderDraft(app); break;
+    case 'season': renderSeason(app); break;
+    case 'result': renderResult(app); break;
+  }
+}
+
+function renderSplash(app) {
+  app.innerHTML = `
+    <div class="splash">
+      <h1>34-0</h1>
+      <p class="tagline">Draft. Simulate. Conquer.</p>
+      <p class="goal">Draft a team of MLS players from across history and try to go a perfect 34-0-0. Pick your formation, then fill each position one at a time from randomly rolled teams. Can you finish flawless?</p>
+      <button class="btn btn-primary" onclick="startDraft()">Start Draft</button>
+    </div>
+  `;
+}
+
+function startDraft() {
+  state.phase = 'formation';
+  render();
+}
+
+function renderFormation(app) {
+  const cards = Object.entries(FORMATIONS).map(([key, f]) => `
+    <div class="formation-card" onclick="selectFormation('${key}')">
+      <div class="f-name">${f.label}</div>
+      <div class="f-detail">${f.desc}</div>
+    </div>
+  `).join('');
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">Choose your formation</p>
+    <div class="formation-grid">${cards}</div>
+  `;
+}
+
+async function selectFormation(key) {
+  state.formation = FORMATIONS[key];
+  state.slots = createSlots(state.formation);
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="loading"><div class="lds-ring"><div></div></div>Fetching historic rosters...</div>`;
+  state.teamPool = await preFetchPool(POOL_SIZE);
+  if (state.teamPool.length < 11) {
+    app.innerHTML = `<div style="text-align:center;padding:60px;color:#f44336;">Couldn't build a valid draft pool. <button class="btn btn-primary" onclick="selectFormation('${key}')">Retry</button></div>`;
+    return;
+  }
+  state.activeSlot = -1;
+  state.phase = 'draft';
+  render();
+}
+
+function renderDraft(app) {
+  if (state.activeSlot >= 0 && state.activeSlot < state.slots.length) {
+    renderPickView(app);
+  } else {
+    renderSlotGrid(app);
+  }
+}
+
+function renderSlotGrid(app) {
+  const filled = filledCount();
+  const total = state.slots.length;
+  const remaining = state.teamPool.length - state.usedPool.size;
+
+  const formationRows = buildFormationRows();
+
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">${state.formation.label} — tap an empty slot to draft</p>
+
+    <div class="pitch-header">
+      <div class="ph-info">Filled: <strong>${filled}/${total}</strong></div>
+      <div class="ph-info">Pool: <strong>${remaining}</strong> teams remaining</div>
+    </div>
+
+    <div class="pitch">
+      ${formationRows}
+    </div>
+
+    ${allSlotsFilled()
+      ? `<div style="text-align:center;"><button class="btn btn-primary" onclick="startSeason()">Start Season</button></div>`
+      : remaining === 0
+        ? `<div style="text-align:center;color:#f44336;font-size:0.85rem;">Pool exhausted — <button class="btn btn-secondary" onclick="selectFormation('${state.formation.label}')">Re-roll Pool</button></div>`
+        : ''}
+  `;
+}
+
+function buildFormationRows() {
+  const slotHtml = (idx) => {
+    const s = state.slots[idx];
+    const color = POS_COLORS[s.pos];
+    const label = POS_LABELS[s.pos];
+    const filled = s.player !== null;
+    return `<div class="pitch-slot ${filled ? 'filled' : 'empty'}" style="border-color:${color}" onclick="selectSlot(${idx})">
+      <div class="ps-pos" style="color:${color}">${label}</div>
+      ${filled
+        ? `<div class="ps-name">${s.player.fullName}</div><div class="ps-rating">${s.player.rating}</div>`
+        : `<div class="ps-empty">empty</div>`}
+    </div>`;
+  };
+
+  const rows = [];
+  const gkSlots = state.slots.filter(s => s.pos === 'G');
+  const dSlots = state.slots.filter(s => s.pos === 'D');
+  const mSlots = state.slots.filter(s => s.pos === 'M');
+  const fSlots = state.slots.filter(s => s.pos === 'F');
+
+  let idx = 0;
+  if (gkSlots.length > 0) {
+    let html = '<div class="pitch-row gk-row">';
+    for (let i = 0; i < gkSlots.length; i++) { html += slotHtml(idx); idx++; }
+    html += '</div>';
+    rows.push(html);
+  }
+  if (dSlots.length > 0) {
+    let html = '<div class="pitch-row">';
+    for (let i = 0; i < dSlots.length; i++) { html += slotHtml(idx); idx++; }
+    html += '</div>';
+    rows.push(html);
+  }
+  if (mSlots.length > 0) {
+    let html = '<div class="pitch-row">';
+    for (let i = 0; i < mSlots.length; i++) { html += slotHtml(idx); idx++; }
+    html += '</div>';
+    rows.push(html);
+  }
+  if (fSlots.length > 0) {
+    let html = '<div class="pitch-row">';
+    for (let i = 0; i < fSlots.length; i++) { html += slotHtml(idx); idx++; }
+    html += '</div>';
+    rows.push(html);
+  }
+  return rows.join('');
+}
+
+function renderPickView(app) {
+  const slot = state.slots[state.activeSlot];
+  if (!slot) { state.activeSlot = -1; render(); return; }
+
+  const entry = slot.teamEntry;
+  if (!entry) { state.activeSlot = -1; render(); return; }
+
+  const available = entry.roster.filter(p => p.pos === slot.pos);
+
+  const color = POS_COLORS[slot.pos];
+  const label = POS_LABELS[slot.pos];
+  const rePick = slot.player !== null;
+
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">${rePick ? 'Re-pick' : 'Draft'} — ${label}</p>
+
+    <div class="pick-header">
+      <div class="pick-team-info">
+        <div class="pti-badge">${entry.team.abbr}</div>
+        <div>
+          <div class="pti-name">${entry.team.name}</div>
+          <div class="pti-year">${entry.year} Season</div>
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:#888;">
+        Slot ${state.activeSlot + 1} of ${state.slots.length}
+      </div>
+    </div>
+
+    <div class="player-grid">
+      ${available.length === 0
+        ? '<div style="text-align:center;padding:20px;color:#666;">No players available for this position from this team.</div>'
+        : available.map(p => `
+          <div class="player-card" onclick="fillSlotFromPool('${p.id}')">
+            <div>
+              <span class="pc-name">${p.fullName}</span>
+              <span class="pc-pos">${p.pos}</span>
+            </div>
+            <div class="pc-rating">${p.rating}</div>
+          </div>
+        `).join('')}
+    </div>
+
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="cancelPick()">Cancel</button>
+    </div>
+  `;
+}
+
+function fillSlotFromPool(playerId) {
+  const slot = state.slots[state.activeSlot];
+  if (!slot || !slot.teamEntry) return;
+  const player = slot.teamEntry.roster.find(p => p.id === playerId && p.pos === slot.pos);
+  if (!player) return;
+  fillSlot(player, state.activeSlot);
+}
+
+// ========== SEASON RENDER ==========
+function renderSeason(app) {
+  const posLabels = POS_LABELS;
+  let gamePreview = '';
+  let playBtn = '';
+
+  if (!isSeasonComplete()) {
+    const game = state.games[state.currentGame];
+    const winProb = state.teamRating / (state.teamRating + game.rating);
+    gamePreview = `
+      <div class="game-preview">
+        <div class="gp-num">Game ${state.currentGame + 1} of ${TOTAL_GAMES}</div>
+        <div class="gp-matchup">${state.teamRating} vs ${game.team.abbr} (${game.rating})</div>
+        <div class="gp-detail">Your team rating: ${state.teamRating} · Opponent rating: ${game.rating}</div>
+        <div class="gp-win-prob">Win probability: <strong>${(winProb * 100).toFixed(0)}%</strong></div>
+      </div>
+    `;
+    playBtn = `<div style="text-align:center;margin-top:8px;display:flex;gap:10px;justify-content:center;">
+      <button class="btn btn-primary" onclick="playGame()">Play Next Game</button>
+      <button class="btn btn-secondary" onclick="simAll()">Sim All</button>
+    </div>`;
+  } else {
+    gamePreview = `<div class="game-preview"><div class="gp-num">Season Complete!</div></div>`;
+    playBtn = `<div style="text-align:center;margin-top:8px;"><button class="btn btn-primary" onclick="showResult()">View Results</button></div>`;
+  }
+
+  const gameCells = state.games.map((g, i) => {
+    let cls = 'game-cell';
+    if (g.result) {
+      const rcls = g.result === 'W' ? 'win' : g.result === 'D' ? 'draw' : 'loss';
+      cls += ` ${rcls}`;
+      return `<div class="${cls}"><div class="gc-num">Game ${i + 1}</div><div class="gc-opp">${g.team.abbr}</div><div class="gc-result ${rcls}">${g.result} ${g.score.us}-${g.score.them}</div></div>`;
+    } else if (i === state.currentGame) {
+      cls += ' current';
+      return `<div class="${cls}"><div class="gc-num">Game ${i + 1}</div><div class="gc-opp">${g.team.abbr}</div><div class="gc-result" style="color:#888;">?</div></div>`;
+    } else {
+      cls += ' upcoming';
+      return `<div class="${cls}"><div class="gc-num">Game ${i + 1}</div><div class="gc-opp">?</div></div>`;
+    }
+  }).join('');
+
+  const teamHtml = state.slots.map(s =>
+    `<span class="rt-player">${posLabels[s.pos]} ${s.player.fullName} (${s.player.rating})</span>`
+  ).join('');
+
+  app.innerHTML = `
+    <div class="page-title"><h1>34-0</h1></div>
+    <p class="subtitle">${state.formation.label} · ${state.teamRating} avg rating</p>
+
+    <div class="season-header">
+      <div class="record-display">
+        <div class="r-item r-win"><div class="r-num">${state.record.w}</div><div class="r-label">Wins</div></div>
+        <div class="r-item r-draw"><div class="r-num">${state.record.d}</div><div class="r-label">Draws</div></div>
+        <div class="r-item r-loss"><div class="r-num">${state.record.l}</div><div class="r-label">Losses</div></div>
+      </div>
+      <div class="rating-bar">
+        <span>Team: <strong>${state.teamRating}</strong></span>
+        <span>Games: <strong>${state.currentGame}/${TOTAL_GAMES}</strong></span>
+      </div>
+    </div>
+
+    ${gamePreview}
+    ${playBtn}
+
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:8px;background:#1a1a1a;border-radius:10px;border:1px solid #2a2a2a;">
+      ${teamHtml}
+    </div>
+
+    <div class="game-grid">${gameCells}</div>
+  `;
+}
+
+function playGame() {
+  const result = advanceGame();
+  if (!result) return;
+  showGameResult(result);
+  setTimeout(() => {
+    closeModal();
+    if (isSeasonComplete()) { state.phase = 'result'; render(); }
+    else { render(); }
+  }, 2000);
+}
+
+function showGameResult(result) {
+  const modal = document.getElementById('modal');
+  const labels = { W: 'WIN', D: 'DRAW', L: 'LOSS' };
+  const colors = { W: 'win', D: 'draw', L: 'loss' };
+  const game = state.games[state.currentGame - 1];
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="m-result ${colors[result.outcome]}">${labels[result.outcome]}</div>
+      <div class="m-score">${result.score.us} - ${result.score.them}</div>
+      <div class="m-sub">vs ${game.team.name} · Record: ${state.record.w}W-${state.record.d}D-${state.record.l}L</div>
+      <div style="color:#555;font-size:0.7rem;">Game ${state.currentGame} of ${TOTAL_GAMES}</div>
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
+function simAll() {
+  while (!isSeasonComplete()) {
+    advanceGame();
+  }
+  state.phase = 'result';
+  render();
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+function showResult() { state.phase = 'result'; render(); }
+
+function renderResult(app) {
+  const perfect = isPerfect();
+  const recordStr = `${state.record.w}W-${state.record.d}D-${state.record.l}L`;
+  const teamHtml = state.slots.map(s =>
+    `<span class="rt-player">${POS_LABELS[s.pos]} ${s.player.fullName} (${s.player.rating}) &middot; ${s.player.teamAbbr} ${s.player.year}</span>`
+  ).join('');
+
+  app.innerHTML = `
+    <div class="result-screen">
+      <div class="big-record ${perfect ? 'perfect' : 'normal'}">${recordStr}</div>
+      <div class="result-title">${perfect ? 'PERFECT SEASON! 34-0-0!' : 'Season Complete'}</div>
+      <div class="result-detail">
+        ${perfect
+          ? 'You did it. A flawless season. Every game. Every opponent. Undefeated.'
+          : `Your ${state.formation.label} squad finished ${recordStr}. ${state.record.w >= 20 ? 'A strong season!' : state.record.w >= 10 ? 'A respectable campaign.' : 'Tough season — better luck next time.'}`}
+        <br><br>
+        <span style="color:#555;">Team rating: ${state.teamRating} · Formation: ${state.formation.label}</span>
+      </div>
+      <div class="result-team">${teamHtml}</div>
+      <div class="result-actions">
+        <button class="btn btn-primary" onclick="restart()">Try Again</button>
+      </div>
+    </div>
+  `;
+}
+
+function restart() {
+  resetState();
+  state.phase = 'formation';
+  render();
+}
+
+// ========== INIT ==========
+render();
+</script>
+</body>
+</html>
