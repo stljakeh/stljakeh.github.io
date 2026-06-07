@@ -305,6 +305,7 @@ const TEAMS = [
     icon: 'STL',
     statusText: 'Playoffs',
     statusClass: 'status-playoffs',
+    standingOverride: '2nd in UFL',
     links: [
       { text: 'Official Site', href: 'https://www.theufl.com/teams/st-louis' },
       { text: 'Schedule', href: 'https://www.theufl.com/teams/st-louis/schedule' },
@@ -374,17 +375,45 @@ async function refresh() {
 }
 
 async function fetchTeam(team) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/teams/${team.id}`;
+  const baseUrl = `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/teams/${team.id}`;
   let data;
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(baseUrl);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     data = await resp.json();
   } catch (e) {
     renderError(team, `Failed to load: ${e.message}`);
     return;
   }
-  renderTeam(team, data);
+
+  let lastEvent = null;
+  let nextEvent = null;
+  try {
+    const schedResp = await fetch(`${baseUrl}/schedule`);
+    if (schedResp.ok) {
+      const schedData = await schedResp.json();
+      const events = schedData.events || [];
+      for (let i = events.length - 1; i >= 0; i--) {
+        const e = events[i];
+        const st = e.competitions?.[0]?.status?.type;
+        if (st && (st.completed === true || st.state === 'post')) {
+          lastEvent = e;
+          break;
+        }
+      }
+      for (const e of events) {
+        const st = e.competitions?.[0]?.status?.type;
+        if (st && (st.completed === false || st.state === 'pre' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
+          nextEvent = e;
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    // non-fatal — fall back to team endpoint
+  }
+
+  renderTeam(team, data, lastEvent, nextEvent);
 }
 
 function findStat(stats, name) {
@@ -409,7 +438,7 @@ function formatTimeStr(dateStr) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
 }
 
-function renderTeam(team, data) {
+function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const body = document.getElementById(`body-${team.cardClass}`);
   const badge = document.getElementById(`badge-${team.cardClass}`);
   if (!body) return;
@@ -417,7 +446,7 @@ function renderTeam(team, data) {
   const t = data.team;
   const record = t.record && t.record.items ? t.record.items[0] : null;
   const statsArr = record ? (record.stats || []) : [];
-  const standingSummary = t.standingSummary || '';
+  const standingSummary = team.standingOverride || t.standingSummary || '';
 
   const wins = findStat(statsArr, 'wins') || 0;
   const losses = findStat(statsArr, 'losses') || 0;
@@ -442,65 +471,87 @@ function renderTeam(team, data) {
     else if (streakVal < 0) { streakStr = `Lost ${abs}`; streakClass = 'loss'; }
   }
 
-  const nextEvent = t.nextEvent && t.nextEvent[0];
+  const teamNextEvent = t.nextEvent && t.nextEvent[0];
+  let lastGameEvent = null;
+  let upcomingEvent = null;
+
+  if (schedLastEvent) {
+    lastGameEvent = schedLastEvent;
+  } else if (teamNextEvent) {
+    const st = teamNextEvent.competitions[0].status.type;
+    if (st.completed === true || st.state === 'post') {
+      lastGameEvent = teamNextEvent;
+    }
+  }
+
+  if (schedNextEvent) {
+    upcomingEvent = schedNextEvent;
+  } else if (teamNextEvent) {
+    const st = teamNextEvent.competitions[0].status.type;
+    if (!(st.completed === true || st.state === 'post')) {
+      upcomingEvent = teamNextEvent;
+    }
+  }
+
   let lastGameHtml = '';
   let nextGameHtml = '';
   let statusText = team.statusText;
   let statusClass = team.statusClass;
 
-  if (nextEvent) {
-    const comp = nextEvent.competitions[0];
+  function renderEventComp(ev, isLast) {
+    const comp = ev.competitions[0];
     const st = comp.status.type;
-    const isFinal = st.completed === true;
-    const isPreview = st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW';
-    const isInProgress = st.state === 'in' && !isFinal;
-
     const homeAway = comp.competitors.find(c => c.team.id === team.id);
     const opponent = comp.competitors.find(c => c.team.id !== team.id);
+    if (!homeAway || !opponent) return;
+    const isHome = homeAway.homeAway === 'home';
+    const vs = isHome ? 'vs' : '@';
+    const oppAbbr = opponent.team.abbreviation;
 
-    if (homeAway && opponent) {
-      const isHome = homeAway.homeAway === 'home';
-      const vs = isHome ? 'vs' : '@';
-      const oppAbbr = opponent.team.abbreviation;
-
-      if (isFinal) {
-        const ourScore = homeAway.score ? homeAway.score.displayValue : '?';
-        const oppScore = opponent.score ? opponent.score.displayValue : '?';
-        const won = homeAway.winner;
-        const resultChar = won ? 'W' : 'L';
-        const resultClass = won ? 'win' : 'loss';
-        const dateLabel = formatDateStr(comp.date);
-        lastGameHtml = `<span class="stat-value ${resultClass}">${resultChar} ${ourScore}-${oppScore} ${vs} ${oppAbbr} &middot; ${dateLabel}</span>`;
-      } else if (isInProgress) {
-        const period = st.period || comp.status.period || '';
-        const clock = comp.status.displayClock || '';
-        const ourScore = homeAway.score ? homeAway.score.displayValue : '0';
-        const oppScore = opponent.score ? opponent.score.displayValue : '0';
+    if (st.completed === true || st.state === 'post') {
+      const ourScore = homeAway.score ? homeAway.score.displayValue : '?';
+      const oppScore = opponent.score ? opponent.score.displayValue : '?';
+      const won = homeAway.winner;
+      const resultChar = won ? 'W' : 'L';
+      const resultClass = won ? 'win' : 'loss';
+      const dateLabel = formatDateStr(comp.date);
+      lastGameHtml = `<span class="stat-value ${resultClass}">${resultChar} ${ourScore}-${oppScore} ${vs} ${oppAbbr} &middot; ${dateLabel}</span>`;
+    } else if (st.state === 'in') {
+      const ourScore = homeAway.score ? homeAway.score.displayValue : '0';
+      const oppScore = opponent.score ? opponent.score.displayValue : '0';
+      if (isLast) {
         lastGameHtml = `<span class="stat-value win">${ourScore}-${oppScore} ${vs} ${oppAbbr}</span>`;
-        statusText = 'Live';
-        statusClass = 'status-live';
+      } else {
+        nextGameHtml = renderNextGameHtml(ev, comp, st, vs, opponent, true);
       }
-
-      if (isPreview || isInProgress) {
-        const dateStrFull = formatDateStr(comp.date, true);
-        const timeStr = formatTimeStr(comp.date);
-        const venue = comp.venue ? comp.venue.fullName : '';
-        const broadcasts = comp.broadcasts && comp.broadcasts.length > 0
-          ? [...new Set(comp.broadcasts.map(b => b.media ? b.media.shortName : '').filter(Boolean))].join(', ')
-          : '';
-        const label = isInProgress ? 'In Progress' : 'Next Game';
-        nextGameHtml = `
-          <div class="next-game">
-            <div class="next-game-label">${label}</div>
-            <div class="next-game-detail">${vs} ${opponent.team.displayName} &middot; ${dateStrFull} &middot; ${timeStr}</div>
-            ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
-          </div>
-        `;
-      }
+      statusText = 'Live';
+      statusClass = 'status-live';
+    } else if (!isLast) {
+      nextGameHtml = renderNextGameHtml(ev, comp, st, vs, opponent, false);
     }
   }
 
-  const lastLabel = (!nextEvent || nextEvent.competitions[0].status.type.completed || nextEvent.competitions[0].status.type.state === 'post') ? 'Last Game' : 'Last Game';
+  function renderNextGameHtml(ev, comp, st, vs, opponent, isLive) {
+    const dateStrFull = formatDateStr(comp.date, true);
+    const timeStr = formatTimeStr(comp.date);
+    const venue = comp.venue ? comp.venue.fullName : '';
+    const broadcasts = comp.broadcasts && comp.broadcasts.length > 0
+      ? [...new Set(comp.broadcasts.map(b => b.media ? b.media.shortName : '').filter(Boolean))].join(', ')
+      : '';
+    const label = isLive ? 'In Progress' : 'Next Game';
+    return `
+      <div class="next-game">
+        <div class="next-game-label">${label}</div>
+        <div class="next-game-detail">${vs} ${opponent.team.displayName} &middot; ${dateStrFull} &middot; ${timeStr}</div>
+        ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (lastGameEvent) renderEventComp(lastGameEvent, true);
+  if (upcomingEvent) renderEventComp(upcomingEvent, false);
+
+  const lastLabel = 'Last Game';
 
   let extraRows = '';
   if ((team.sport === 'hockey' || team.sport === 'soccer') && pts !== null) {
