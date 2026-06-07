@@ -1205,11 +1205,14 @@ function downloadShareImage() {
     ctx.fillText(name, cx, y + 23);
 
     ctx.font = '9px sans-serif';
-    ctx.fillStyle = '#8bc34a';
-    ctx.textAlign = 'left';
-    ctx.fillText('G:' + st.goals + '  A:' + st.assists, x + 10, y + 40);
-    ctx.fillStyle = '#64b5f6';
-    ctx.fillText('CS:' + st.cleanSheets + '  M:' + st.motm, x + 10, y + 54);
+    ctx.textAlign = 'center';
+    if (pos === 'G') {
+      ctx.fillStyle = '#64b5f6';
+      ctx.fillText('CS:' + st.cleanSheets + '  M:' + st.motm, cx, y + 48);
+    } else {
+      ctx.fillStyle = '#8bc34a';
+      ctx.fillText('G:' + st.goals + '  A:' + st.assists, cx, y + 48);
+    }
   }
 
   // Background
