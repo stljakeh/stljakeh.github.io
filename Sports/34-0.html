@@ -455,7 +455,7 @@ const DRAW_RATE = 0.18;
 const DIFFICULTIES = {
   easy: { label: 'Easy', poolSize: 30, ratingBonus: 5, drawRate: 0.10, oppMin: 35, oppRange: 30, noiseRange: 8, desc: 'More teams, higher ratings, weaker opponents' },
   normal: { label: 'Normal', poolSize: 20, ratingBonus: 0, drawRate: 0.18, oppMin: 45, oppRange: 40, noiseRange: 10, desc: 'Balanced challenge' },
-  hard: { label: 'Hard', poolSize: 10, ratingBonus: -5, drawRate: 0.25, oppMin: 50, oppRange: 45, noiseRange: 14, desc: 'Fewer teams, lower ratings, stronger opponents' },
+  hard: { label: 'Hard', poolSize: 14, ratingBonus: -5, drawRate: 0.25, oppMin: 50, oppRange: 45, noiseRange: 14, desc: 'Fewer teams, lower ratings, stronger opponents' },
 };
 
 // ========== MLS TEAMS ==========
@@ -1405,7 +1405,7 @@ async function selectFormation(key) {
   app.innerHTML = `<div class="loading"><div class="lds-ring"><div></div></div>Fetching historic rosters...</div>`;
   const diff = DIFFICULTIES[state.difficulty];
   state.teamPool = await preFetchPool(diff.poolSize, diff.noiseRange, diff.ratingBonus);
-  if (state.teamPool.length < 11) {
+  if (state.teamPool.length < state.slots.length) {
     app.innerHTML = `<div style="text-align:center;padding:60px;color:#f44336;">Couldn't build a valid draft pool. <button class="btn btn-primary" onclick="selectFormation('${key}')">Retry</button></div>`;
     return;
   }
