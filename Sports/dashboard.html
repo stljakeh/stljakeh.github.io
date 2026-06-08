@@ -185,6 +185,7 @@
   .battlehawks .next-game { background: rgba(0, 82, 155, 0.1); border-left: 3px solid #00529B; }
   .next-game-label { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
   .next-game-detail { font-weight: 600; }
+  .countdown-timer { font-size: 0.78rem; color: #4caf50; font-weight: 600; margin-top: 3px; }
   .loading-dots::after {
     content: '';
     animation: dots 1.5s steps(3, end) infinite;
@@ -365,6 +366,7 @@ async function refresh() {
 
   window._mlsOverall = {};
   await Promise.all([...TEAMS.map(t => fetchTeam(t)), fetchMlsStandings()]);
+  startCountdownTimer();
 
   const now = new Date();
   const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -457,6 +459,29 @@ function formatDateStr(dateStr, showYear) {
 function formatTimeStr(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+}
+
+let countdownTimer = null;
+
+function startCountdownTimer() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  updateCountdowns();
+  countdownTimer = setInterval(updateCountdowns, 1000);
+}
+
+function updateCountdowns() {
+  const now = Date.now();
+  document.querySelectorAll('.countdown-timer').forEach(el => {
+    const target = new Date(el.dataset.target).getTime();
+    const diff = target - now;
+    if (diff <= 0) { el.textContent = ''; el.style.display = 'none'; return; }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    let str = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+    el.textContent = `Starts in ${str}`;
+  });
 }
 
 function renderTeam(team, data, schedLastEvent, schedNextEvent) {
@@ -572,6 +597,7 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
         <div class="next-game-label">${label}</div>
         <div class="next-game-detail">${vs} ${opponent.team.displayName} &middot; ${dateStrFull} &middot; ${timeStr}</div>
         ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
+        ${!isLive ? `<div class="countdown-timer" data-target="${comp.date}"></div>` : ''}
       </div>
     `;
   }
