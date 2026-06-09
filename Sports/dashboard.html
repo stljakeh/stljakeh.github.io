@@ -415,6 +415,9 @@ async function fetchTeam(team) {
     // non-fatal — fall back to team endpoint
   }
 
+  if (nextEvent) {
+    fetchWinProb(team, nextEvent).then(() => renderTeam(team, data, lastEvent, nextEvent));
+  }
   renderTeam(team, data, lastEvent, nextEvent);
 }
 
@@ -439,6 +442,58 @@ async function fetchMlsStandings() {
 function suffix(n) {
   const s = ['th','st','nd','rd'], v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+async function fetchWinProb(team, event) {
+  if (!event) return;
+  const comp = event.competitions?.[0];
+  if (!comp) return;
+  const st = comp.status?.type;
+  const eventId = event.id;
+  const isLive = st?.state === 'in';
+
+  try {
+    if (isLive) {
+      const resp = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/summary?event=${eventId}`
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const wp = data.winprobability;
+      if (!wp || !wp.length) return;
+      const latest = wp[wp.length - 1];
+      const homePct = latest.homeWinPercentage;
+      const tiePct = latest.tiePercentage || 0;
+      const isHome = comp.competitors?.find(c => c.team.id === team.id)?.homeAway === 'home';
+      let winPct = isHome ? homePct : (1 - homePct - tiePct);
+      team._winProb = Math.max(0, Math.round(winPct * 1000) / 10);
+      team._winProbLive = true;
+    } else {
+      const d = new Date(event.date);
+      const dateStr = d.toISOString().slice(0, 10).replace(/-/g, '');
+      const resp = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/scoreboard?dates=${dateStr}&includeOdds=true`
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const ev = data.events?.find(e => e.id === eventId);
+      if (!ev) return;
+      const odds = ev.competitions?.[0]?.odds?.[0];
+      if (!odds) return;
+      const isHome = ev.competitions[0].competitors?.find(c => c.team.id === team.id)?.homeAway === 'home';
+      const ml = isHome ? odds.moneyline?.home?.close?.odds : odds.moneyline?.away?.close?.odds;
+      if (!ml) return;
+      const num = parseInt(ml);
+      let winPct;
+      if (num < 0) {
+        winPct = Math.abs(num) / (Math.abs(num) + 100);
+      } else {
+        winPct = 100 / (num + 100);
+      }
+      team._winProb = Math.round(winPct * 1000) / 10;
+      team._winProbLive = false;
+    }
+  } catch (e) { /* non-fatal */ }
 }
 
 function findStat(stats, name) {
@@ -522,12 +577,18 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   } else {
     recordStr = `${wins}-${losses}`;
   }
+  const totalDecisions = wins + losses + ties + (team.sport === 'hockey' ? otLosses : 0);
+  if (totalDecisions > 0) {
+    const winPct = (wins / totalDecisions).toFixed(3).replace(/^0/, '');
+    recordStr += ` (${winPct})`;
+  }
 
   let streakStr = '', streakClass = '';
   if (streakVal !== null && streakVal !== undefined) {
     const abs = Math.abs(streakVal);
     if (streakVal > 0) { streakStr = `Won ${abs}`; streakClass = 'win'; }
     else if (streakVal < 0) { streakStr = `Lost ${abs}`; streakClass = 'loss'; }
+    else if (streakVal === 0) { streakStr = 'Draw 1'; streakClass = ''; }
   }
 
   const teamNextEvent = t.nextEvent && t.nextEvent[0];
@@ -598,12 +659,19 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       ? [...new Set(comp.broadcasts.map(b => b.media ? b.media.shortName : '').filter(Boolean))].join(', ')
       : '';
     const label = isLive ? 'In Progress' : 'Next Game';
+    let winHtml = '';
+    if (team._winProb !== undefined) {
+      const wp = team._winProb;
+      const color = wp > 60 ? '#4caf50' : wp > 40 ? '#ff9800' : '#f44336';
+      winHtml = `<div style="font-size:0.75rem;margin-top:3px;color:${isLive ? color : '#aaa'};">${isLive ? 'Live Win' : 'Win'}: ${wp}%</div>`;
+    }
     return `
       <div class="next-game">
         <div class="next-game-label">${label}</div>
         <div class="next-game-detail">${vs} ${opponent.team.displayName} &middot; ${dateStrFull} &middot; ${timeStr}</div>
         ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
         ${!isLive ? `<div class="countdown-timer" data-target="${comp.date}"></div>` : ''}
+        ${winHtml}
       </div>
     `;
   }
