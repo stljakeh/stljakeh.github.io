@@ -370,6 +370,7 @@ function buildCards() {
           <span class="stat-value" id="lastGame-${t.cardClass}">—</span>
         </div>
         <div id="nextGame-${t.cardClass}"></div>
+        <div class="countdown-timer" id="countdown-${t.cardClass}" data-target="" style="display:none"></div>
         <div class="links" id="links-${t.cardClass}"></div>
       </div>
     `;
@@ -691,7 +692,6 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
         <div class="next-game-label">${label}</div>
         <div class="next-game-detail">${vs} ${opponent.team.displayName} &middot; ${dateStrFull} &middot; ${timeStr}</div>
         ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
-        ${!isLive ? `<div class="countdown-timer" data-target="${comp.date}"></div>` : ''}
         ${winHtml}
       </div>
     `;
@@ -741,6 +741,16 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
     nextGameEl.innerHTML = '';
   } else {
     nextGameEl.innerHTML = '<div class="empty-msg">No upcoming games scheduled</div>';
+  }
+
+  const timerEl = document.getElementById(`countdown-${team.cardClass}`);
+  if (timerEl) {
+    if (upcomingEvent && !(upcomingEvent.competitions?.[0]?.status?.type?.state === 'in')) {
+      timerEl.dataset.target = upcomingEvent.date;
+      timerEl.style.display = '';
+    } else {
+      timerEl.style.display = 'none';
+    }
   }
 
   const linksEl = document.getElementById(`links-${team.cardClass}`);
