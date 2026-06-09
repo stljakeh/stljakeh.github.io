@@ -349,7 +349,28 @@ function buildCards() {
         <span class="status-badge ${t.statusClass}" id="badge-${t.cardClass}">${t.statusText}</span>
       </div>
       <div class="card-body" id="body-${t.cardClass}">
-        <div style="text-align:center;padding:20px;color:#555;font-size:0.85rem;">Loading<span class="loading-dots"></span></div>
+        <div class="stat-row">
+          <span class="stat-label">Record</span>
+          <span class="stat-value" id="record-${t.cardClass}">—</span>
+        </div>
+        <div class="stat-row" id="pointsRow-${t.cardClass}" style="display:none">
+          <span class="stat-label">Points</span>
+          <span class="stat-value" id="points-${t.cardClass}"></span>
+        </div>
+        <div class="stat-row" id="standingRow-${t.cardClass}" style="display:none">
+          <span class="stat-label">Standing</span>
+          <span class="stat-value" id="standing-${t.cardClass}"></span>
+        </div>
+        <div class="stat-row" id="streakRow-${t.cardClass}" style="display:none">
+          <span class="stat-label">Streak</span>
+          <span class="stat-value" id="streak-${t.cardClass}"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Last Game</span>
+          <span class="stat-value" id="lastGame-${t.cardClass}">—</span>
+        </div>
+        <div id="nextGame-${t.cardClass}"></div>
+        <div class="links" id="links-${t.cardClass}"></div>
       </div>
     `;
     grid.appendChild(card);
@@ -679,49 +700,51 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   if (lastGameEvent) renderEventComp(lastGameEvent, true);
   if (upcomingEvent) renderEventComp(upcomingEvent, false);
 
-  const lastLabel = 'Last Game';
+  document.getElementById(`record-${team.cardClass}`).textContent = recordStr;
 
-  let extraRows = '';
-  if ((team.sport === 'hockey' || team.sport === 'soccer') && pts !== null) {
-    extraRows += `
-      <div class="stat-row">
-        <span class="stat-label">Points</span>
-        <span class="stat-value">${Math.round(pts)}</span>
-      </div>
-    `;
+  const pointsRow = document.getElementById(`pointsRow-${team.cardClass}`);
+  const pointsEl = document.getElementById(`points-${team.cardClass}`);
+  const showPoints = (team.sport === 'hockey' || team.sport === 'soccer') && pts !== null;
+  if (showPoints) {
+    pointsRow.style.display = '';
+    pointsEl.textContent = Math.round(pts);
+  } else {
+    pointsRow.style.display = 'none';
   }
 
+  const standingRow = document.getElementById(`standingRow-${team.cardClass}`);
+  const standingEl = document.getElementById(`standing-${team.cardClass}`);
   if (standingSummary) {
-    extraRows += `
-      <div class="stat-row">
-        <span class="stat-label">Standing</span>
-        <span class="stat-value">${standingSummary}</span>
-      </div>
-    `;
+    standingRow.style.display = '';
+    standingEl.textContent = standingSummary;
+  } else {
+    standingRow.style.display = 'none';
   }
 
-  const hasEventData = lastGameHtml !== '' || nextGameHtml !== '';
+  const streakRow = document.getElementById(`streakRow-${team.cardClass}`);
+  const streakEl = document.getElementById(`streak-${team.cardClass}`);
+  if (streakStr) {
+    streakRow.style.display = '';
+    streakEl.textContent = streakStr;
+    streakEl.className = `stat-value ${streakClass}`;
+  } else {
+    streakRow.style.display = 'none';
+  }
 
-  body.innerHTML = `
-    <div class="stat-row">
-      <span class="stat-label">Record</span>
-      <span class="stat-value">${recordStr}</span>
-    </div>
-    ${extraRows}
-    ${streakStr ? `
-    <div class="stat-row">
-      <span class="stat-label">Streak</span>
-      <span class="stat-value ${streakClass}">${streakStr}</span>
-    </div>` : ''}
-    <div class="stat-row">
-      <span class="stat-label">${lastLabel}</span>
-      ${lastGameHtml || '<span class="stat-value" style="color:#666;">N/A</span>'}
-    </div>
-    ${nextGameHtml || (!hasEventData ? '<div class="empty-msg">No upcoming games scheduled</div>' : '')}
-    <div class="links">
-      ${team.links.map(l => `<a href="${l.href}" target="_blank" rel="noopener">${l.text}</a>`).join('')}
-    </div>
-  `;
+  const lastGameEl = document.getElementById(`lastGame-${team.cardClass}`);
+  lastGameEl.innerHTML = lastGameHtml || '<span style="color:#666;">N/A</span>';
+
+  const nextGameEl = document.getElementById(`nextGame-${team.cardClass}`);
+  if (nextGameHtml) {
+    nextGameEl.innerHTML = nextGameHtml;
+  } else if (lastGameHtml) {
+    nextGameEl.innerHTML = '';
+  } else {
+    nextGameEl.innerHTML = '<div class="empty-msg">No upcoming games scheduled</div>';
+  }
+
+  const linksEl = document.getElementById(`links-${team.cardClass}`);
+  linksEl.innerHTML = team.links.map(l => `<a href="${l.href}" target="_blank" rel="noopener">${l.text}</a>`).join('');
 
   if (badge) {
     badge.textContent = statusText;
