@@ -455,7 +455,7 @@ function buildCards() {
 async function refresh() {
   if (isRefreshing) return;
   isRefreshing = true;
-  TEAMS.forEach(t => t._liveEvent = null);
+  TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; });
   const btn = document.getElementById('refreshBtn');
   const spinner = document.getElementById('spinner');
   const label = document.getElementById('btnLabel');
@@ -465,6 +465,7 @@ async function refresh() {
 
   window._mlsOverall = {};
   await Promise.all([...TEAMS.map(t => fetchTeam(t)), fetchMlsStandings()]);
+  await enrichLiveScores();
   updateTicker();
   adjustRefreshInterval();
   startCountdownTimer();
@@ -595,6 +596,37 @@ async function fetchWinProb(team, event) {
   } catch (e) { /* non-fatal */ }
 }
 
+function getScoreDisplay(competitor) {
+  if (!competitor || competitor.score == null) return '0';
+  if (typeof competitor.score === 'string') return competitor.score;
+  if (competitor.score.displayValue != null) return competitor.score.displayValue;
+  return String(competitor.score.value ?? '0');
+}
+
+async function enrichLiveScores() {
+  const sports = new Set();
+  TEAMS.forEach(t => {
+    if (t._liveEvent) sports.add(`${t.sport}/${t.leagueSlug}`);
+  });
+  if (sports.size === 0) return;
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  await Promise.all([...sports].map(async key => {
+    try {
+      const resp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${key}/scoreboard?dates=${today}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      for (const ev of (data.events || [])) {
+        for (const t of TEAMS) {
+          if (t._liveEvent && t._liveEvent.id === ev.id && ev.competitions?.[0]?.competitors) {
+            t._liveScoreData = ev.competitions[0].competitors;
+            t._liveStatus = ev.competitions[0].status;
+          }
+        }
+      }
+    } catch (e) { /* non-fatal */ }
+  }));
+}
+
 function updateTicker() {
   const ticker = document.getElementById('liveTicker');
   const container = document.getElementById('tickerItems');
@@ -604,16 +636,18 @@ function updateTicker() {
     const event = t._liveEvent;
     if (!event) return;
     const comp = event.competitions[0];
-    const st = comp.status.type;
+    const st = t._liveStatus ? t._liveStatus.type : comp.status.type;
     if (st.state !== 'in') return;
-    const homeAway = comp.competitors.find(c => c.team.id === t.id);
-    const opponent = comp.competitors.find(c => c.team.id !== t.id);
+
+    const comps = t._liveScoreData || comp.competitors;
+    const homeAway = comps.find(c => c.team.id === t.id);
+    const opponent = comps.find(c => c.team.id !== t.id);
     if (!homeAway || !opponent) return;
     const isHome = homeAway.homeAway === 'home';
-    const ourScore = homeAway.score ? homeAway.score.displayValue : '0';
-    const oppScore = opponent.score ? opponent.score.displayValue : '0';
+    const ourScore = getScoreDisplay(homeAway);
+    const oppScore = getScoreDisplay(opponent);
     const detail = st.detail || '';
-    const clock = comp.status.displayClock ? ` (${comp.status.displayClock})` : '';
+    const clock = (t._liveStatus ? t._liveStatus.displayClock : comp.status.displayClock) ? ` (${(t._liveStatus || comp.status).displayClock})` : '';
     liveGames.push({ t, ourScore, oppScore, opponent, isHome, detail, clock });
   });
 
@@ -782,8 +816,11 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       const dateLabel = formatDateStr(comp.date);
       lastGameHtml = `<span class="stat-value ${resultClass}">${resultChar} ${ourScore}-${oppScore} ${vs} ${oppAbbr} &middot; ${dateLabel}</span>`;
     } else if (st.state === 'in') {
-      const ourScore = homeAway.score ? homeAway.score.displayValue : '0';
-      const oppScore = opponent.score ? opponent.score.displayValue : '0';
+      const comps = team._liveScoreData || comp.competitors;
+      const ha = comps.find(c => c.team.id === team.id);
+      const opp = comps.find(c => c.team.id !== team.id);
+      const ourScore = getScoreDisplay(ha);
+      const oppScore = getScoreDisplay(opp);
       team._liveEvent = ev;
       if (isLast) {
         const detail = st.detail ? ` &middot; ${st.detail}` : '';
