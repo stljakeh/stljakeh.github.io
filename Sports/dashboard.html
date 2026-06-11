@@ -647,7 +647,8 @@ function updateTicker() {
     const ourScore = getScoreDisplay(homeAway);
     const oppScore = getScoreDisplay(opponent);
     const detail = st.detail || '';
-    const clock = (t._liveStatus ? t._liveStatus.displayClock : comp.status.displayClock) ? ` (${(t._liveStatus || comp.status).displayClock})` : '';
+    const dc = (t._liveStatus || comp.status).displayClock;
+    const clock = dc && dc !== '0:00' ? ` (${dc})` : '';
     liveGames.push({ t, ourScore, oppScore, opponent, isHome, detail, clock });
   });
 
@@ -845,7 +846,8 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
     const label = isLive ? 'In Progress' : 'Next Game';
     let detailHtml = '';
     if (isLive && st.detail) {
-      const clock = comp.status.displayClock ? ` (${comp.status.displayClock})` : '';
+      const dc = comp.status.displayClock;
+      const clock = dc && dc !== '0:00' ? ` (${dc})` : '';
       detailHtml = `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${st.detail}${clock}</div>`;
     }
     let winHtml = '';
