@@ -282,6 +282,44 @@
     animation: pulse 1.5s ease-in-out infinite;
     flex-shrink: 0;
   }
+  .lineup-toggle {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 6px 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+    font-family: inherit;
+  }
+  .lineup-toggle:hover { color: #ddd; }
+  .lineup-toggle-icon {
+    display: inline-block;
+    font-size: 0.6rem;
+    transition: transform 0.2s;
+  }
+  .lineup-toggle.open .lineup-toggle-icon { transform: rotate(90deg); }
+  .lineup-panel {
+    display: none;
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: #141414;
+    border-radius: 6px;
+    border: 1px solid #2a2a2a;
+    font-size: 0.78rem;
+    line-height: 1.7;
+  }
+  .lineup-panel.open { display: block; }
+  .lineup-row { display: flex; gap: 8px; align-items: baseline; }
+  .lineup-row .order { color: #555; min-width: 18px; text-align: right; }
+  .lineup-row .pos { color: #777; min-width: 28px; font-weight: 600; }
+  .lineup-row .name { color: #ddd; }
+  .lineup-header { color: #666; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .sp-label { color: #888; font-size: 0.72rem; margin-top: 4px; padding-top: 4px; border-top: 1px solid #252525; }
 </style>
 </head>
 <body>
@@ -455,7 +493,7 @@ function buildCards() {
 async function refresh() {
   if (isRefreshing) return;
   isRefreshing = true;
-  TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; });
+  TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; t._lineupData = null; });
   const btn = document.getElementById('refreshBtn');
   const spinner = document.getElementById('spinner');
   const label = document.getElementById('btnLabel');
@@ -542,6 +580,113 @@ async function fetchMlsStandings() {
 function suffix(n) {
   const s = ['th','st','nd','rd'], v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+function isGameDay(event) {
+  if (!event || !event.date) return false;
+  const d = new Date(event.date);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+         d.getMonth() === now.getMonth() &&
+         d.getDate() === now.getDate();
+}
+
+async function fetchLineup(team, event) {
+  if (!event || !isGameDay(event)) return;
+  const comp = event.competitions?.[0];
+  if (!comp) return;
+  const eventId = event.id;
+  try {
+    const resp = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/summary?event=${eventId}`
+    );
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    if (team.sport === 'baseball') {
+      const players = data.boxscore?.players;
+      if (!players) return;
+      const teamIdx = players.findIndex(p => String(p.team?.id) === String(team.id));
+      if (teamIdx === -1) return;
+      const batting = players[teamIdx]?.statistics?.find(s => s.type === 'batting');
+      if (!batting?.athletes) return;
+      const batters = batting.athletes
+        .filter(a => a.starter === true && a.batOrder > 0)
+        .sort((a, b) => a.batOrder - b.batOrder)
+        .map(a => ({
+          batOrder: a.batOrder,
+          position: a.position?.abbreviation || '',
+          name: a.athlete?.displayName || ''
+        }));
+      const pitching = players[teamIdx]?.statistics?.find(s => s.type === 'pitching');
+      let sp = null;
+      if (pitching?.athletes) {
+        const spData = pitching.athletes.find(a => a.starter === true);
+        if (spData) {
+          sp = {
+            name: spData.athlete?.displayName || '',
+            throws: spData.athlete?.throws || ''
+          };
+        }
+      }
+      if (batters.length) {
+        team._lineupData = { sport: 'baseball', batters, startingPitcher: sp };
+      }
+    } else if (team.sport === 'soccer') {
+      const rosters = data.rosters;
+      if (!rosters) return;
+      const teamRoster = rosters.find(r => String(r.team?.id) === String(team.id));
+      if (!teamRoster?.roster) return;
+      const formation = teamRoster.formation || '';
+      const starters = teamRoster.roster
+        .filter(p => p.starter === true)
+        .sort((a, b) => parseInt(a.formationPlace || 0) - parseInt(b.formationPlace || 0))
+        .map(p => ({
+          formationPlace: parseInt(p.formationPlace || 0),
+          position: p.position?.abbreviation || '',
+          name: p.athlete?.displayName || '',
+          jersey: p.jersey || ''
+        }));
+      if (starters.length) {
+        team._lineupData = { sport: 'soccer', formation, starters };
+      }
+    } else if (team.sport === 'hockey') {
+      const players = data.boxscore?.players;
+      if (!players) return;
+      const teamIdx = players.findIndex(p => String(p.team?.id) === String(team.id));
+      if (teamIdx === -1) return;
+      const stats = players[teamIdx]?.statistics;
+      if (!stats) return;
+      const forwards = stats.find(s => s.name === 'forwards')?.athletes
+        ?.filter(a => a.athlete?.scratched === false)
+        ?.map(a => ({
+          name: a.athlete?.displayName || '',
+          position: a.athlete?.position?.abbreviation || ''
+        })) || [];
+      const defensemen = stats.find(s => s.name === 'defenses')?.athletes
+        ?.filter(a => a.athlete?.scratched === false)
+        ?.map(a => ({
+          name: a.athlete?.displayName || '',
+          position: a.athlete?.position?.abbreviation || ''
+        })) || [];
+      const goalies = stats.find(s => s.name === 'goalies')?.athletes
+        ?.filter(a => a.athlete?.scratched === false)
+        ?.map(a => ({
+          name: a.athlete?.displayName || '',
+          position: a.athlete?.position?.abbreviation || ''
+        })) || [];
+      let startingGoalie = null;
+      const teamComp = comp.competitors?.find(c => String(c.team.id) === String(team.id));
+      const probs = teamComp?.probables;
+      if (probs) {
+        const sg = probs.find(p => p.name === 'probableStartingGoalie');
+        if (sg) startingGoalie = { name: sg.athlete?.fullName || '' };
+      }
+      if (forwards.length || defensemen.length || goalies.length) {
+        team._lineupData = { sport: 'hockey', forwards, defensemen, goalies, startingGoalie };
+      }
+    }
+  } catch (e) { /* non-fatal */ }
 }
 
 async function fetchWinProb(team, event) {
@@ -721,7 +866,7 @@ function updateCountdowns() {
   });
 }
 
-function renderTeam(team, data, schedLastEvent, schedNextEvent) {
+async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const body = document.getElementById(`body-${team.cardClass}`);
   const badge = document.getElementById(`badge-${team.cardClass}`);
   if (!body) return;
@@ -793,6 +938,10 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
     }
   }
 
+  if (upcomingEvent && isGameDay(upcomingEvent)) {
+    await fetchLineup(team, upcomingEvent);
+  }
+
   let lastGameHtml = '';
   let nextGameHtml = '';
   let statusText = team.statusText;
@@ -856,6 +1005,44 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       const color = wp > 60 ? '#4caf50' : wp > 40 ? '#ff9800' : '#f44336';
       winHtml = `<div style="font-size:0.75rem;margin-top:3px;color:${isLive ? color : '#aaa'};">${isLive ? 'Live Win' : 'Win'}: ${wp}%</div>`;
     }
+    let lineupHtml = '';
+    const ld = team._lineupData;
+    if (ld) {
+      let rows = '';
+      if (ld.sport === 'baseball') {
+        rows = ld.batters.map(b =>
+          `<div class="lineup-row"><span class="order">${b.batOrder}.</span><span class="pos">${b.position}</span><span class="name">${b.name}</span></div>`
+        ).join('');
+        if (ld.startingPitcher) {
+          rows += `<div class="sp-label">SP: ${ld.startingPitcher.name}${ld.startingPitcher.throws ? ' (' + ld.startingPitcher.throws + ')' : ''}</div>`;
+        }
+      } else if (ld.sport === 'soccer') {
+        const formLabel = ld.formation ? ` &middot; ${ld.formation}` : '';
+        rows = `<div class="lineup-header">Starting XI${formLabel}</div>`;
+        rows += ld.starters.map(s =>
+          `<div class="lineup-row"><span class="pos">${s.position}</span><span class="name">${s.name}</span></div>`
+        ).join('');
+      } else if (ld.sport === 'hockey') {
+        rows = `<div class="lineup-header">Lineup</div>`;
+        if (ld.forwards.length) {
+          rows += `<div class="lineup-row"><span class="pos">F:</span><span class="name">${ld.forwards.map(f => f.name).join(', ')}</span></div>`;
+        }
+        if (ld.defensemen.length) {
+          rows += `<div class="lineup-row"><span class="pos">D:</span><span class="name">${ld.defensemen.map(d => d.name).join(', ')}</span></div>`;
+        }
+        if (ld.startingGoalie) {
+          rows += `<div class="lineup-row"><span class="pos">G:</span><span class="name">${ld.startingGoalie.name}</span></div>`;
+        } else if (ld.goalies.length) {
+          rows += `<div class="lineup-row"><span class="pos">G:</span><span class="name">${ld.goalies.map(g => g.name).join(', ')}</span></div>`;
+        }
+      }
+      lineupHtml = `
+        <button class="lineup-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+          <span class="lineup-toggle-icon">&#9654;</span> Lineup
+        </button>
+        <div class="lineup-panel">${rows}</div>
+      `;
+    }
     return `
       <div class="next-game">
         <div class="next-game-label">${label}</div>
@@ -863,6 +1050,7 @@ function renderTeam(team, data, schedLastEvent, schedNextEvent) {
         ${detailHtml}
         ${venue ? `<div style="color:#888;font-size:0.75rem;margin-top:2px;">${venue}${broadcasts ? ' &middot; ' + broadcasts : ''}</div>` : ''}
         ${winHtml}
+        ${lineupHtml}
       </div>
     `;
   }
