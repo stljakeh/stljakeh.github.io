@@ -432,6 +432,7 @@ const TEAMS = [
 
 let refreshTimer = null;
 let isRefreshing = false;
+window._lineupOpen = {};
 
 function init() {
   const d = new Date();
@@ -821,6 +822,12 @@ function adjustRefreshInterval() {
   refreshTimer = setInterval(refresh, hasLive ? 20000 : 60000);
 }
 
+function toggleLineup(btn, id) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+  window._lineupOpen[id] = btn.classList.contains('open');
+}
+
 function findStat(stats, name) {
   const s = stats.find(s => s.name === name);
   return s ? s.value : null;
@@ -1037,7 +1044,7 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
         }
       }
       lineupHtml = `
-        <button class="lineup-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <button class="lineup-toggle" onclick="toggleLineup(this,'${team.cardClass}')">
           <span class="lineup-toggle-icon">&#9654;</span> Lineup
         </button>
         <div class="lineup-panel">${rows}</div>
@@ -1095,6 +1102,13 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const nextGameEl = document.getElementById(`nextGame-${team.cardClass}`);
   if (nextGameHtml) {
     nextGameEl.innerHTML = nextGameHtml;
+    if (team._lineupData && window._lineupOpen[team.cardClass]) {
+      const toggle = nextGameEl.querySelector('.lineup-toggle');
+      if (toggle) {
+        toggle.classList.add('open');
+        toggle.nextElementSibling.classList.add('open');
+      }
+    }
   } else if (lastGameHtml) {
     nextGameEl.innerHTML = '';
   } else {
