@@ -545,7 +545,7 @@ async function fetchTeam(team) {
         if (!isFinite(d)) continue;
         if (st && (st.completed === true || st.state === 'post')) {
           if (!lastDate || d > lastDate) { lastDate = d; lastEvent = e; }
-        } else if (st && (st.completed === false || st.state === 'pre' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
+        } else if (st && (st.completed === false || st.state === 'pre' || st.state === 'in' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
           if (!nextDate || d < nextDate) { nextDate = d; nextEvent = e; }
         }
       }
@@ -750,10 +750,7 @@ function getScoreDisplay(competitor) {
 }
 
 async function enrichLiveScores() {
-  const sports = new Set();
-  TEAMS.forEach(t => {
-    if (t._liveEvent) sports.add(`${t.sport}/${t.leagueSlug}`);
-  });
+  const sports = new Set(TEAMS.map(t => `${t.sport}/${t.leagueSlug}`));
   if (sports.size === 0) return;
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   await Promise.all([...sports].map(async key => {
@@ -762,10 +759,20 @@ async function enrichLiveScores() {
       if (!resp.ok) return;
       const data = await resp.json();
       for (const ev of (data.events || [])) {
+        const comps = ev.competitions?.[0]?.competitors;
+        if (!comps) continue;
+        const status = ev.competitions[0].status;
         for (const t of TEAMS) {
-          if (t._liveEvent && t._liveEvent.id === ev.id && ev.competitions?.[0]?.competitors) {
-            t._liveScoreData = ev.competitions[0].competitors;
-            t._liveStatus = ev.competitions[0].status;
+          if (`${t.sport}/${t.leagueSlug}` !== key) continue;
+          const isOurs = comps.some(c => String(c.team.id) === String(t.id));
+          if (!isOurs) continue;
+          if (status?.type?.state === 'in') {
+            t._liveEvent = ev;
+            t._liveScoreData = comps;
+            t._liveStatus = status;
+          } else if (t._liveEvent && t._liveEvent.id === ev.id) {
+            t._liveScoreData = comps;
+            t._liveStatus = status;
           }
         }
       }
