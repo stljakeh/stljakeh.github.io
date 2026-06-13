@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BattleHawks Attendance - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+nav .nav-links { display: flex; gap: 20px; align-items: center; }
+nav a {
+  color: #888;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  text-transform: uppercase;
+}
+nav a:hover { color: #fff; }
+nav .current {
+  color: #e0e0e0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+nav .site-label {
+  font-size: 0.7rem;
+  color: #444;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+#app { width: 100%; max-width: 960px; }
+header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+header .sub {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 4px;
+}
+.chart-wrap {
+  position: relative;
+  margin-top: 16px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  padding: 20px 16px 16px;
+}
+.chart-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+.tooltip {
+  position: absolute;
+  display: none;
+  background: #0d0d0d;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.tooltip .att { color: #5a9eff; font-weight: 700; font-size: 0.95rem; }
+.tooltip .opp { color: #ddd; }
+.tooltip .date { color: #888; font-size: 0.72rem; }
+.legend {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-line {
+  width: 20px; height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.stats {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #252525;
+  font-size: 0.8rem;
+}
+.stat-item { text-align: center; }
+.stat-item .num { color: #5a9eff; font-weight: 700; font-size: 1rem; }
+.stat-item .lbl { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.footer {
+  margin-top: 24px;
+  font-size: 0.75rem;
+  color: #444;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <span class="current">Attendance</span>
+    <a href="34-0.html">34-0 Game</a>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>BattleHawks Home Attendance</h1>
+    <div class="sub">Every home game since 2020 &middot; St. Louis BattleHawks</div>
+  </header>
+
+  <div class="chart-wrap" id="chartWrap">
+    <canvas id="chart" width="920" height="480"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <div class="stats" id="statsRow"></div>
+</div>
+
+<div class="footer">Data from sports-reference.com and official team releases</div>
+
+<script>
+const ATTENDANCE = [
+  { season: 2020, games: [
+    { opponent: 'New York', date: 'Feb 23, 2020', attendance: 29172 },
+    { opponent: 'Seattle',  date: 'Feb 29, 2020', attendance: 27527 },
+  ]},
+  { season: 2023, games: [
+    { opponent: 'Arlington',  date: 'Mar 12, 2023', attendance: 38310 },
+    { opponent: 'DC',         date: 'Mar 18, 2023', attendance: 35686 },
+    { opponent: 'Vegas',      date: 'Apr 8, 2023',  attendance: 35167 },
+    { opponent: 'Seattle',    date: 'Apr 16, 2023', attendance: 33142 },
+    { opponent: 'Orlando',    date: 'Apr 22, 2023', attendance: 33034 },
+  ]},
+  { season: 2024, games: [
+    { opponent: 'Arlington',  date: 'Apr 6, 2024',  attendance: 40317 },
+    { opponent: 'Memphis',    date: 'Apr 20, 2024', attendance: 31757 },
+    { opponent: 'Houston',    date: 'May 4, 2024',  attendance: 32969 },
+    { opponent: 'DC',         date: 'May 19, 2024', attendance: 32403 },
+    { opponent: 'San Antonio',date: 'Jun 1, 2024',  attendance: 34379 },
+    { opponent: 'San Antonio',date: 'Jun 9, 2024',  attendance: 30237 },
+  ]},
+  { season: 2025, games: [
+    { opponent: 'San Antonio',date: 'Apr 6, 2025',  attendance: 32115 },
+    { opponent: 'DC',         date: 'Apr 13, 2025', attendance: 30014 },
+    { opponent: 'Michigan',   date: 'Apr 26, 2025', attendance: 30406 },
+    { opponent: 'Arlington',  date: 'May 2, 2025',  attendance: 26684 },
+    { opponent: 'Birmingham', date: 'May 17, 2025', attendance: 30114 },
+    { opponent: 'San Antonio',date: 'May 23, 2025', attendance: 27890 },
+    { opponent: 'DC',         date: 'Jun 8, 2025',  attendance: 27589 },
+  ]},
+  { season: 2026, games: [
+    { opponent: 'DC',         date: 'Mar 28, 2026', attendance: 31191 },
+    { opponent: 'Birmingham', date: 'Apr 12, 2026', attendance: 20209 },
+    { opponent: 'Columbus',   date: 'May 8, 2026',  attendance: 18563 },
+    { opponent: 'Houston',    date: 'May 16, 2026', attendance: 21609 },
+    { opponent: 'Dallas',     date: 'May 29, 2026', attendance: 24621 },
+    { opponent: 'Louisville', date: 'Jun 7, 2026',  attendance: 18111 },
+  ]},
+];
+
+const SEASON_COLORS = ['#888', '#888', '#888', '#888', '#888'];
+const BLUE = '#00529B';
+const BLUE_LIGHT = '#3388cc';
+const BLUE_GLOW = 'rgba(0, 82, 155, 0.25)';
+const GRID_COLOR = '#2a2a2a';
+const TEXT_COLOR = '#888';
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const chartWrap = document.getElementById('chartWrap');
+
+const DPR = window.devicePixelRatio || 1;
+const W = 920;
+const H = 480;
+canvas.width = W * DPR;
+canvas.height = H * DPR;
+canvas.style.width = W + 'px';
+canvas.style.height = H + 'px';
+ctx.scale(DPR, DPR);
+
+const PAD = { top: 30, right: 20, bottom: 50, left: 60 };
+const plotW = W - PAD.left - PAD.right;
+const plotH = H - PAD.top - PAD.bottom;
+
+const allGames = ATTENDANCE.flatMap(s => s.games);
+const maxAtt = Math.max(...allGames.map(g => g.attendance));
+const minAtt = Math.min(...allGames.map(g => g.attendance));
+const avgAtt = Math.round(allGames.reduce((s, g) => s + g.attendance, 0) / allGames.length);
+const yMin = Math.max(0, Math.floor(minAtt / 5000) * 5000 - 5000);
+const yMax = Math.ceil(maxAtt / 5000) * 5000 + 5000;
+
+// Build flat index with season gaps
+let flatData = [];
+ATTENDANCE.forEach((s, si) => {
+  s.games.forEach((g, gi) => {
+    flatData.push({
+      ...g,
+      seasonIdx: si,
+      gameInSeason: gi,
+      seasonGames: s.games.length,
+    });
+  });
+});
+
+const totalGap = ATTENDANCE.length - 1; // gaps between seasons
+const segmentWidth = plotW / (flatData.length + totalGap);
+const gapWidth = segmentWidth;
+
+function getX(idx) {
+  let x = PAD.left + idx * segmentWidth;
+  for (let s = 0; s < ATTENDANCE.length - 1; s++) {
+    const gamesBefore = ATTENDANCE.slice(0, s + 1).reduce((sum, seas) => sum + seas.games.length, 0);
+    if (idx >= gamesBefore) {
+      x += gapWidth;
+    }
+  }
+  return x;
+}
+
+// Pre-calc positions
+const points = flatData.map((g, i) => {
+  const x = getX(i);
+  const y = PAD.top + plotH - ((g.attendance - yMin) / (yMax - yMin)) * plotH;
+  return { x, y, data: g, index: i };
+});
+
+function scaleY(val) {
+  return PAD.top + plotH - ((val - yMin) / (yMax - yMin)) * plotH;
+}
+
+// Season label positions (midpoint of each season's bars)
+const seasonLabels = [];
+let globalIdx = 0;
+ATTENDANCE.forEach((s, si) => {
+  const start = globalIdx;
+  globalIdx += s.games.length;
+  const end = globalIdx;
+  const midIdx = start + (end - start - 1) / 2;
+  const x = getX(midIdx);
+  seasonLabels.push({ x, label: String(s.season) });
+});
+
+function formatAtt(n) {
+  return n.toLocaleString();
+}
+
+function formatShortDate(dateStr) {
+  const d = new Date(dateStr);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = GRID_COLOR;
+  ctx.lineWidth = 1;
+  const yStep = 5000;
+  for (let y = yMin; y <= yMax; y += yStep) {
+    const yy = scaleY(y);
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, yy);
+    ctx.lineTo(W - PAD.right, yy);
+    ctx.stroke();
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(formatAtt(y), PAD.left - 8, yy);
+  }
+
+  // Season gaps — draw separator
+  let gameAccum = 0;
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ATTENDANCE.forEach((s, si) => {
+    if (si === 0) return;
+    const before = ATTENDANCE.slice(0, si).reduce((sum, sea) => sum + sea.games.length, 0);
+    const x = getX(before - 1) + segmentWidth / 2 + gapWidth / 2;
+    ctx.beginPath();
+    ctx.moveTo(x, PAD.top);
+    ctx.lineTo(x, PAD.top + plotH);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Average line
+  const avgY = scaleY(avgAtt);
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, avgY);
+  ctx.lineTo(W - PAD.right, avgY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Avg ' + formatAtt(avgAtt), W - PAD.right - 8, avgY - 4);
+
+  // Line segments per season
+  ATTENDANCE.forEach((s, si) => {
+    const seasonPoints = points.filter(p => p.data.seasonIdx === si);
+    if (seasonPoints.length < 2) return;
+
+    ctx.strokeStyle = BLUE;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(seasonPoints[0].x, seasonPoints[0].y);
+    for (let i = 1; i < seasonPoints.length; i++) {
+      ctx.lineTo(seasonPoints[i].x, seasonPoints[i].y);
+    }
+    ctx.stroke();
+
+    // Glow
+    ctx.strokeStyle = BLUE_GLOW;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(seasonPoints[0].x, seasonPoints[0].y);
+    for (let i = 1; i < seasonPoints.length; i++) {
+      ctx.lineTo(seasonPoints[i].x, seasonPoints[i].y);
+    }
+    ctx.stroke();
+  });
+
+  // Points
+  points.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = BLUE;
+    ctx.fill();
+    ctx.strokeStyle = '#0d0d0d';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // X-axis season labels
+  seasonLabels.forEach(sl => {
+    ctx.fillStyle = '#666';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(sl.label, sl.x, PAD.top + plotH + 8);
+  });
+
+  // X-axis opponent labels (alternating)
+  points.forEach((p, i) => {
+    const opp = p.data.opponent;
+    const shortDate = formatShortDate(p.data.date);
+    const label = i % 2 === 0 ? opp : shortDate;
+    ctx.fillStyle = '#555';
+    ctx.font = '9px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label, p.x, PAD.top + plotH + 24 + (i % 2 === 0 ? 0 : 12));
+  });
+}
+
+function getNearest(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleX;
+
+  let best = null;
+  let bestDist = Infinity;
+  points.forEach(p => {
+    const dx = p.x - mx;
+    const dy = p.y - my;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < bestDist) {
+      bestDist = d;
+      best = p;
+    }
+  });
+
+  if (best && bestDist < 30) return best;
+  return null;
+}
+
+function showTooltip(p, e) {
+  const g = p.data;
+  tooltip.innerHTML = `
+    <div class="att">${formatAtt(g.attendance)}</div>
+    <div class="opp">vs ${g.opponent}</div>
+    <div class="date">${g.date} &middot; ${g.seasonIdx === 0 ? 'XFL' : 'UFL'}</div>
+  `;
+  tooltip.style.display = 'block';
+
+  const rect = chartWrap.getBoundingClientRect();
+  const scaleX = W / canvas.getBoundingClientRect().width;
+  const tx = p.x / scaleX;
+  const ty = p.y / scaleX;
+
+  let left = tx + 12;
+  let top = ty - 8;
+
+  if (left + 200 > rect.width) left = tx - 12 - 200;
+  if (top < 0) top = 8;
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+
+function hideTooltip() {
+  tooltip.style.display = 'none';
+}
+
+canvas.addEventListener('mousemove', e => {
+  const p = getNearest(e);
+  if (p) {
+    showTooltip(p, e);
+    canvas.style.cursor = 'crosshair';
+  } else {
+    hideTooltip();
+    canvas.style.cursor = 'default';
+  }
+});
+
+canvas.addEventListener('mouseleave', hideTooltip);
+
+// Legend
+const legendEl = document.createElement('div');
+legendEl.className = 'legend';
+legendEl.innerHTML = `
+  <div class="legend-item">
+    <span class="legend-dot" style="background:${BLUE};"></span>
+    Home game attendance
+  </div>
+  <div class="legend-item">
+    <span class="legend-line" style="background:rgba(255,255,255,0.3);border-top:2px dashed rgba(255,255,255,0.3);"></span>
+    Average (${formatAtt(avgAtt)})
+  </div>
+`;
+chartWrap.appendChild(legendEl);
+
+// Stats
+const statsEl = document.getElementById('statsRow');
+const bestAtt = Math.max(...allGames.map(g => g.attendance));
+const worstAtt = Math.min(...allGames.map(g => g.attendance));
+const bestGame = allGames.find(g => g.attendance === bestAtt);
+const worstGame = allGames.find(g => g.attendance === worstAtt);
+const totalGames = allGames.length;
+statsEl.innerHTML = `
+  <div class="stat-item"><div class="num">${totalGames}</div><div class="lbl">Home Games</div></div>
+  <div class="stat-item"><div class="num">${formatAtt(avgAtt)}</div><div class="lbl">Avg Attendance</div></div>
+  <div class="stat-item"><div class="num">${formatAtt(bestAtt)}</div><div class="lbl">Best (vs ${bestGame.opponent}, ${bestGame.date})</div></div>
+  <div class="stat-item"><div class="num">${formatAtt(worstAtt)}</div><div class="lbl">Worst (vs ${worstGame.opponent}, ${worstGame.date})</div></div>
+`;
+
+draw();
+
+// Handle resize
+function resizeCanvas() {
+  const rect = chartWrap.getBoundingClientRect();
+  const maxW = Math.min(920, rect.width - 32);
+  canvas.style.width = maxW + 'px';
+  canvas.style.height = (maxW / W * H) + 'px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
