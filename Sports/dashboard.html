@@ -923,14 +923,6 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
     recordStr += ` (${winPct})`;
   }
 
-  let streakStr = '', streakClass = '';
-  if (streakVal !== null && streakVal !== undefined) {
-    const abs = Math.abs(streakVal);
-    if (streakVal > 0) { streakStr = `Won ${abs}`; streakClass = 'win'; }
-    else if (streakVal < 0) { streakStr = `Lost ${abs}`; streakClass = 'loss'; }
-    else if (streakVal === 0) { streakStr = 'Draw 1'; streakClass = ''; }
-  }
-
   const teamNextEvent = t.nextEvent && t.nextEvent[0];
   let lastGameEvent = null;
   let upcomingEvent = null;
@@ -950,6 +942,32 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
     const st = teamNextEvent.competitions[0].status.type;
     if (!(st.completed === true || st.state === 'post')) {
       upcomingEvent = teamNextEvent;
+    }
+  }
+
+  let streakStr = '', streakClass = '';
+  if (streakVal !== null && streakVal !== undefined) {
+    const abs = Math.abs(streakVal);
+    if (streakVal > 0) { streakStr = `Won ${abs}`; streakClass = 'win'; }
+    else if (streakVal < 0) { streakStr = `Lost ${abs}`; streakClass = 'loss'; }
+  }
+  if (!streakStr && lastGameEvent) {
+    const comp = lastGameEvent.competitions?.[0];
+    if (comp) {
+      const homeAway = comp.competitors?.find(c => String(c.team.id) === String(team.id));
+      const opponent = comp.competitors?.find(c => String(c.team.id) !== String(team.id));
+      if (homeAway && opponent && (comp.status?.type?.completed === true || comp.status?.type?.state === 'post')) {
+        if (homeAway.winner === true) {
+          streakStr = 'Won 1';
+          streakClass = 'win';
+        } else if (opponent.winner === true) {
+          streakStr = 'Lost 1';
+          streakClass = 'loss';
+        } else {
+          streakStr = 'Drew 1';
+          streakClass = '';
+        }
+      }
     }
   }
 
