@@ -368,8 +368,6 @@ const TEAMS = [
     leagueSlug: 'mlb',
     cardClass: 'cardinals',
     icon: 'STL',
-    statusText: 'Active',
-    statusClass: 'status-active',
     links: [
       { text: 'Official Site', href: 'https://www.mlb.com/cardinals' },
       { text: 'Schedule', href: 'https://www.mlb.com/cardinals/schedule' },
@@ -385,8 +383,6 @@ const TEAMS = [
     leagueSlug: 'nhl',
     cardClass: 'blues',
     icon: 'STL',
-    statusText: 'Offseason',
-    statusClass: 'status-offseason',
     links: [
       { text: 'Official Site', href: 'https://www.nhl.com/blues' },
       { text: 'Schedule', href: 'https://www.nhl.com/blues/schedule' },
@@ -402,8 +398,6 @@ const TEAMS = [
     leagueSlug: 'usa.1',
     cardClass: 'city-sc',
     icon: 'CITY',
-    statusText: 'Break',
-    statusClass: 'status-break',
     links: [
       { text: 'Official Site', href: 'https://www.stlcitysc.com' },
       { text: 'Schedule', href: 'https://www.stlcitysc.com/schedule' },
@@ -420,8 +414,6 @@ const TEAMS = [
     leagueSlug: 'ufl',
     cardClass: 'battlehawks',
     icon: 'STL',
-    statusText: 'Playoffs',
-    statusClass: 'status-playoffs',
     standingOverride: '2nd in UFL',
     links: [
       { text: 'Official Site', href: 'https://www.theufl.com/teams/st-louis' },
@@ -538,7 +530,7 @@ async function fetchTeam(team) {
     const schedResp = await fetch(`${baseUrl}/schedule`);
     if (schedResp.ok) {
       const schedData = await schedResp.json();
-      let events = schedData.events || [];
+      const events = schedData.events || [];
       let lastDate = null, nextDate = null;
       for (const e of events) {
         const st = e.competitions?.[0]?.status?.type;
@@ -846,6 +838,24 @@ function renderError(team, msg) {
   if (body) body.innerHTML = `<div class="error-msg">${msg}</div>`;
 }
 
+function determineStatus(team, lastGameEvent, upcomingEvent, teamNextEvent) {
+  if (!upcomingEvent && !lastGameEvent && !teamNextEvent) {
+    return { text: 'Offseason', className: 'status-offseason' };
+  }
+  if (!upcomingEvent) {
+    return { text: 'Offseason', className: 'status-offseason' };
+  }
+  const st = upcomingEvent.competitions?.[0]?.seasonType;
+  if (st && st.name && st.name.toLowerCase().includes('playoff')) {
+    return { text: 'Playoffs', className: 'status-playoffs' };
+  }
+  const daysUntilNext = (new Date(upcomingEvent.date).getTime() - Date.now()) / 86400000;
+  if (daysUntilNext > 14) {
+    return { text: 'Break', className: 'status-break' };
+  }
+  return { text: 'Active', className: 'status-active' };
+}
+
 function formatDateStr(dateStr, showYear) {
   const d = new Date(dateStr);
   const opts = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -977,8 +987,9 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
 
   let lastGameHtml = '';
   let nextGameHtml = '';
-  let statusText = team.statusText;
-  let statusClass = team.statusClass;
+  const computedStatus = determineStatus(team, lastGameEvent, upcomingEvent, teamNextEvent);
+  let statusText = computedStatus.text;
+  let statusClass = computedStatus.className;
 
   function renderEventComp(ev, isLast) {
     const comp = ev.competitions[0];
