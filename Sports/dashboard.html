@@ -535,6 +535,23 @@ async function fetchTeam(team) {
     // non-fatal — fall back to team endpoint
   }
 
+  if (nextEvent && !team._liveScoreData) {
+    const nexSt = nextEvent.competitions?.[0]?.status?.type;
+    if (nexSt?.state === 'in') {
+      try {
+        const gResp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/summary?event=${nextEvent.id}`);
+        if (gResp.ok) {
+          const gData = await gResp.json();
+          const gComps = gData.header?.competitions?.[0]?.competitors;
+          if (gComps) {
+            team._liveScoreData = gComps;
+            team._liveStatus = gData.header?.competitions?.[0]?.status;
+          }
+        }
+      } catch (e) { /* non-fatal */ }
+    }
+  }
+
   if (nextEvent) {
     fetchWinProb(team, nextEvent).then(() => renderTeam(team, data, lastEvent, nextEvent));
   }
@@ -733,10 +750,17 @@ function getScoreDisplay(competitor) {
 async function enrichLiveScores() {
   const sports = new Set(TEAMS.map(t => `${t.sport}/${t.leagueSlug}`));
   if (sports.size === 0) return;
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const now = new Date();
+  const dates = [];
+  for (let i = -1; i <= 1; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
+  }
+  const datesParam = dates.join('-');
   await Promise.all([...sports].map(async key => {
     try {
-      const resp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${key}/scoreboard?dates=${today}`);
+      const resp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${key}/scoreboard?dates=${datesParam}`);
       if (!resp.ok) return;
       const data = await resp.json();
       for (const ev of (data.events || [])) {
@@ -1091,10 +1115,6 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       const ourScore = getScoreDisplay(ha);
       const oppScore = getScoreDisplay(opp);
       team._liveEvent = ev;
-      if (!team._liveScoreData) {
-        team._liveScoreData = comp.competitors;
-        if (!team._liveStatus) team._liveStatus = comp.status;
-      }
       if (isLast) {
         const detail = st.detail ? ` &middot; ${st.detail}` : '';
         lastGameHtml = `<span class="stat-value win">${ourScore}-${oppScore} ${vs} ${oppAbbr}${detail}</span>`;
