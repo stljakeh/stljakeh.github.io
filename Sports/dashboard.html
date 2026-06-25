@@ -1244,7 +1244,8 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   const scoreEl = document.getElementById(`liveScore-${team.cardClass}`);
   const infoEl = document.getElementById(`liveInfo-${team.cardClass}`);
   if (banner && scoreEl && infoEl) {
-    if (team._liveEvent && team._liveStatus?.type?.state === 'in') {
+    const liveState = team._liveStatus?.type?.state || team._liveEvent?.competitions?.[0]?.status?.type?.state;
+    if (liveState === 'in') {
       const comps = team._liveScoreData || team._liveEvent.competitions[0].competitors;
       const ha = comps.find(c => String(c.team.id) === String(team.id));
       const opp = comps.find(c => String(c.team.id) !== String(team.id));
@@ -1252,10 +1253,10 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
         banner.style.display = 'flex';
         scoreEl.textContent = `${getScoreDisplay(ha)}-${getScoreDisplay(opp)}`;
         const isHome = ha.homeAway === 'home';
-        const st = team._liveStatus;
+        const st = team._liveStatus || team._liveEvent.competitions[0].status;
         const dc = st.displayClock;
         const clock = dc && dc !== '0:00' ? ` (${dc})` : '';
-        infoEl.innerHTML = `${isHome ? 'vs' : '@'} ${opp.team.abbreviation}<br>${st.type.detail}${clock}`;
+        infoEl.innerHTML = `${isHome ? 'vs' : '@'} ${opp.team.abbreviation}<br>${st.type?.detail || ''}${clock}`;
       } else {
         banner.style.display = 'none';
       }
