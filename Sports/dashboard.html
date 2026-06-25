@@ -691,7 +691,7 @@ async function fetchWinProb(team, event) {
       const latest = wp[wp.length - 1];
       const homePct = latest.homeWinPercentage;
       const tiePct = latest.tiePercentage || 0;
-      const isHome = comp.competitors?.find(c => c.team.id === team.id)?.homeAway === 'home';
+      const isHome = comp.competitors?.find(c => String(c.team.id) === String(team.id))?.homeAway === 'home';
       let winPct = isHome ? homePct : (1 - homePct - tiePct);
       team._winProb = Math.max(0, Math.round(winPct * 1000) / 10);
       team._winProbLive = true;
@@ -707,7 +707,7 @@ async function fetchWinProb(team, event) {
       if (!ev) return;
       const odds = ev.competitions?.[0]?.odds?.[0];
       if (!odds) return;
-      const isHome = ev.competitions[0].competitors?.find(c => c.team.id === team.id)?.homeAway === 'home';
+      const isHome = ev.competitions[0].competitors?.find(c => String(c.team.id) === String(team.id))?.homeAway === 'home';
       const ml = isHome ? odds.moneyline?.home?.close?.odds : odds.moneyline?.away?.close?.odds;
       if (!ml) return;
       const num = parseInt(ml);
@@ -1069,8 +1069,8 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   function renderEventComp(ev, isLast) {
     const comp = ev.competitions[0];
     const st = comp.status.type;
-    const homeAway = comp.competitors.find(c => c.team.id === team.id);
-    const opponent = comp.competitors.find(c => c.team.id !== team.id);
+    const homeAway = comp.competitors.find(c => String(c.team.id) === String(team.id));
+    const opponent = comp.competitors.find(c => String(c.team.id) !== String(team.id));
     if (!homeAway || !opponent) return;
     const isHome = homeAway.homeAway === 'home';
     const vs = isHome ? 'vs' : '@';
@@ -1086,8 +1086,8 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       lastGameHtml = `<span class="stat-value ${resultClass}">${resultChar} ${ourScore}-${oppScore} ${vs} ${oppAbbr} &middot; ${dateLabel}</span>`;
     } else if (st.state === 'in') {
       const comps = team._liveScoreData || comp.competitors;
-      const ha = comps.find(c => c.team.id === team.id);
-      const opp = comps.find(c => c.team.id !== team.id);
+      const ha = comps.find(c => String(c.team.id) === String(team.id));
+      const opp = comps.find(c => String(c.team.id) !== String(team.id));
       const ourScore = getScoreDisplay(ha);
       const oppScore = getScoreDisplay(opp);
       team._liveEvent = ev;
