@@ -1091,6 +1091,10 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
       const ourScore = getScoreDisplay(ha);
       const oppScore = getScoreDisplay(opp);
       team._liveEvent = ev;
+      if (!team._liveScoreData) {
+        team._liveScoreData = comp.competitors;
+        if (!team._liveStatus) team._liveStatus = comp.status;
+      }
       if (isLast) {
         const detail = st.detail ? ` &middot; ${st.detail}` : '';
         lastGameHtml = `<span class="stat-value win">${ourScore}-${oppScore} ${vs} ${oppAbbr}${detail}</span>`;
