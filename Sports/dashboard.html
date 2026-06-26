@@ -113,6 +113,7 @@
   .blues .card-head::after { background: #003087; }
   .city-sc .card-head::after { background: #E80A4D; }
   .battlehawks .card-head::after { background: #00529B; }
+  .city2 .card-head::after { background: #E80A4D; }
   .team-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .team-icon {
     width: 40px; height: 40px;
@@ -128,6 +129,7 @@
   .blues .team-icon { background: #003087; color: #FCB514; }
   .city-sc .team-icon { background: #E80A4D; color: #fff; }
   .battlehawks .team-icon { background: #fff; color: #00529B; }
+  .city2 .team-icon { background: #E80A4D; color: #fff; }
   .team-name { font-weight: 700; font-size: 1.1rem; }
   .team-league { font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .status-badge {
@@ -185,6 +187,7 @@
   .blues .next-game { background: rgba(0, 48, 135, 0.1); border-left: 3px solid #003087; }
   .city-sc .next-game { background: rgba(232, 10, 77, 0.1); border-left: 3px solid #E80A4D; }
   .battlehawks .next-game { background: rgba(0, 82, 155, 0.1); border-left: 3px solid #00529B; }
+  .city2 .next-game { background: rgba(232, 10, 77, 0.1); border-left: 3px solid #E80A4D; }
   .next-game-label { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
   .next-game-detail { font-weight: 600; }
   .countdown-timer { font-size: 0.78rem; color: #4caf50; font-weight: 600; margin-top: 3px; }
@@ -333,7 +336,7 @@
 
 <div class="grid" id="cardGrid"></div>
 
-<div class="footer">Data from ESPN &middot; <a href="#" onclick="refresh();return false">refresh now</a></div>
+<div class="footer">Data from ESPN, ASA &amp; StatsCrew &middot; <a href="#" onclick="refresh();return false">refresh now</a></div>
 
 <script>
 const TEAMS = [
@@ -397,6 +400,22 @@ const TEAMS = [
       { text: 'Official Site', href: 'https://www.theufl.com/teams/st-louis' },
       { text: 'Schedule', href: 'https://www.theufl.com/teams/st-louis/schedule' },
       { text: 'Tickets', href: 'https://www.theufl.com/teams/st-louis/tickets' },
+    ]
+  },
+  {
+    id: 'eVq3Z0D5WO',
+    name: 'CITY2',
+    league: 'MLS Next Pro',
+    leagueFull: 'Western Conference',
+    sport: 'soccer',
+    leagueSlug: 'mlsnp',
+    cardClass: 'city2',
+    icon: 'CITY',
+    customFetch: true,
+    winsOffset: 1,
+    links: [
+      { text: 'Official Site', href: 'https://www.stlcitysc.com/city2/' },
+      { text: 'Schedule', href: 'https://www.mlsnextpro.com/clubs/st-louis-city2/schedule/' },
     ]
   }
 ];
@@ -490,6 +509,21 @@ async function refresh() {
   adjustRefreshInterval();
   startCountdownTimer();
 
+  // Sort cards by status: live > playoffs > active > break > offseason
+  const grid = document.getElementById('cardGrid');
+  const cards = Array.from(grid.children);
+  const live = [], playoffs = [], active = [], brk = [], offseason = [];
+  for (const card of cards) {
+    const badge = card.querySelector('.status-badge');
+    const cls = badge ? badge.className : '';
+    if (cls.includes('status-live')) live.push(card);
+    else if (cls.includes('status-playoffs')) playoffs.push(card);
+    else if (cls.includes('status-active')) active.push(card);
+    else if (cls.includes('status-break')) brk.push(card);
+    else offseason.push(card);
+  }
+  [...live, ...playoffs, ...active, ...brk, ...offseason].forEach(c => grid.appendChild(c));
+
   const now = new Date();
   const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   document.getElementById('updateTime').textContent = `last updated ${ts}`;
@@ -501,6 +535,10 @@ async function refresh() {
 }
 
 async function fetchTeam(team) {
+  if (team.customFetch) {
+    await fetchCity2Data(team);
+    return;
+  }
   const baseUrl = `https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/teams/${team.id}`;
   let data;
   try {
@@ -535,10 +573,12 @@ async function fetchTeam(team) {
     // non-fatal — fall back to team endpoint
   }
 
+  const renders = [];
   if (nextEvent) {
-    fetchWinProb(team, nextEvent).then(() => renderTeam(team, data, lastEvent, nextEvent));
+    renders.push(fetchWinProb(team, nextEvent).then(() => renderTeam(team, data, lastEvent, nextEvent)));
   }
-  fetchStatLeaders(team, data).then(() => renderTeam(team, data, lastEvent, nextEvent));
+  renders.push(fetchStatLeaders(team, data).then(() => renderTeam(team, data, lastEvent, nextEvent)));
+  await Promise.all(renders);
 }
 
 async function fetchMlsStandings() {
@@ -731,7 +771,7 @@ function getScoreDisplay(competitor) {
 }
 
 async function enrichLiveScores() {
-  const sports = new Set(TEAMS.map(t => `${t.sport}/${t.leagueSlug}`));
+  const sports = new Set(TEAMS.filter(t => !t.customFetch).map(t => `${t.sport}/${t.leagueSlug}`));
   if (sports.size === 0) return;
   const now = new Date();
   const dates = [];
@@ -1275,6 +1315,129 @@ async function renderTeam(team, data, schedLastEvent, schedNextEvent) {
   if (badge) {
     badge.textContent = statusText;
     badge.className = `status-badge ${statusClass}`;
+  }
+}
+
+const CITY2_CP = 'https://proxy.cors.sh/';
+
+const WEST_CONF = new Set([
+  'eV5Dw4EMKn','gOMnJnOMwN','eVq3Z0D5WO','2lqRX1AMr0',
+  'ljqE94Vqx0','2vQ14GKqrA','7VqG1oWMvW',
+  'zeQZe4DqKw','4wM4E4d5jB','2vQ1XzlqrA',
+  'Oa5wDy8q14','BLMv6m3Mxe','KXMe8Z2Q64','N6MmWV0qEG'
+]);
+
+function c2url(url) { return CITY2_CP + url; }
+
+async function fetchAsa(r) {
+  try { const x = await fetch(c2url(r)); return x.ok ? await x.json() : []; } catch (e) { return []; }
+}
+
+function ordSuffix(n) {
+  if (n >= 11 && n <= 13) return 'th';
+  return n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
+}
+
+async function fetchCity2Data(team) {
+  try {
+    const card = document.querySelector(`#card-${team.cardClass}`);
+    if (card) {
+      ['record','last-game','next-game','standing-summary','team-stats','stat-leaders'].forEach(cls => {
+        const el = card.querySelector(`.${cls}`);
+        if (el) el.innerHTML = '';
+      });
+    }
+
+    const [fullGames, premGames, asaTeams, asaStadia] = await Promise.all([
+      fetch(c2url('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026')).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(c2url('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026&status=PreMatch')).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/teams'),
+      fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/stadia')
+    ]);
+    const allGames = fullGames.concat(premGames);
+
+    // Compute standings from all games
+    const std = {};
+    for (const g of allGames) {
+      if (g.status !== 'FullTime') continue;
+      if (g.home_score == null || g.away_score == null) continue;
+      if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, t:0, pts:0 };
+      if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, t:0, pts:0 };
+      if (g.home_penalties != null || g.away_penalties != null) {
+        std[g.home_team_id].t++; std[g.away_team_id].t++;
+        const hp = g.home_penalties || 0, ap = g.away_penalties || 0;
+        std[g.home_team_id].pts += hp > ap ? 2 : 1;
+        std[g.away_team_id].pts += ap > hp ? 2 : 1;
+      } else if (g.home_score > g.away_score) {
+        std[g.home_team_id].w++; std[g.home_team_id].pts += 3;
+        std[g.away_team_id].l++;
+      } else {
+        std[g.away_team_id].w++; std[g.away_team_id].pts += 3;
+        std[g.home_team_id].l++;
+      }
+    }
+
+    // Apply winsOffset to account for ASA-missing game
+    if (team.winsOffset) {
+      if (!std[team.id]) std[team.id] = { w:0, l:0, t:0, pts:0 };
+      std[team.id].w += team.winsOffset;
+      std[team.id].pts += team.winsOffset * 3;
+    }
+
+    const west = Object.entries(std).filter(x => WEST_CONF.has(x[0])).sort((a, b) => b[1].pts - a[1].pts);
+    const idx = west.findIndex(x => x[0] === team.id);
+    const rank = idx >= 0 ? idx + 1 : null;
+    const rec = std[team.id] || { w:0, l:0, t:0, pts:0 };
+    const standingStr = rank != null ? `${rank}${ordSuffix(rank)} in Western Conference` : 'Western Conference';
+
+    // CITY2-specific games
+    const c2g = allGames.filter(g => g.home_team_id === team.id || g.away_team_id === team.id);
+    const done = c2g.filter(g => g.status === 'FullTime').sort((a, b) => b.date_time_utc.localeCompare(a.date_time_utc));
+    const soon = c2g.filter(g => g.status === 'PreMatch').sort((a, b) => a.date_time_utc.localeCompare(b.date_time_utc));
+    const lastG = done[0] || null;
+    const nextG = soon[0] || null;
+
+    function info(id) {
+      if (!Array.isArray(asaTeams)) return { team_id: id, team_abbreviation: '?', team_name: '?' };
+      return asaTeams.find(t => t.team_id === id) || { team_id: id, team_abbreviation: '?', team_name: '?' };
+    }
+
+    function mc(info, ha, score, win) {
+      return { team: { id: info.team_id, abbreviation: info.team_abbreviation, displayName: info.team_name }, homeAway: ha, score: score != null ? { displayValue: String(score) } : null, winner: win };
+    }
+
+    function bld(g, last) {
+      const homeI = info(g.home_team_id), awayI = info(g.away_team_id);
+      const stad = asaStadia && asaStadia.length ? asaStadia.find(s => s.stadium_id === g.stadium_id) : null;
+      let homeW = null;
+      if (last && g.home_score != null && g.away_score != null) {
+        homeW = (g.home_penalties != null || g.away_penalties != null)
+          ? (g.home_penalties || 0) > (g.away_penalties || 0)
+          : g.home_score > g.away_score;
+      }
+      return {
+        id: g.game_id, date: g.date_time_utc,
+        competitions: [{
+          date: g.date_time_utc, seasonType: { name: 'Regular Season' },
+          status: { type: last ? { completed: true, state: 'post' } : { state: 'pre', completed: false }, displayClock: null },
+          venue: { fullName: stad ? stad.stadium_name : '' },
+          competitors: [mc(homeI, 'home', g.home_score, homeW), mc(awayI, 'away', g.away_score, homeW != null ? !homeW : null)]
+        }]
+      };
+    }
+
+    await renderTeam(team, {
+      team: {
+        record: { items: [{ stats: [
+          { name: 'wins', value: rec.w }, { name: 'losses', value: rec.l },
+          { name: 'ties', value: rec.t }, { name: 'points', value: rec.pts }
+        ]}]},
+        standingSummary: standingStr
+      }
+    }, lastG ? bld(lastG, true) : null, nextG ? bld(nextG, false) : null);
+
+  } catch (e) {
+    renderError(team, 'Failed to load CITY2 data');
   }
 }
 
