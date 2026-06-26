@@ -1415,10 +1415,11 @@ async function fetchCity2Data(team) {
           ? (g.home_penalties || 0) > (g.away_penalties || 0)
           : g.home_score > g.away_score;
       }
+      const d = g.date_time_utc.replace(' ', 'T').replace(' UTC', 'Z');
       return {
-        id: g.game_id, date: g.date_time_utc,
+        id: g.game_id, date: d,
         competitions: [{
-          date: g.date_time_utc, seasonType: { name: 'Regular Season' },
+          date: d, seasonType: { name: 'Regular Season' },
           status: { type: last ? { completed: true, state: 'post' } : { state: 'pre', completed: false }, displayClock: null },
           venue: { fullName: stad ? stad.stadium_name : '' },
           competitors: [mc(homeI, 'home', g.home_score, homeW), mc(awayI, 'away', g.away_score, homeW != null ? !homeW : null)]
