@@ -801,9 +801,8 @@ async function fetchStatLeaders(team, data) {
       if (!resp.ok) return;
       const roster = await resp.json();
       const players = [];
-      for (const group of (roster.athletes || [])) {
-        for (const item of (group.items || [])) {
-          const cats = item.statistics?.splits?.categories;
+      for (const item of (roster.athletes || [])) {
+        const cats = item.statistics?.splits?.categories;
           if (!cats) continue;
           const apps = findStatValue(cats, 'general', 'appearances');
           if (!apps) continue;
