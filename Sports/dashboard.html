@@ -535,23 +535,6 @@ async function fetchTeam(team) {
     // non-fatal — fall back to team endpoint
   }
 
-  if (nextEvent && !team._liveScoreData) {
-    const nexSt = nextEvent.competitions?.[0]?.status?.type;
-    if (nexSt?.state === 'in') {
-      try {
-        const gResp = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${team.sport}/${team.leagueSlug}/summary?event=${nextEvent.id}`);
-        if (gResp.ok) {
-          const gData = await gResp.json();
-          const gComps = gData.header?.competitions?.[0]?.competitors;
-          if (gComps) {
-            team._liveScoreData = gComps;
-            team._liveStatus = gData.header?.competitions?.[0]?.status;
-          }
-        }
-      } catch (e) { /* non-fatal */ }
-    }
-  }
-
   if (nextEvent) {
     fetchWinProb(team, nextEvent).then(() => renderTeam(team, data, lastEvent, nextEvent));
   }
