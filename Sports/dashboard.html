@@ -812,7 +812,6 @@ async function fetchStatLeaders(team, data) {
             assists: findStatValue(cats, 'offensive', 'goalAssists')
           });
         }
-      }
       const top = (arr, key) => [...arr].sort((a, b) => b[key] - a[key]).filter(p => p[key] > 0).slice(0, 3);
       const cats = [];
       const g = top(players, 'goals');
