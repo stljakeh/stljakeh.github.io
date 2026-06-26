@@ -524,9 +524,9 @@ async function fetchTeam(team) {
         const st = e.competitions?.[0]?.status?.type;
         const d = new Date(e.date);
         if (!isFinite(d)) continue;
-        if (st && (st.completed === true || st.state === 'post')) {
+          if (st && st.completed === true) {
           if (!lastDate || d > lastDate) { lastDate = d; lastEvent = e; }
-        } else if (st && (st.completed === false || st.state === 'pre' || st.state === 'in' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
+        } else if (st && (st.state === 'pre' || st.state === 'in' || st.name === 'STATUS_SCHEDULED' || st.name === 'STATUS_PREVIEW')) {
           if (!nextDate || d < nextDate) { nextDate = d; nextEvent = e; }
         }
       }
