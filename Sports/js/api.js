@@ -2,6 +2,8 @@ window.STL = window.STL || {};
 
 STL.api = {
 
+  _liveScoreCache: {},
+
   enrichLiveScores: async function() {
     const sports = new Set(STL.config.TEAMS.filter(t => !t.customFetch).map(t => t.sport + '/' + t.leagueSlug));
     if (sports.size === 0) return;
@@ -14,16 +16,25 @@ STL.api = {
     }
     const datesParam = dates.join('-');
     await Promise.all([...sports].map(async function(key) {
+      const sportTeams = STL.config.TEAMS.filter(function(t) { return !t.customFetch && t.sport + '/' + t.leagueSlug === key; });
+      const prior = {};
+      for (const t of sportTeams) {
+        const cached = STL.api._liveScoreCache[t.cardClass];
+        if (t._liveEvent) {
+          prior[t.cardClass] = { event: t._liveEvent, scoreData: t._liveScoreData, status: t._liveStatus };
+        } else if (cached) {
+          prior[t.cardClass] = cached;
+        }
+      }
       try {
         const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + datesParam);
-        if (!resp.ok) return;
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         for (const ev of (data.events || [])) {
           const comps = ev.competitions?.[0]?.competitors;
           if (!comps) continue;
           const status = ev.competitions[0].status;
-          for (const t of STL.config.TEAMS) {
-            if (t.sport + '/' + t.leagueSlug !== key) continue;
+          for (const t of sportTeams) {
             const isOurs = comps.some(c => String(c.team.id) === String(t.id));
             if (!isOurs) continue;
             if (status?.type?.state === 'in') {
@@ -36,7 +47,22 @@ STL.api = {
             }
           }
         }
-      } catch (e) {}
+        for (const t of sportTeams) {
+          if (t._liveEvent) {
+            STL.api._liveScoreCache[t.cardClass] = { event: t._liveEvent, scoreData: t._liveScoreData, status: t._liveStatus };
+          } else {
+            delete STL.api._liveScoreCache[t.cardClass];
+          }
+        }
+      } catch (e) {
+        for (const t of sportTeams) {
+          if (prior[t.cardClass]) {
+            t._liveEvent = prior[t.cardClass].event;
+            t._liveScoreData = prior[t.cardClass].scoreData;
+            t._liveStatus = prior[t.cardClass].status;
+          }
+        }
+      }
     }));
   },
 
