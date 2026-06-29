@@ -448,6 +448,29 @@ STL.api = {
       const lastG = done[0] || null;
       const nextG = soon[0] || null;
 
+      let streak = 0;
+      for (const g of done) {
+        let won;
+        if (g.home_penalties != null || g.away_penalties != null) {
+          won = g.home_team_id === team.id
+            ? (g.home_penalties || 0) > (g.away_penalties || 0)
+            : (g.away_penalties || 0) > (g.home_penalties || 0);
+        } else if (g.home_score > g.away_score) {
+          won = g.home_team_id === team.id;
+        } else if (g.away_score > g.home_score) {
+          won = g.away_team_id === team.id;
+        } else {
+          break;
+        }
+        if (streak === 0) {
+          streak = won ? 1 : -1;
+        } else if ((streak > 0 && won) || (streak < 0 && !won)) {
+          streak += won ? 1 : -1;
+        } else {
+          break;
+        }
+      }
+
       var info = function(id) {
         if (!Array.isArray(asaTeams)) return { team_id: id, team_abbreviation: '?', team_name: '?' };
         return asaTeams.find(t => t.team_id === id) || { team_id: id, team_abbreviation: '?', team_name: '?' };
@@ -473,6 +496,7 @@ STL.api = {
             date: d, seasonType: { name: 'Regular Season' },
             status: { type: last ? { completed: true, state: 'post' } : { state: 'pre', completed: false }, displayClock: null },
             venue: { fullName: stad ? stad.stadium_name : '' },
+            broadcasts: [{ media: { shortName: 'MLSNextPro.com' } }, { media: { shortName: 'OneFootball' } }],
             competitors: [mc(homeI, 'home', g.home_score, homeW), mc(awayI, 'away', g.away_score, homeW != null ? !homeW : null)]
           }]
         };
@@ -480,9 +504,12 @@ STL.api = {
 
       await STL.render.renderTeam(team, {
         team: {
+          logos: [{ href: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/St._Louis_City_SC_II.png' }],
+          displayName: team.name,
           record: { items: [{ stats: [
             { name: 'wins', value: rec.w }, { name: 'losses', value: rec.l },
-            { name: 'ties', value: rec.t }, { name: 'points', value: rec.pts }
+            { name: 'ties', value: rec.t }, { name: 'points', value: rec.pts },
+            { name: 'streak', value: streak }
           ]}]},
           standingSummary: standingStr
         }
