@@ -165,7 +165,11 @@ STL.render = {
       const opp = comps.find(c => String(c.team.id) !== String(team.id));
       const ourScore = STL.utils.getScoreDisplay(ha);
       const oppScore = STL.utils.getScoreDisplay(opp);
-      team._liveEvent = ev;
+      if (!team._liveEvent) {
+        team._liveEvent = ev;
+        team._liveScoreData = comps;
+        team._liveStatus = st;
+      }
       if (isLast) {
         const detail = st.detail ? ' &middot; ' + st.detail : '';
         result.lastGameHtml = '<span class="stat-value win">' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + detail + '</span>';
