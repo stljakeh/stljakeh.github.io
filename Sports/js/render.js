@@ -54,6 +54,12 @@ STL.render = {
             '</button>' +
             '<div class="leaders-panel" id="leadersPanel-' + t.cardClass + '"></div>' +
           '</div>' +
+          '<div id="capContainer-' + t.cardClass + '" style="display:none">' +
+            '<button class="cap-toggle" onclick="STL.toggle.cap(this,\'' + t.cardClass + '\')">' +
+              '<span class="cap-toggle-icon">&#9654;</span> Cap' +
+            '</button>' +
+            '<div class="cap-panel" id="capPanel-' + t.cardClass + '"></div>' +
+          '</div>' +
           '<div class="links" id="links-' + t.cardClass + '"></div>' +
         '</div>';
       grid.appendChild(card);
@@ -376,6 +382,15 @@ STL.render = {
     }
 
     STL.render.renderStatLeaders(team);
+
+    const capContainer = document.getElementById('capContainer-' + team.cardClass);
+    const capPanel = document.getElementById('capPanel-' + team.cardClass);
+    if (team.cardClass === 'blues') {
+      capContainer.style.display = '';
+      capPanel.innerHTML = '<div style="position:relative;width:100%;height:100%;"><iframe height="400" width="100%" style="border:1px solid #333;border-radius:15px;filter:invert(1) hue-rotate(180deg);" frameborder="0" src="https://puckpedia.com/e/team/st-louis-blues/type2" title="St. Louis Blues Compact Cap Summary"></iframe></div>';
+    } else {
+      capContainer.style.display = 'none';
+    }
 
     if (badge) {
       badge.textContent = statusText;
