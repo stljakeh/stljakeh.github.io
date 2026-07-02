@@ -31,6 +31,7 @@ STL.utils = {
   getScoreDisplay: function(competitor) {
     if (!competitor || competitor.score == null) return '0';
     if (typeof competitor.score === 'string') return competitor.score;
+    if (typeof competitor.score === 'number') return String(competitor.score);
     if (competitor.score.displayValue != null) return competitor.score.displayValue;
     return String(competitor.score.value ?? '0');
   },

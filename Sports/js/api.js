@@ -198,6 +198,13 @@ STL.api = {
         );
         if (!resp.ok) return;
         const data = await resp.json();
+        const summaryComps = data?.competitions?.[0]?.competitors || data?.header?.competitions?.[0]?.competitors;
+        const summaryStatus = data?.competitions?.[0]?.status || data?.header?.competitions?.[0]?.status;
+        if (summaryComps) {
+          if (!team._liveEvent) team._liveEvent = event;
+          team._liveScoreData = summaryComps;
+          team._liveStatus = summaryStatus;
+        }
         const wp = data.winprobability;
         if (!wp || !wp.length) return;
         const latest = wp[wp.length - 1];
