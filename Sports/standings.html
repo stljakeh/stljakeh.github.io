@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standings - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a { color: #888; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.5px; transition: color 0.2s; text-transform: uppercase; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; }
+.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
+#app { width: 100%; max-width: 960px; }
+header { text-align: center; margin-bottom: 32px; }
+header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
+.standings-section { margin-bottom: 32px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+.section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.standings-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.standings-table th {
+  text-align: left; padding: 8px 12px; font-size: 0.7rem;
+  color: #666; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2a2a; font-weight: 600;
+}
+.standings-table th.num, .standings-table td.num { text-align: right; }
+.standings-table td {
+  padding: 8px 12px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
+}
+.standings-table tr:hover td { background: #1a1a1a; }
+.highlight td { color: #fff; font-weight: 700; background: rgba(255,255,255,0.03); }
+.highlight td:first-child { border-left: 3px solid; padding-left: 9px; }
+.team-cell { display: flex; align-items: center; gap: 8px; }
+.team-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.strk-w { color: #4caf50; }
+.strk-l { color: #f44336; }
+.strk-t { color: #ff9800; }
+@media (max-width: 640px) {
+  body { padding: 16px; }
+  .standings-table { font-size: 0.78rem; }
+  .standings-table th, .standings-table td { padding: 6px 8px; }
+  .team-logo { display: none; }
+}
+.error-msg { text-align: center; color: #f44336; padding: 40px; }
+.loading { text-align: center; color: #888; padding: 40px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="news.html">News</a>
+    <span class="current">Standings</span>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>Standings</h1>
+    <div class="sub" id="feedSub">Loading...</div>
+  </header>
+  <div id="standingsContent"><div class="loading">Loading standings...</div></div>
+</div>
+
+<script>
+var DIVISIONS = [
+  {
+    id: 'cardinals', name: 'NL Central', team: 'Cardinals', teamId: '24', color: '#C41E3A',
+    url: 'https://site.web.api.espn.com/apis/v2/sports/baseball/mlb/standings?group=8', childId: '5',
+    cols: ['W','L','PCT','GB','STRK'], statNames: ['wins','losses','winPercent','gamesBehind','streak'],
+    fmt: { winPercent:'pct', gamesBehind:'gb' }
+  },
+  {
+    id: 'blues', name: 'Central Division', team: 'Blues', teamId: '19', color: '#003087',
+    url: 'https://site.web.api.espn.com/apis/v2/sports/hockey/nhl/standings?group=8', childId: '31',
+    cols: ['W','L','OTL','PTS','STRK'], statNames: ['wins','losses','overtimeLosses','points','streak'],
+    fmt: {}
+  },
+  {
+    id: 'citysc', name: 'Western Conference', team: 'CITY SC', teamId: '21812', color: '#E80A4D',
+    url: 'https://site.web.api.espn.com/apis/v2/sports/soccer/usa.1/standings?group=2', childId: null,
+    cols: ['W','L','T','PTS','STRK'], statNames: ['wins','losses','ties','points','streak'],
+    fmt: {}
+  },
+  {
+    id: 'battlehawks', name: 'UFL', team: 'BattleHawks', teamId: '112651', color: '#00529B',
+    url: 'https://site.web.api.espn.com/apis/v2/sports/football/ufl/standings', childId: null,
+    cols: ['W','L','PCT','STRK'], statNames: ['wins','losses','winPercent','streak'],
+    fmt: { winPercent:'pct' }
+  },
+];
+
+function getStat(entries, name) {
+  var s = entries.find(function(e) { return e.name === name; });
+  return s || null;
+}
+
+function fmtPct(v) {
+  var n = parseFloat(v);
+  if (isNaN(n)) return v;
+  return n.toFixed(3).replace(/^0/, '');
+}
+
+function fmtGb(v) {
+  if (v === '-' || v === '0') return '-';
+  var n = parseFloat(v);
+  if (isNaN(n)) return v;
+  return n % 1 === 0 ? String(Math.round(n)) : n.toFixed(1);
+}
+
+function streakClass(v) {
+  if (!v) return '';
+  var c = v.charAt(0);
+  if (c === 'W') return 'strk-w';
+  if (c === 'L') return 'strk-l';
+  if (c === 'D' || c === 'T') return 'strk-t';
+  return '';
+}
+
+function formatStat(s, fmtType) {
+  if (!s) return '&mdash;';
+  var v = s.displayValue || String(s.value);
+  if (fmtType === 'pct') return fmtPct(v);
+  if (fmtType === 'gb') return fmtGb(v);
+  return v;
+}
+
+async function loadStandings() {
+  var container = document.getElementById('standingsContent');
+  var sub = document.getElementById('feedSub');
+  try {
+    var results = await Promise.all(DIVISIONS.map(function(d) {
+      return fetch(d.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }));
+    var html = '';
+    var loaded = 0;
+    DIVISIONS.forEach(function(d, i) {
+      var data = results[i];
+      if (!data) return;
+      var entries;
+      if (d.childId) {
+        var child = (data.children || []).find(function(c) { return c.id === d.childId; });
+        if (!child || !child.standings) return;
+        entries = child.standings.entries;
+      } else {
+        entries = data.standings ? data.standings.entries : null;
+      }
+      if (!entries || !entries.length) return;
+      loaded++;
+      html += '<div class="standings-section">' +
+        '<div class="section-header" style="border-bottom-color:' + d.color + ';">' +
+          '<h2 style="color:' + d.color + ';">' + d.name + '</h2>' +
+          '<span class="section-team">' + d.team + '</span>' +
+        '</div>' +
+        '<table class="standings-table"><thead><tr>' +
+          '<th style="width:28px;">#</th><th>Team</th>' +
+          d.cols.map(function(c) { return '<th class="num">' + c + '</th>'; }).join('') +
+        '</tr></thead><tbody>';
+      entries.forEach(function(entry, idx) {
+        var stats = entry.stats || [];
+        var isOurs = entry.team && String(entry.team.id) === d.teamId;
+        var logo = entry.team && entry.team.logos && entry.team.logos[0] ? entry.team.logos[0].href : null;
+        var name = entry.team ? (entry.team.displayName || entry.team.name || entry.team.location) : '?';
+        html += '<tr class="' + (isOurs ? 'highlight' : '') + '">' +
+          '<td>' + (idx + 1) + '</td>' +
+          '<td><div class="team-cell">' +
+            (logo ? '<img class="team-logo" src="' + logo + '" alt="" loading="lazy">' : '') +
+            '<span class="team-name">' + (isOurs ? '<strong>' + name + '</strong>' : name) + '</span>' +
+          '</div></td>';
+        d.statNames.forEach(function(sn) {
+          var s = getStat(stats, sn);
+          var fmt = d.fmt[sn] || null;
+          var val = formatStat(s, fmt);
+          var cls = sn === 'streak' ? streakClass(val) : '';
+          html += '<td class="num ' + cls + '">' + val + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    if (!loaded) {
+      container.innerHTML = '<div class="error-msg">Could not load standings data.</div>';
+      sub.textContent = 'Error';
+      return;
+    }
+    sub.textContent = loaded + ' division' + (loaded !== 1 ? 's' : '');
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div class="error-msg">Failed to load standings.</div>';
+    sub.textContent = 'Error';
+  }
+}
+loadStandings();
+</script>
+</body>
+</html>

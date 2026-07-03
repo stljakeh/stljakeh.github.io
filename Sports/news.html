@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a {
+  color: #888;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  text-transform: uppercase;
+}
+nav a:hover { color: #fff; }
+nav .current {
+  color: #e0e0e0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.site-label {
+  font-size: 0.7rem;
+  color: #444;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+#app { width: 100%; max-width: 960px; }
+header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+header .sub {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 4px;
+}
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.news-card {
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+  display: flex;
+  transition: border-color 0.2s;
+}
+.news-card:hover { border-color: #444; }
+.news-card-accent {
+  width: 4px;
+  flex-shrink: 0;
+}
+.news-card-body {
+  padding: 16px 20px;
+  flex: 1;
+  min-width: 0;
+}
+.news-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.news-team-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.news-date {
+  font-size: 0.75rem;
+  color: #666;
+}
+.news-headline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  text-decoration: none;
+  display: block;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.news-headline:hover { color: #fff; text-decoration: underline; }
+.news-description {
+  font-size: 0.85rem;
+  color: #999;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-card-thumb {
+  width: 180px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.news-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+@media (max-width: 640px) {
+  body { padding: 16px; }
+  .news-card { flex-direction: column; }
+  .news-card-thumb { width: 100%; height: 180px; }
+  .news-card-accent { width: 100%; height: 4px; }
+}
+.error-msg {
+  text-align: center;
+  color: #f44336;
+  padding: 40px;
+  font-size: 0.9rem;
+}
+.loading {
+  text-align: center;
+  color: #888;
+  padding: 40px;
+  font-size: 0.9rem;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="standings.html">Standings</a>
+    <span class="current">News</span>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>News</h1>
+    <div class="sub" id="feedSub">Loading...</div>
+  </header>
+  <div class="news-list" id="newsList">
+    <div class="loading">Loading news...</div>
+  </div>
+</div>
+
+<script>
+var TEAMS = [
+  { id: '24', name: 'Cardinals', sport: 'baseball', league: 'mlb', color: '#C41E3A' },
+  { id: '19', name: 'Blues', sport: 'hockey', league: 'nhl', color: '#003087' },
+  { id: '21812', name: 'CITY SC', sport: 'soccer', league: 'usa.1', color: '#E80A4D' },
+  { id: '112651', name: 'BattleHawks', sport: 'football', league: 'ufl', color: '#00529B' },
+];
+
+function fmtDate(iso) {
+  var d = new Date(iso);
+  var now = new Date();
+  var diff = now - d;
+  if (diff < 86400000 && d.getDate() === now.getDate()) {
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  var opts = { month: 'short', day: 'numeric' };
+  if (d.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
+  return d.toLocaleDateString('en-US', opts);
+}
+
+async function fetchLeagueNews(sport, league, teamId) {
+  try {
+    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + sport + '/' + league + '/news?limit=20');
+    if (!resp.ok) return [];
+    var data = await resp.json();
+    return (data.articles || []).filter(function(a) {
+      if (!a.categories) return false;
+      return a.categories.some(function(c) { return c.type === 'team' && String(c.teamId) === teamId; });
+    }).map(function(a) { a._teamId = teamId; return a; });
+  } catch (e) {
+    return [];
+  }
+}
+
+async function loadNews() {
+  var list = document.getElementById('newsList');
+  var sub = document.getElementById('feedSub');
+  try {
+    var results = await Promise.all(TEAMS.map(function(t) { return fetchLeagueNews(t.sport, t.league, t.id); }));
+    var all = [];
+    TEAMS.forEach(function(t, i) {
+      results[i].forEach(function(a) { all.push({ article: a, team: t }); });
+    });
+    all.sort(function(a, b) { return new Date(b.article.published) - new Date(a.article.published); });
+    if (!all.length) {
+      list.innerHTML = '<div class="error-msg">No news articles found for your teams.</div>';
+      sub.textContent = 'No articles';
+      return;
+    }
+    sub.textContent = all.length + ' articles';
+    list.innerHTML = all.map(function(item) {
+      var a = item.article, t = item.team;
+      var img = a.images && a.images[0] ? a.images[0].url : null;
+      var link = a.links && a.links.web ? a.links.web.href : '#';
+      return '<div class="news-card">' +
+        '<div class="news-card-accent" style="background:' + t.color + ';"></div>' +
+        (img ? '<div class="news-card-thumb"><img src="' + img + '" alt="" loading="lazy"></div>' : '') +
+        '<div class="news-card-body">' +
+          '<div class="news-card-top">' +
+            '<span class="news-team-badge" style="background:' + t.color + ';color:#fff;">' + t.name + '</span>' +
+            '<span class="news-date">' + fmtDate(a.published) + '</span>' +
+          '</div>' +
+          '<a class="news-headline" href="' + link + '" target="_blank" rel="noopener">' + escHtml(a.headline) + '</a>' +
+          '<div class="news-description">' + escHtml(a.description || '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="error-msg">Failed to load news.</div>';
+    sub.textContent = 'Error';
+  }
+}
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadNews();
+</script>
+</body>
+</html>
