@@ -179,6 +179,11 @@ async function loadStandings() {
         entries = data.standings ? data.standings.entries : null;
       }
       if (!entries || !entries.length) return;
+      entries.sort(function(a, b) {
+        var aPts = getStat(a.stats || [], 'points');
+        var bPts = getStat(b.stats || [], 'points');
+        return (parseFloat(bPts ? bPts.value : 0) || 0) - (parseFloat(aPts ? aPts.value : 0) || 0);
+      });
       loaded++;
       html += '<div class="standings-section">' +
         '<div class="section-header" style="border-bottom-color:' + d.color + ';">' +
