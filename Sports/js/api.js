@@ -336,8 +336,9 @@ STL.api = {
 
   /* ASA-sourced teams (CITY2): fetches via ASA + CORS proxy with localStorage caching */
 
-  fetchAsa: async function(url) {
+  fetchAsa: async function(url, ttlMs) {
     const cacheKey = 'asa_cache_' + btoa(url);
+    ttlMs = ttlMs || 7 * 86400000;
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -350,7 +351,7 @@ STL.api = {
       if (!resp.ok) return [];
       const data = await resp.json();
       try {
-        localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + 7 * 86400000 }));
+        localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
       } catch (e) {}
       return data;
     } catch (e) {
@@ -410,8 +411,8 @@ STL.api = {
   fetchTeamASA: async function(team) {
     try {
       const [fullGames, premGames, asaTeams, asaStadia] = await Promise.all([
-        fetch(STL.utils.c2url('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026')).then(function(r) { if (!r.ok) throw new Error(); return r.json(); }),
-        fetch(STL.utils.c2url('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026&status=PreMatch')).then(function(r) { if (!r.ok) throw new Error(); return r.json(); }),
+        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026', 6 * 3600000),
+        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026&status=PreMatch', 5 * 60000),
         STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/teams'),
         STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/stadia')
       ]);
