@@ -5,7 +5,7 @@ STL.api = {
   _liveScoreCache: {},
 
   enrichLiveScores: async function() {
-    const sports = new Set(STL.config.TEAMS.filter(t => !t.customFetch).map(t => t.sport + '/' + t.leagueSlug));
+    const sports = new Set(STL.config.TEAMS.filter(t => t.leagueSlug !== 'mlsnp').map(t => t.sport + '/' + t.leagueSlug));
     if (sports.size === 0) return;
     const now = new Date();
     const dates = [];
@@ -16,7 +16,7 @@ STL.api = {
     }
     const datesParam = dates.join('-');
     await Promise.all([...sports].map(async function(key) {
-      const sportTeams = STL.config.TEAMS.filter(function(t) { return !t.customFetch && t.sport + '/' + t.leagueSlug === key; });
+      const sportTeams = STL.config.TEAMS.filter(function(t) { return t.leagueSlug !== 'mlsnp' && t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
       for (const t of sportTeams) {
         const cached = STL.api._liveScoreCache[t.cardClass];
@@ -334,7 +334,7 @@ STL.api = {
     }
   },
 
-  /* CITY2-specific: fetches via ASA + CORS proxy with localStorage caching */
+  /* ASA-sourced teams (CITY2): fetches via ASA + CORS proxy with localStorage caching */
 
   fetchAsa: async function(url) {
     const cacheKey = 'asa_cache_' + btoa(url);
@@ -359,8 +359,8 @@ STL.api = {
   },
 
   fetchTeam: async function(team) {
-    if (team.customFetch) {
-      await STL.api.fetchCity2Data(team);
+    if (team.leagueSlug === 'mlsnp') {
+      await STL.api.fetchTeamASA(team);
       return;
     }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
@@ -407,7 +407,7 @@ STL.api = {
     await Promise.all(renders);
   },
 
-  fetchCity2Data: async function(team) {
+  fetchTeamASA: async function(team) {
     try {
       const [fullGames, premGames, asaTeams, asaStadia] = await Promise.all([
         fetch(STL.utils.c2url('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026')).then(function(r) { if (!r.ok) throw new Error(); return r.json(); }),

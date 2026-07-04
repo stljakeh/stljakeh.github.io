@@ -80,7 +80,6 @@ STL.config = {
       leagueSlug: 'mlsnp',
       cardClass: 'city2',
       icon: 'CITY',
-      customFetch: true,
       winsOffset: 1,
       links: [
         { text: 'Official Site', href: 'https://www.stlcitysc.com/city2/' },
