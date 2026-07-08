@@ -54,7 +54,6 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   border-bottom: 2px solid #333;
 }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-.section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-group { margin-bottom: 20px; }
 .stat-group:last-child { margin-bottom: 0; }
 .stat-group-title {
@@ -74,8 +73,13 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   padding: 6px 10px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
 }
 .stat-table tr:hover td { background: #1a1a1a; }
-.athlete-name { color: #e0e0e0; }
-.athlete-team { font-size: 0.75rem; color: #666; margin-left: 6px; }
+.stat-label { color: #999; }
+.stat-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.player-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.85rem; }
+.player-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+.player-name { color: #e0e0e0; }
+.player-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.empty-note { color: #666; font-size: 0.8rem; padding: 8px 10px; font-style: italic; }
 @media (max-width: 640px) {
   body { padding: 16px; }
   .site-label { display: none; }
@@ -105,44 +109,11 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 </div>
 
 <script>
-var LEAGUES = [
-  {
-    id: 'cardinals', name: 'Cardinals', color: '#C41E3A',
-    url: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/statistics/leaders',
-    cats: [
-      { key: 'battingAverage', label: 'Batting Average' },
-      { key: 'homeRuns', label: 'Home Runs' },
-      { key: 'RBIs', label: 'RBI' },
-      { key: 'earnedRunAverage', label: 'ERA' },
-      { key: 'strikeouts', label: 'Strikeouts' },
-    ]
-  },
-  {
-    id: 'blues', name: 'Blues', color: '#003087',
-    url: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/statistics/leaders',
-    cats: [
-      { key: 'goals', label: 'Goals' },
-      { key: 'assists', label: 'Assists' },
-      { key: 'points', label: 'Points' },
-    ]
-  },
-  {
-    id: 'citysc', name: 'CITY SC', color: '#E80A4D',
-    url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/statistics/leaders',
-    cats: [
-      { key: 'goals', label: 'Goals' },
-      { key: 'assists', label: 'Assists' },
-    ]
-  },
-  {
-    id: 'battlehawks', name: 'BattleHawks', color: '#00529B',
-    url: 'https://site.api.espn.com/apis/site/v2/sports/football/ufl/statistics/leaders',
-    cats: [
-      { key: 'passingYards', label: 'Passing Yards' },
-      { key: 'rushingYards', label: 'Rushing Yards' },
-      { key: 'receivingYards', label: 'Receiving Yards' },
-    ]
-  }
+var TEAMS = [
+  { id: '24',  name: 'Cardinals',  sport: 'baseball', league: 'mlb',        color: '#C41E3A' },
+  { id: '19',  name: 'Blues',      sport: 'hockey',   league: 'nhl',         color: '#003087' },
+  { id: '21812', name: 'CITY SC',   sport: 'soccer',   league: 'usa.1',      color: '#E80A4D' },
+  { id: '112651', name: 'BattleHawks', sport: 'football', league: 'ufl',    color: '#00529B' },
 ];
 
 function escHtml(s) {
@@ -151,58 +122,178 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
+function findStat(stats, name) {
+  var s = stats.find(function(x) { return x.name === name; });
+  return s ? s : null;
+}
+
+async function loadTeamStats(team) {
+  if (team.sport === 'baseball') {
+    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
+    if (!resp.ok) return null;
+    var data = await resp.json();
+    var cats = data?.results?.stats?.categories;
+    if (!cats) return null;
+    var batting = (cats.find(function(c) { return c.name === 'batting'; }) || {}).stats || [];
+    var pitching = (cats.find(function(c) { return c.name === 'pitching'; }) || {}).stats || [];
+    var fv = function(arr, n) { var s = arr.find(function(x) { return x.name === n; }); return s ? s.displayValue : '&mdash;'; };
+    return [
+      { cat: 'Batting', items: [
+        { name: 'AVG', val: fv(batting, 'avg') },
+        { name: 'HR',  val: fv(batting, 'homeRuns') },
+        { name: 'RBI', val: fv(batting, 'RBIs') },
+      ]},
+      { cat: 'Pitching', items: [
+        { name: 'ERA',  val: fv(pitching, 'ERA') },
+        { name: 'WHIP', val: fv(pitching, 'WHIP') },
+        { name: 'K',    val: fv(pitching, 'strikeouts') },
+      ]}
+    ];
+  }
+
+  if (team.sport === 'soccer') {
+    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
+    if (!resp.ok) return null;
+    var roster = await resp.json();
+    var players = [];
+    for (var i = 0; i < (roster.athletes || []).length; i++) {
+      var item = roster.athletes[i];
+      var cats = item.statistics?.splits?.categories;
+      if (!cats) continue;
+      var appsCat = cats.find(function(c) { return c.name === 'general'; });
+      if (!appsCat) continue;
+      var appsStat = appsCat.stats.find(function(s) { return s.name === 'appearances'; });
+      if (!appsStat || !appsStat.value) continue;
+      var offCat = cats.find(function(c) { return c.name === 'offensive'; });
+      if (!offCat) continue;
+      var gs = offCat.stats.find(function(s) { return s.name === 'totalGoals'; });
+      var as = offCat.stats.find(function(s) { return s.name === 'goalAssists'; });
+      players.push({
+        name: item.shortName || item.displayName,
+        goals: gs ? (gs.value || 0) : 0,
+        assists: as ? (as.value || 0) : 0
+      });
+    }
+    var top = function(arr, key) {
+      return [...arr].sort(function(a, b) { return b[key] - a[key]; }).filter(function(p) { return p[key] > 0; }).slice(0, 5);
+    };
+    var result = [];
+    var g = top(players, 'goals');
+    if (g.length) result.push({ cat: 'Goals', items: g.map(function(p) { return { name: p.name, val: p.goals }; }) });
+    var a = top(players, 'assists');
+    if (a.length) result.push({ cat: 'Assists', items: a.map(function(p) { return { name: p.name, val: p.assists }; }) });
+    return result.length ? result : null;
+  }
+
+  if (team.sport === 'hockey') {
+    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id);
+    if (!resp.ok) return null;
+    var data = await resp.json();
+    var ne = data?.team?.nextEvent?.[0];
+    if (!ne) return null;
+    var comps = ne.competitions?.[0]?.competitors;
+    if (!comps) return null;
+    var us = null;
+    for (var j = 0; j < comps.length; j++) {
+      if (String(comps[j].team.id) === String(team.id)) { us = comps[j]; break; }
+    }
+    if (!us) return null;
+    var leaders = us?.roster?.leaders;
+    if (!leaders) return null;
+    var seen = {};
+    for (var g = 0; g < leaders.length; g++) {
+      var group = leaders[g];
+      for (var k = 0; k < (group.leaders || []).length; k++) {
+        var entry = group.leaders[k];
+        var pid = entry.athlete?.id;
+        if (!pid || seen[pid]) continue;
+        var pcats = entry.statistics?.splits?.categories;
+        if (!pcats) continue;
+        var off = pcats.find(function(c) { return c.name === 'offensive'; });
+        if (!off) continue;
+        var ytdG = off.stats.find(function(s) { return s.name === 'ytdGoals'; });
+        var pts = off.stats.find(function(s) { return s.name === 'points'; });
+        var ast = off.stats.find(function(s) { return s.name === 'assists'; });
+        if (!ytdG || !pts) continue;
+        seen[pid] = {
+          name: entry.athlete.shortName || entry.athlete.displayName,
+          goals: ytdG.value ?? 0,
+          assists: ast ? (ast.value ?? 0) : 0,
+          points: pts.value ?? 0
+        };
+      }
+    }
+    var items = Object.values(seen).filter(function(p) { return p.goals > 0 || p.points > 0; });
+    if (!items.length) return null;
+    var byPts = [...items].sort(function(a, b) { return b.points - a.points; }).slice(0, 5);
+    var byG = [...items].sort(function(a, b) { return b.goals - a.goals; }).slice(0, 5);
+    var result = [];
+    var gs = byG.filter(function(p) { return p.goals > 0; });
+    if (gs.length) result.push({ cat: 'Goals', items: gs.map(function(p) { return { name: p.name, val: p.goals }; }) });
+    result.push({ cat: 'Points', items: byPts.map(function(p) { return { name: p.name, val: p.points }; }) });
+    return result;
+  }
+
+  if (team.sport === 'football') {
+    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/ufl/teams/' + team.id + '/statistics');
+    if (!resp.ok) return null;
+    var data = await resp.json();
+    var cats = data?.results?.stats?.categories;
+    if (!cats) return null;
+    var passing = (cats.find(function(c) { return c.name === 'passing'; }) || {}).stats || [];
+    var rushing = (cats.find(function(c) { return c.name === 'rushing'; }) || {}).stats || [];
+    var receiving = (cats.find(function(c) { return c.name === 'receiving'; }) || {}).stats || [];
+    var fv = function(arr, n) { var s = arr.find(function(x) { return x.name === n; }); return s ? s.displayValue : '&mdash;'; };
+    return [
+      { cat: 'Passing', items: [
+        { name: 'YDS', val: fv(passing, 'passingYards') },
+        { name: 'TD',  val: fv(passing, 'touchdowns') },
+        { name: 'INT', val: fv(passing, 'interceptions') },
+      ]},
+      { cat: 'Rushing', items: [
+        { name: 'YDS', val: fv(rushing, 'rushingYards') },
+        { name: 'TD',  val: fv(rushing, 'touchdowns') },
+      ]},
+      { cat: 'Receiving', items: [
+        { name: 'YDS', val: fv(receiving, 'receivingYards') },
+        { name: 'TD',  val: fv(receiving, 'touchdowns') },
+      ]}
+    ];
+  }
+
+  return null;
+}
+
 async function loadStats() {
   var container = document.getElementById('statsContent');
   var sub = document.getElementById('feedSub');
   try {
-    var results = await Promise.all(LEAGUES.map(function(l) {
-      return fetch(l.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
-    }));
+    var results = await Promise.all(TEAMS.map(function(t) { return loadTeamStats(t); }));
     var html = '';
     var loaded = 0;
-    LEAGUES.forEach(function(league, i) {
-      var data = results[i];
-      if (!data || !data.leaders) return;
-      var wanted = {};
-      league.cats.forEach(function(c) { wanted[c.key] = c; });
-      var matches = data.leaders.filter(function(g) {
-        return g.shortDisplayName && wanted[g.shortDisplayName.replace(/[^a-zA-Z]/g, '')];
-      });
-      if (!matches.length) return;
+    for (var i = 0; i < TEAMS.length; i++) {
+      var groups = results[i];
+      if (!groups || !groups.length) continue;
       loaded++;
       html += '<div class="section">' +
-        '<div class="section-header" style="border-bottom-color:' + league.color + ';">' +
-          '<h2 style="color:' + league.color + ';">' + escHtml(league.name) + '</h2>' +
+        '<div class="section-header" style="border-bottom-color:' + TEAMS[i].color + ';">' +
+          '<h2 style="color:' + TEAMS[i].color + ';">' + escHtml(TEAMS[i].name) + '</h2>' +
         '</div>';
-      matches.forEach(function(group) {
-        var catKey = group.shortDisplayName.replace(/[^a-zA-Z]/g, '');
-        var catDef = wanted[catKey];
-        var limit = 5;
-        var entries = (group.leaders || []).slice(0, limit);
-        if (!entries.length) return;
+      for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
         html += '<div class="stat-group">' +
-          '<div class="stat-group-title">' + escHtml(catDef ? catDef.label : group.shortDisplayName) + '</div>' +
-          '<table class="stat-table"><thead><tr>' +
-            '<th style="width:28px;">#</th><th>Player</th><th class="num">Value</th>' +
-          '</tr></thead><tbody>';
-        entries.forEach(function(entry, idx) {
-          var athlete = entry.athlete || {};
-          var name = athlete.shortName || athlete.displayName || '?';
-          var team = entry.team || athlete.team || {};
-          var teamName = team.shortDisplayName || '';
-          var val = entry.displayValue != null ? entry.displayValue : String(entry.value ?? '');
-          html += '<tr>' +
-            '<td>' + (idx + 1) + '</td>' +
-            '<td><span class="athlete-name">' + escHtml(name) + '</span>' +
-              (teamName ? '<span class="athlete-team">' + escHtml(teamName) + '</span>' : '') +
-            '</td>' +
-            '<td class="num">' + escHtml(val) + '</td>' +
-          '</tr>';
-        });
-        html += '</tbody></table></div>';
-      });
+          '<div class="stat-group-title">' + escHtml(group.cat) + '</div>';
+        for (var k = 0; k < group.items.length; k++) {
+          var p = group.items[k];
+          html += '<div class="player-row">' +
+            '<span class="player-name">' + escHtml(p.name) + '</span>' +
+            '<span class="player-val">' + escHtml(String(p.val)) + '</span>' +
+          '</div>';
+        }
+        html += '</div>';
+      }
       html += '</div>';
-    });
+    }
     if (!loaded) {
       container.innerHTML = '<div class="error-msg">Could not load stats data.</div>';
       sub.textContent = 'Error';
