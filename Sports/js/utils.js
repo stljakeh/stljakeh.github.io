@@ -55,13 +55,13 @@ STL.utils = {
     if (!upcomingEvent) {
       return { text: 'Offseason', className: 'status-offseason' };
     }
+    const daysUntilNext = (new Date(upcomingEvent.date).getTime() - Date.now()) / 86400000;
+    if (daysUntilNext > 14) {
+      return { text: 'Offseason', className: 'status-offseason' };
+    }
     const st = upcomingEvent.competitions?.[0]?.seasonType;
     if (st && st.name && st.name.toLowerCase().includes('playoff')) {
       return { text: 'Playoffs', className: 'status-playoffs' };
-    }
-    const daysUntilNext = (new Date(upcomingEvent.date).getTime() - Date.now()) / 86400000;
-    if (daysUntilNext > 14) {
-      return { text: 'Break', className: 'status-break' };
     }
     return { text: 'Active', className: 'status-active' };
   },
