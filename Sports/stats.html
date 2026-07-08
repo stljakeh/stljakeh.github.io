@@ -116,6 +116,10 @@ var TEAMS = [
   { id: '112651', name: 'BattleHawks', sport: 'football', league: 'ufl',    color: '#00529B' },
 ];
 
+function safe(v) {
+  return v != null ? v : '\u2014';
+}
+
 function escHtml(s) {
   var d = document.createElement('div');
   d.textContent = s;
@@ -282,12 +286,12 @@ async function loadStats() {
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
         html += '<div class="stat-group">' +
-          '<div class="stat-group-title">' + escHtml(group.cat) + '</div>';
+            '<div class="stat-group-title">' + escHtml(safe(group.cat)) + '</div>';
         for (var k = 0; k < group.items.length; k++) {
           var p = group.items[k];
           html += '<div class="player-row">' +
-            '<span class="player-name">' + escHtml(p.name) + '</span>' +
-            '<span class="player-val">' + escHtml(String(p.val)) + '</span>' +
+            '<span class="player-name">' + escHtml(safe(p.name)) + '</span>' +
+            '<span class="player-val">' + escHtml(safe(String(p.val))) + '</span>' +
           '</div>';
         }
         html += '</div>';
