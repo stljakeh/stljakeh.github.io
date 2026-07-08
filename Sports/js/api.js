@@ -309,6 +309,10 @@ STL.api = {
       renders.push(STL.api.fetchWinProb(team, nextEvent).then(function() {
         STL.render.renderTeam(team, data, lastEvent, nextEvent);
       }));
+    } else {
+      renders.push(Promise.resolve().then(function() {
+        STL.render.renderTeam(team, data, lastEvent, nextEvent);
+      }));
     }
     await Promise.all(renders);
   },
