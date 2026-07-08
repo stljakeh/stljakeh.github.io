@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stats - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a, nav .current {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+nav a { color: #888; transition: color 0.2s; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; }
+.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
+#app { width: 100%; max-width: 960px; }
+header { text-align: center; margin-bottom: 32px; }
+header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
+.section { margin-bottom: 32px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+.section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-group { margin-bottom: 20px; }
+.stat-group:last-child { margin-bottom: 0; }
+.stat-group-title {
+  font-size: 0.75rem; font-weight: 600; color: #aaa;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px; padding-bottom: 4px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.stat-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.stat-table th {
+  text-align: left; padding: 6px 10px; font-size: 0.7rem;
+  color: #666; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2a2a; font-weight: 600;
+}
+.stat-table th.num, .stat-table td.num { text-align: right; }
+.stat-table td {
+  padding: 6px 10px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
+}
+.stat-table tr:hover td { background: #1a1a1a; }
+.athlete-name { color: #e0e0e0; }
+.athlete-team { font-size: 0.75rem; color: #666; margin-left: 6px; }
+@media (max-width: 640px) {
+  body { padding: 16px; }
+  .site-label { display: none; }
+}
+.error-msg { text-align: center; color: #f44336; padding: 40px; }
+.loading { text-align: center; color: #888; padding: 40px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="news.html">News</a>
+    <a href="standings.html">Standings</a>
+    <a class="current" href="stats.html">Stats</a>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>Stat Leaders</h1>
+    <div class="sub" id="feedSub">Loading...</div>
+  </header>
+  <div id="statsContent"><div class="loading">Loading stats...</div></div>
+</div>
+
+<script>
+var LEAGUES = [
+  {
+    id: 'cardinals', name: 'Cardinals', color: '#C41E3A',
+    url: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/statistics/leaders',
+    cats: [
+      { key: 'battingAverage', label: 'Batting Average' },
+      { key: 'homeRuns', label: 'Home Runs' },
+      { key: 'RBIs', label: 'RBI' },
+      { key: 'earnedRunAverage', label: 'ERA' },
+      { key: 'strikeouts', label: 'Strikeouts' },
+    ]
+  },
+  {
+    id: 'blues', name: 'Blues', color: '#003087',
+    url: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/statistics/leaders',
+    cats: [
+      { key: 'goals', label: 'Goals' },
+      { key: 'assists', label: 'Assists' },
+      { key: 'points', label: 'Points' },
+    ]
+  },
+  {
+    id: 'citysc', name: 'CITY SC', color: '#E80A4D',
+    url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/statistics/leaders',
+    cats: [
+      { key: 'goals', label: 'Goals' },
+      { key: 'assists', label: 'Assists' },
+    ]
+  },
+  {
+    id: 'battlehawks', name: 'BattleHawks', color: '#00529B',
+    url: 'https://site.api.espn.com/apis/site/v2/sports/football/ufl/statistics/leaders',
+    cats: [
+      { key: 'passingYards', label: 'Passing Yards' },
+      { key: 'rushingYards', label: 'Rushing Yards' },
+      { key: 'receivingYards', label: 'Receiving Yards' },
+    ]
+  }
+];
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+async function loadStats() {
+  var container = document.getElementById('statsContent');
+  var sub = document.getElementById('feedSub');
+  try {
+    var results = await Promise.all(LEAGUES.map(function(l) {
+      return fetch(l.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }));
+    var html = '';
+    var loaded = 0;
+    LEAGUES.forEach(function(league, i) {
+      var data = results[i];
+      if (!data || !data.leaders) return;
+      var wanted = {};
+      league.cats.forEach(function(c) { wanted[c.key] = c; });
+      var matches = data.leaders.filter(function(g) {
+        return g.shortDisplayName && wanted[g.shortDisplayName.replace(/[^a-zA-Z]/g, '')];
+      });
+      if (!matches.length) return;
+      loaded++;
+      html += '<div class="section">' +
+        '<div class="section-header" style="border-bottom-color:' + league.color + ';">' +
+          '<h2 style="color:' + league.color + ';">' + escHtml(league.name) + '</h2>' +
+        '</div>';
+      matches.forEach(function(group) {
+        var catKey = group.shortDisplayName.replace(/[^a-zA-Z]/g, '');
+        var catDef = wanted[catKey];
+        var limit = 5;
+        var entries = (group.leaders || []).slice(0, limit);
+        if (!entries.length) return;
+        html += '<div class="stat-group">' +
+          '<div class="stat-group-title">' + escHtml(catDef ? catDef.label : group.shortDisplayName) + '</div>' +
+          '<table class="stat-table"><thead><tr>' +
+            '<th style="width:28px;">#</th><th>Player</th><th class="num">Value</th>' +
+          '</tr></thead><tbody>';
+        entries.forEach(function(entry, idx) {
+          var athlete = entry.athlete || {};
+          var name = athlete.shortName || athlete.displayName || '?';
+          var team = entry.team || athlete.team || {};
+          var teamName = team.shortDisplayName || '';
+          var val = entry.displayValue != null ? entry.displayValue : String(entry.value ?? '');
+          html += '<tr>' +
+            '<td>' + (idx + 1) + '</td>' +
+            '<td><span class="athlete-name">' + escHtml(name) + '</span>' +
+              (teamName ? '<span class="athlete-team">' + escHtml(teamName) + '</span>' : '') +
+            '</td>' +
+            '<td class="num">' + escHtml(val) + '</td>' +
+          '</tr>';
+        });
+        html += '</tbody></table></div>';
+      });
+      html += '</div>';
+    });
+    if (!loaded) {
+      container.innerHTML = '<div class="error-msg">Could not load stats data.</div>';
+      sub.textContent = 'Error';
+      return;
+    }
+    sub.textContent = loaded + ' team' + (loaded !== 1 ? 's' : '');
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div class="error-msg">Failed to load stats.</div>';
+    sub.textContent = 'Error';
+  }
+}
+loadStats();
+</script>
+</body>
+</html>
