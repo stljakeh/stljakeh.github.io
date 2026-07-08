@@ -9,6 +9,30 @@ body {
   align-items: center;
   padding: 24px;
 }
+nav {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a, nav .current {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+nav a { color: #888; transition: color 0.2s; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; }
+.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
 header {
   text-align: center;
   margin-bottom: 32px;

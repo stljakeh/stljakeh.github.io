@@ -29,22 +29,16 @@ nav {
   border: 1px solid #2a2a2a;
 }
 .nav-links { display: flex; gap: 20px; align-items: center; }
-nav a {
-  color: #888;
-  text-decoration: none;
+nav a, nav .current {
   font-size: 0.85rem;
-  letter-spacing: 0.5px;
-  transition: color 0.2s;
-  text-transform: uppercase;
-}
-nav a:hover { color: #fff; }
-nav .current {
-  color: #e0e0e0;
   font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
+  text-decoration: none;
 }
+nav a { color: #888; transition: color 0.2s; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; }
 .site-label {
   font-size: 0.7rem;
   color: #444;
@@ -165,7 +159,7 @@ header .sub {
   <div class="nav-links">
     <a href="dashboard.html">Dashboard</a>
     <a href="standings.html">Standings</a>
-    <span class="current">News</span>
+    <a class="current" href="news.html">News</a>
   </div>
   <div class="site-label">St. Louis Sports</div>
 </nav>
