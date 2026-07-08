@@ -242,98 +242,6 @@ STL.api = {
     } catch (e) {}
   },
 
-  fetchStatLeaders: async function(team, data) {
-    if (team.sport === 'soccer') {
-      try {
-        const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
-        if (!resp.ok) return;
-        const roster = await resp.json();
-        const players = [];
-        for (const item of (roster.athletes || [])) {
-          const cats = item.statistics?.splits?.categories;
-          if (!cats) continue;
-          const apps = STL.utils.findStatValue(cats, 'general', 'appearances');
-          if (!apps) continue;
-          players.push({
-            name: item.shortName || item.displayName,
-            goals: STL.utils.findStatValue(cats, 'offensive', 'totalGoals'),
-            assists: STL.utils.findStatValue(cats, 'offensive', 'goalAssists')
-          });
-        }
-        const top = function(arr, key) { return [...arr].sort((a, b) => b[key] - a[key]).filter(p => p[key] > 0).slice(0, 3); };
-        const cats = [];
-        const g = top(players, 'goals');
-        if (g.length) cats.push({ cat: 'Goals', items: g.map(p => ({ name: p.name, val: p.goals })) });
-        const a = top(players, 'assists');
-        if (a.length) cats.push({ cat: 'Assists', items: a.map(p => ({ name: p.name, val: p.assists })) });
-        if (cats.length) team._leaders = cats;
-      } catch (e) {}
-    } else if (team.sport === 'hockey') {
-      try {
-        const ne = data?.team?.nextEvent?.[0];
-        if (!ne) return;
-        const comps = ne.competitions?.[0]?.competitors;
-        if (!comps) return;
-        const us = comps.find(c => String(c.team.id) === String(team.id));
-        const leaders = us?.roster?.leaders;
-        if (!leaders) return;
-        const seen = {};
-        for (const group of leaders) {
-          for (const entry of (group.leaders || [])) {
-            const id = entry.athlete?.id;
-            if (!id || seen[id]) continue;
-            const cats = entry.statistics?.splits?.categories;
-            if (!cats) continue;
-            const off = cats.find(c => c.name === 'offensive');
-            if (!off) continue;
-            const ytdG = off.stats.find(s => s.name === 'ytdGoals');
-            const pts = off.stats.find(s => s.name === 'points');
-            const ast = off.stats.find(s => s.name === 'assists');
-            if (!ytdG || !pts) continue;
-            seen[id] = {
-              name: entry.athlete.shortName || entry.athlete.displayName,
-              goals: ytdG.value ?? 0,
-              assists: ast ? (ast.value ?? 0) : 0,
-              points: pts.value ?? 0
-            };
-          }
-        }
-        const items = Object.values(seen).filter(p => p.goals > 0 || p.points > 0);
-        if (!items.length) return;
-        const byPts = [...items].sort((a, b) => b.points - a.points).slice(0, 5);
-        const byG = [...items].sort((a, b) => b.goals - a.goals).slice(0, 5);
-        const cats = [];
-        const g2 = byG.filter(p => p.goals > 0);
-        if (g2.length) cats.push({ cat: 'Goals', items: g2.map(p => ({ name: p.name, val: p.goals })) });
-        cats.push({ cat: 'Points', items: byPts.map(p => ({ name: p.name, val: p.points })) });
-        team._leaders = cats;
-      } catch (e) {}
-    } else if (team.sport === 'baseball') {
-      try {
-        const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
-        if (!resp.ok) return;
-        const st = await resp.json();
-        const cats = st?.results?.stats?.categories;
-        if (!cats) return;
-        const batting = cats.find(c => c.name === 'batting')?.stats || [];
-        const pitching = cats.find(c => c.name === 'pitching')?.stats || [];
-        const fv = function(arr, name) { const s = arr.find(x => x.name === name); return s ? s.displayValue : '&mdash;'; };
-        team._leaders = [
-          { cat: 'Batting', items: [
-            { name: 'AVG', val: fv(batting, 'avg') },
-            { name: 'HR', val: fv(batting, 'homeRuns') },
-            { name: 'RBI', val: fv(batting, 'RBIs') },
-          ]},
-          { cat: 'Pitching', items: [
-            { name: 'ERA', val: fv(pitching, 'ERA') },
-            { name: 'WHIP', val: fv(pitching, 'WHIP') },
-            { name: 'K', val: fv(pitching, 'strikeouts') },
-          ]}
-        ];
-      } catch (e) {}
-    }
-  },
-
   /* ASA-sourced teams (CITY2): fetches via ASA + CORS proxy with localStorage caching */
 
   fetchAsa: async function(url, ttlMs) {
@@ -402,9 +310,6 @@ STL.api = {
         STL.render.renderTeam(team, data, lastEvent, nextEvent);
       }));
     }
-    renders.push(STL.api.fetchStatLeaders(team, data).then(function() {
-      STL.render.renderTeam(team, data, lastEvent, nextEvent);
-    }));
     await Promise.all(renders);
   },
 

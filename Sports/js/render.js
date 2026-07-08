@@ -48,12 +48,6 @@ STL.render = {
             '<span class="live-score" id="liveScore-' + t.cardClass + '"></span>' +
             '<div class="live-info" id="liveInfo-' + t.cardClass + '"></div>' +
           '</div>' +
-          '<div id="leadersContainer-' + t.cardClass + '" style="display:none">' +
-            '<button class="leaders-toggle" onclick="STL.toggle.leaders(this,\'' + t.cardClass + '\')">' +
-              '<span class="leaders-toggle-icon">&#9654;</span> Stats' +
-            '</button>' +
-            '<div class="leaders-panel" id="leadersPanel-' + t.cardClass + '"></div>' +
-          '</div>' +
           '<div id="capContainer-' + t.cardClass + '" style="display:none">' +
             '<button class="cap-toggle" onclick="STL.toggle.cap(this,\'' + t.cardClass + '\')">' +
               '<span class="cap-toggle-icon">&#9654;</span> Cap' +
@@ -385,8 +379,6 @@ STL.render = {
       }
     }
 
-    STL.render.renderStatLeaders(team);
-
     const capContainer = document.getElementById('capContainer-' + team.cardClass);
     const capPanel = document.getElementById('capPanel-' + team.cardClass);
     if (team.cardClass === 'blues') {
@@ -402,27 +394,4 @@ STL.render = {
     }
   },
 
-  renderStatLeaders: function(team) {
-    const container = document.getElementById('leadersContainer-' + team.cardClass);
-    const panel = document.getElementById('leadersPanel-' + team.cardClass);
-    if (!container || !panel) return;
-    if (!team._leaders || !team._leaders.length) {
-      container.style.display = 'none';
-      return;
-    }
-    container.style.display = '';
-    panel.innerHTML = team._leaders.map(function(g) {
-      return '<div class="leader-cat">' + g.cat + '</div>' +
-        g.items.map(function(p) {
-          return '<div class="leader-row"><span class="leader-name">' + p.name + '</span><span class="leader-val">' + p.val + '</span></div>';
-        }).join('');
-    }).join('');
-    if (window._leadersOpen && window._leadersOpen[team.cardClass]) {
-      const btn = container.querySelector('.leaders-toggle');
-      if (btn) {
-        btn.classList.add('open');
-        btn.nextElementSibling.classList.add('open');
-      }
-    }
-  }
 };

@@ -1,7 +1,6 @@
 window.STL = window.STL || {};
 
 window._lineupOpen = {};
-window._leadersOpen = {};
 window._mlsOverall = {};
 
 var refreshTimer = null;
@@ -38,17 +37,16 @@ STL.dashboard = {
 
     const grid = document.getElementById('cardGrid');
     const cards = Array.from(grid.children);
-    const live = [], playoffs = [], active = [], brk = [], offseason = [];
+    const live = [], playoffs = [], active = [], offseason = [];
     for (const card of cards) {
       const badge = card.querySelector('.status-badge');
       const cls = badge ? badge.className : '';
       if (cls.includes('status-live')) live.push(card);
       else if (cls.includes('status-playoffs')) playoffs.push(card);
       else if (cls.includes('status-active')) active.push(card);
-      else if (cls.includes('status-break')) brk.push(card);
       else offseason.push(card);
     }
-    [...live, ...playoffs, ...active, ...brk, ...offseason].forEach(c => grid.appendChild(c));
+    [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
 
     const now = new Date();
     const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
