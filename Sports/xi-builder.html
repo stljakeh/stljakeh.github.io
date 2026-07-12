@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Starting XI Builder</title>
+<style>
+  :root {
+    --bg-outer: #12181a;
+    --pitch-dark: #0d3b2b;
+    --pitch-light: #0f4530;
+    --chalk: rgba(232, 228, 217, 0.55);
+    --chalk-strong: #e8e4d9;
+    --amber: #f2b134;
+    --panel-bg: #181f1d;
+    --card-border: #2c3b34;
+    --text-muted: #8a9490;
+    --danger: #e8a3a3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-outer);
+    color: var(--chalk-strong);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  @media (min-width: 1024px) {
+    .layout { flex-direction: row; }
+  }
+  .main {
+    flex: 1;
+    padding: 16px;
+  }
+  @media (min-width: 768px) {
+    .main { padding: 32px; }
+  }
+  .header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .eyebrow {
+    letter-spacing: 0.25em;
+    color: var(--amber);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    line-height: 1.05;
+    margin: 2px 0;
+  }
+  .subline {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .formation-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .formation-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .formation-btn.active {
+    border-color: var(--amber);
+    background: rgba(242,177,52,0.12);
+    color: var(--amber);
+  }
+  .pitch-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 0.68;
+    max-width: 560px;
+    margin: 0 auto;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--chalk);
+    background: repeating-linear-gradient(180deg, var(--pitch-dark) 0px, var(--pitch-dark) 40px, var(--pitch-light) 40px, var(--pitch-light) 80px);
+  }
+  .halfway-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--chalk);
+    transform: translateX(-50%);
+  }
+  .center-circle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 90px;
+    height: 90px;
+    border: 2px solid var(--chalk);
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+  }
+  .box-top {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 40%;
+    height: 16%;
+    border: 2px solid var(--chalk);
+    border-top: none;
+    transform: translateX(-50%);
+  }
+  .box-bottom {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 40%;
+    height: 16%;
+    border: 2px solid var(--chalk);
+    border-bottom: none;
+    transform: translateX(-50%);
+  }
+  .slot {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 84px;
+    transform: translate(-50%, -50%);
+  }
+  .badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--chalk);
+    background: rgba(0,0,0,0.25);
+    color: var(--chalk-strong);
+    font-weight: 800;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge.filled {
+    border-color: var(--amber);
+    background: rgba(242,177,52,0.15);
+    color: var(--amber);
+  }
+  .slot-label {
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 84px;
+  }
+  .slot-label.filled { color: var(--chalk-strong); }
+  .name-input {
+    width: 100%;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--amber);
+    background: #0d1210;
+    color: var(--chalk-strong);
+    text-align: center;
+  }
+  .hint {
+    max-width: 560px;
+    margin: 12px auto 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .stat-panel {
+    max-width: 560px;
+    margin: 24px auto 0;
+    padding: 16px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--panel-bg);
+  }
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--amber);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .stat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-chip {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #0d1210;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-chip button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+  }
+  .add-stat-row {
+    display: flex;
+    gap: 8px;
+  }
+  .text-input {
+    flex: 1;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: #0d1210;
+    color: var(--chalk-strong);
+  }
+  .add-btn {
+    padding: 8px 14px;
+    border-radius: 4px;
+    background: var(--amber);
+    color: #12181a;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+  }
+  .drawer {
+    width: 100%;
+    max-width: 360px;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--card-border);
+    padding: 24px;
+    display: none;
+  }
+  .drawer.open { display: block; }
+  .drawer-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+  .drawer-position {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .drawer-name {
+    font-size: 22px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .close-btn {
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .rename-btn {
+    font-size: 12px;
+    color: var(--amber);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 18px;
+    display: block;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .stat-field input {
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 16px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: #0d1210;
+    color: var(--chalk-strong);
+  }
+  .notes-field { margin-bottom: 20px; }
+  .notes-field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .notes-field textarea {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: #0d1210;
+    color: var(--chalk-strong);
+    resize: vertical;
+    font-family: inherit;
+  }
+  .remove-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #7a3030;
+    background: rgba(122,48,48,0.15);
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .site-nav {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    border: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .site-nav .nav-links { display: flex; gap: 20px; align-items: center; }
+  .site-nav a, .site-nav .current {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .site-nav a { color: #888; transition: color 0.2s; }
+  .site-nav a:hover { color: #fff; }
+  .site-nav .current { color: #e0e0e0; }
+  .site-nav .site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
+  @media (max-width: 640px) {
+    .site-nav .site-label { display: none; }
+    .site-nav { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="news.html">News</a>
+    <a href="standings.html">Standings</a>
+    <a href="stats.html">Stats</a>
+    <a class="current" href="xi-builder.html">XI Builder</a>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+<div class="layout">
+  <div class="main">
+    <div class="header-row">
+      <div>
+        <div class="eyebrow">SQUAD PLANNING</div>
+        <h1>Starting XI Builder</h1>
+        <div class="subline" id="subline">0/11 slots filled</div>
+      </div>
+      <div class="formation-buttons" id="formationButtons"></div>
+    </div>
+
+    <div class="pitch-wrap" id="pitch">
+      <div class="halfway-line"></div>
+      <div class="center-circle"></div>
+      <div class="box-top"></div>
+      <div class="box-bottom"></div>
+    </div>
+
+    <div class="hint">Tap an open slot to add a player. Tap a filled card to log stats. Each formation keeps its own saved squad, stored in this browser.</div>
+
+    <div class="stat-panel">
+      <div class="panel-title">TRACKED STATS</div>
+      <div class="stat-chips" id="statChips"></div>
+      <div class="add-stat-row">
+        <input class="text-input" id="newStatInput" placeholder="Add stat (e.g. Tackles)">
+        <button class="add-btn" id="addStatBtn">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer" id="drawer">
+    <div class="drawer-top">
+      <div>
+        <div class="drawer-position" id="drawerPosition"></div>
+        <h2 class="drawer-name" id="drawerName"></h2>
+      </div>
+      <button class="close-btn" id="closeDrawerBtn">&times;</button>
+    </div>
+    <button class="rename-btn" id="renameBtn">Rename player</button>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="notes-field">
+      <label>NOTES</label>
+      <textarea id="notesInput" rows="4"></textarea>
+    </div>
+    <button class="remove-btn" id="removeBtn">Remove from XI</button>
+  </div>
+</div>
+
+<script>
+const FORMATIONS = {
+  "4-3-3": [
+    { id: "gk", label: "GK", x: 50, y: 90 },
+    { id: "lb", label: "LB", x: 15, y: 72 },
+    { id: "cb1", label: "CB", x: 35, y: 76 },
+    { id: "cb2", label: "CB", x: 65, y: 76 },
+    { id: "rb", label: "RB", x: 85, y: 72 },
+    { id: "cm1", label: "CM", x: 30, y: 50 },
+    { id: "cm2", label: "CM", x: 50, y: 55 },
+    { id: "cm3", label: "CM", x: 70, y: 50 },
+    { id: "lw", label: "LW", x: 18, y: 24 },
+    { id: "st", label: "ST", x: 50, y: 14 },
+    { id: "rw", label: "RW", x: 82, y: 24 },
+  ],
+  "4-4-2": [
+    { id: "gk", label: "GK", x: 50, y: 90 },
+    { id: "lb", label: "LB", x: 15, y: 72 },
+    { id: "cb1", label: "CB", x: 35, y: 76 },
+    { id: "cb2", label: "CB", x: 65, y: 76 },
+    { id: "rb", label: "RB", x: 85, y: 72 },
+    { id: "lm", label: "LM", x: 15, y: 45 },
+    { id: "cm1", label: "CM", x: 38, y: 48 },
+    { id: "cm2", label: "CM", x: 62, y: 48 },
+    { id: "rm", label: "RM", x: 85, y: 45 },
+    { id: "st1", label: "ST", x: 38, y: 16 },
+    { id: "st2", label: "ST", x: 62, y: 16 },
+  ],
+  "4-2-3-1": [
+    { id: "gk", label: "GK", x: 50, y: 90 },
+    { id: "lb", label: "LB", x: 15, y: 72 },
+    { id: "cb1", label: "CB", x: 35, y: 76 },
+    { id: "cb2", label: "CB", x: 65, y: 76 },
+    { id: "rb", label: "RB", x: 85, y: 72 },
+    { id: "cdm1", label: "CDM", x: 38, y: 58 },
+    { id: "cdm2", label: "CDM", x: 62, y: 58 },
+    { id: "lw", label: "LW", x: 20, y: 34 },
+    { id: "cam", label: "CAM", x: 50, y: 32 },
+    { id: "rw", label: "RW", x: 80, y: 34 },
+    { id: "st", label: "ST", x: 50, y: 14 },
+  ],
+  "3-5-2": [
+    { id: "gk", label: "GK", x: 50, y: 90 },
+    { id: "cb1", label: "CB", x: 30, y: 76 },
+    { id: "cb2", label: "CB", x: 50, y: 79 },
+    { id: "cb3", label: "CB", x: 70, y: 76 },
+    { id: "lwb", label: "LWB", x: 10, y: 50 },
+    { id: "cm1", label: "CM", x: 35, y: 50 },
+    { id: "cm2", label: "CM", x: 50, y: 55 },
+    { id: "cm3", label: "CM", x: 65, y: 50 },
+    { id: "rwb", label: "RWB", x: 90, y: 50 },
+    { id: "st1", label: "ST", x: 38, y: 16 },
+    { id: "st2", label: "ST", x: 62, y: 16 },
+  ],
+  "3-4-3": [
+    { id: "gk", label: "GK", x: 50, y: 90 },
+    { id: "cb1", label: "CB", x: 30, y: 76 },
+    { id: "cb2", label: "CB", x: 50, y: 79 },
+    { id: "cb3", label: "CB", x: 70, y: 76 },
+    { id: "lm", label: "LM", x: 15, y: 50 },
+    { id: "cm1", label: "CM", x: 38, y: 52 },
+    { id: "cm2", label: "CM", x: 62, y: 52 },
+    { id: "rm", label: "RM", x: 85, y: 50 },
+    { id: "lw", label: "LW", x: 20, y: 22 },
+    { id: "st", label: "ST", x: 50, y: 13 },
+    { id: "rw", label: "RW", x: 80, y: 22 },
+  ],
+};
+
+const DEFAULT_STATS = [
+  { key: "apps", label: "APP" },
+  { key: "goals", label: "G" },
+  { key: "assists", label: "A" },
+  { key: "minutes", label: "MIN" },
+  { key: "rating", label: "RTG" },
+];
+
+const STORAGE_PREFIX = "xi-builder:";
+
+let formationKey = localStorage.getItem(STORAGE_PREFIX + "last-formation") || "4-3-3";
+let statFields = loadJSON(STORAGE_PREFIX + "stat-fields", DEFAULT_STATS);
+let players = loadJSON(STORAGE_PREFIX + formationKey, {});
+let activeSlotId = null;
+let editingSlotId = null;
+
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+function saveStatFields() {
+  localStorage.setItem(STORAGE_PREFIX + "stat-fields", JSON.stringify(statFields));
+}
+function savePlayers() {
+  localStorage.setItem(STORAGE_PREFIX + formationKey, JSON.stringify(players));
+}
+function emptyPlayer(name) {
+  return { name, stats: {}, notes: "" };
+}
+
+function renderFormationButtons() {
+  const container = document.getElementById("formationButtons");
+  container.innerHTML = "";
+  Object.keys(FORMATIONS).forEach((key) => {
+    const btn = document.createElement("button");
+    btn.className = "formation-btn" + (key === formationKey ? " active" : "");
+    btn.textContent = key;
+    btn.onclick = () => {
+      localStorage.setItem(STORAGE_PREFIX + "last-formation", key);
+      formationKey = key;
+      players = loadJSON(STORAGE_PREFIX + formationKey, {});
+      activeSlotId = null;
+      editingSlotId = null;
+      renderAll();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function renderPitch() {
+  const pitch = document.getElementById("pitch");
+  pitch.querySelectorAll(".slot").forEach((el) => el.remove());
+  const slots = FORMATIONS[formationKey];
+  slots.forEach((slot) => {
+    const player = players[slot.id];
+    const wrap = document.createElement("div");
+    wrap.className = "slot";
+    wrap.style.left = slot.x + "%";
+    wrap.style.top = slot.y + "%";
+
+    if (editingSlotId === slot.id) {
+      const input = document.createElement("input");
+      input.className = "name-input";
+      input.placeholder = "Name";
+      input.value = player ? player.name : "";
+      wrap.appendChild(input);
+      pitch.appendChild(wrap);
+      input.focus();
+      const commit = () => {
+        const trimmed = input.value.trim();
+        if (trimmed) {
+          players[slot.id] = player ? { ...player, name: trimmed } : emptyPlayer(trimmed);
+          savePlayers();
+        }
+        editingSlotId = null;
+        renderAll();
+      };
+      input.addEventListener("blur", commit);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") { editingSlotId = null; renderAll(); }
+      });
+      return;
+    }
+
+    const badge = document.createElement("button");
+    badge.className = "badge" + (player ? " filled" : "");
+    badge.textContent = slot.label;
+    badge.title = player ? "Click to edit stats" : "Click to add player";
+    badge.onclick = () => {
+      if (player) {
+        activeSlotId = slot.id;
+        renderDrawer();
+      } else {
+        editingSlotId = slot.id;
+        renderPitch();
+      }
+    };
+    wrap.appendChild(badge);
+
+    const label = document.createElement("div");
+    label.className = "slot-label" + (player ? " filled" : "");
+    label.textContent = player ? player.name : "Add player";
+    wrap.appendChild(label);
+
+    pitch.appendChild(wrap);
+  });
+
+  document.getElementById("subline").textContent = Object.keys(players).length + "/11 slots filled";
+}
+
+function renderStatChips() {
+  const container = document.getElementById("statChips");
+  container.innerHTML = "";
+  statFields.forEach((s) => {
+    const chip = document.createElement("span");
+    chip.className = "stat-chip";
+    const label = document.createElement("span");
+    label.textContent = s.label;
+    chip.appendChild(label);
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "\u00d7";
+    removeBtn.title = "Remove stat";
+    removeBtn.onclick = () => {
+      statFields = statFields.filter((f) => f.key !== s.key);
+      saveStatFields();
+      renderAll();
+    };
+    chip.appendChild(removeBtn);
+    container.appendChild(chip);
+  });
+}
+
+function renderDrawer() {
+  const drawer = document.getElementById("drawer");
+  if (!activeSlotId || !players[activeSlotId]) {
+    drawer.classList.remove("open");
+    return;
+  }
+  const slot = FORMATIONS[formationKey].find((s) => s.id === activeSlotId);
+  const player = players[activeSlotId];
+
+  document.getElementById("drawerPosition").textContent = slot.label;
+  document.getElementById("drawerName").textContent = player.name;
+  document.getElementById("notesInput").value = player.notes || "";
+
+  const grid = document.getElementById("statGrid");
+  grid.innerHTML = "";
+  statFields.forEach((s) => {
+    const field = document.createElement("div");
+    field.className = "stat-field";
+    const label = document.createElement("label");
+    label.textContent = s.label;
+    field.appendChild(label);
+    const input = document.createElement("input");
+    input.type = "number";
+    input.value = player.stats[s.key] ?? "";
+    input.addEventListener("input", () => {
+      player.stats[s.key] = input.value;
+      savePlayers();
+    });
+    field.appendChild(input);
+    grid.appendChild(field);
+  });
+
+  drawer.classList.add("open");
+}
+
+document.getElementById("notesInput").addEventListener("input", (e) => {
+  if (!activeSlotId || !players[activeSlotId]) return;
+  players[activeSlotId].notes = e.target.value;
+  savePlayers();
+});
+
+document.getElementById("closeDrawerBtn").onclick = () => {
+  activeSlotId = null;
+  renderDrawer();
+};
+
+document.getElementById("renameBtn").onclick = () => {
+  if (!activeSlotId) return;
+  editingSlotId = activeSlotId;
+  activeSlotId = null;
+  renderAll();
+};
+
+document.getElementById("removeBtn").onclick = () => {
+  if (!activeSlotId) return;
+  delete players[activeSlotId];
+  savePlayers();
+  activeSlotId = null;
+  renderAll();
+};
+
+document.getElementById("addStatBtn").onclick = addStatField;
+document.getElementById("newStatInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") addStatField();
+});
+function addStatField() {
+  const input = document.getElementById("newStatInput");
+  const label = input.value.trim();
+  if (!label) return;
+  const key = label.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  if (statFields.some((s) => s.key === key)) { input.value = ""; return; }
+  statFields.push({ key, label: label.toUpperCase() });
+  saveStatFields();
+  input.value = "";
+  renderAll();
+}
+
+function renderAll() {
+  renderFormationButtons();
+  renderPitch();
+  renderStatChips();
+  renderDrawer();
+}
+
+renderAll();
+</script>
+</body>
+</html>
