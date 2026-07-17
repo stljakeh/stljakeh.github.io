@@ -188,6 +188,10 @@ async function loadStandings() {
         entries = child.standings.entries;
       } else {
         entries = data.standings ? data.standings.entries : null;
+        if (!entries && data.children) {
+          var match = data.children.find(function(c) { return c.name && c.name.includes(d.name); });
+          if (match && match.standings) entries = match.standings.entries;
+        }
       }
       if (!entries || !entries.length) return;
       entries.sort(function(a, b) {
