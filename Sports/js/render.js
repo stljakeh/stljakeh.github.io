@@ -192,19 +192,29 @@ STL.render = {
     const statsArr = record ? (record.stats || []) : [];
     let standingSummary = team.standingOverride || t.standingSummary || '';
     standingSummary = standingSummary.replace('NL Cent', 'NL Central');
-    if (standingSummary.includes('in MLS')) {
-      standingSummary = standingSummary.replace('in MLS', 'in Western Conference');
-      if (window._mlsOverall && window._mlsOverall[team.id]) {
-        standingSummary += ' | ' + window._mlsOverall[team.id] + ' in MLS';
+
+    const apiWins = STL.utils.findStat(statsArr, 'wins') || 0;
+    const apiLosses = STL.utils.findStat(statsArr, 'losses') || 0;
+    const apiTies = STL.utils.findStat(statsArr, 'ties') || 0;
+    const apiPts = STL.utils.findStat(statsArr, 'points');
+    const rc = team._computedRecord;
+    const wins = rc ? rc.wins : apiWins;
+    const losses = rc ? rc.losses : apiLosses;
+    const ties = rc ? rc.ties : apiTies;
+    const otLosses = STL.utils.findStat(statsArr, 'otLosses') || 0;
+    const pts = rc ? rc.points : apiPts;
+    const streakVal = team._computedStreak !== undefined ? team._computedStreak : STL.utils.findStat(statsArr, 'streak');
+
+    if (standingSummary.includes('in MLS') && team.sport === 'soccer') {
+      if (rc && window._mlsConfTeams && window._mlsConfTeams.length) {
+        var adjusted = window._mlsConfTeams.map(function(t) { return { id: t.id, pts: t.id === String(team.id) ? rc.points : t.pts }; });
+        adjusted.sort(function(a, b) { return b.pts - a.pts || a.id.localeCompare(b.id); });
+        var confRank = adjusted.findIndex(function(t) { return t.id === String(team.id); }) + 1;
+        standingSummary = confRank + STL.utils.suffix(confRank) + ' in Western Conference';
+      } else {
+        standingSummary = standingSummary.replace('in MLS', 'in Western Conference');
       }
     }
-
-    const wins = STL.utils.findStat(statsArr, 'wins') || 0;
-    const losses = STL.utils.findStat(statsArr, 'losses') || 0;
-    const ties = STL.utils.findStat(statsArr, 'ties') || 0;
-    const otLosses = STL.utils.findStat(statsArr, 'otLosses') || 0;
-    const pts = STL.utils.findStat(statsArr, 'points');
-    const streakVal = STL.utils.findStat(statsArr, 'streak');
 
     let recordStr;
     if (team.sport === 'hockey') {
@@ -248,7 +258,7 @@ STL.render = {
       if (streakVal > 0) { streakStr = 'Won ' + abs; streakClass = 'win'; }
       else if (streakVal < 0) { streakStr = 'Lost ' + abs; streakClass = 'loss'; }
     }
-    if (!streakStr && lastGameEvent) {
+    if (!streakStr && team._computedStreak === undefined && lastGameEvent) {
       const comp = lastGameEvent.competitions?.[0];
       if (comp) {
         const homeAway = comp.competitors?.find(c => String(c.team.id) === String(team.id));

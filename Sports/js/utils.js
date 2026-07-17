@@ -53,6 +53,10 @@ STL.utils = {
       return { text: 'Offseason', className: 'status-offseason' };
     }
     if (!upcomingEvent) {
+      if (lastGameEvent) {
+        var daysSince = (Date.now() - new Date(lastGameEvent.date).getTime()) / 86400000;
+        if (daysSince < 30) return { text: 'Active', className: 'status-active' };
+      }
       return { text: 'Offseason', className: 'status-offseason' };
     }
     const daysUntilNext = (new Date(upcomingEvent.date).getTime() - Date.now()) / 86400000;

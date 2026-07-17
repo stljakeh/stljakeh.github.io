@@ -68,18 +68,26 @@ STL.api = {
 
   fetchMlsStandings: async function() {
     try {
-      const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/standings');
+      const resp = await fetch('https://site.web.api.espn.com/apis/v2/sports/soccer/usa.1/standings?season=2026');
       if (!resp.ok) return;
       const data = await resp.json();
-      const entries = data?.standings?.entries;
-      if (!entries) return;
-      for (const entry of entries) {
-        const tid = entry.team?.id;
-        if (!tid) continue;
-        const rankStat = entry.stats?.find(s => s.name === 'rank');
-        if (rankStat && rankStat.value != null) {
-          const r = Math.round(rankStat.value);
-          window._mlsOverall[tid] = r + STL.utils.suffix(r);
+      const children = data?.children;
+      if (!children) return;
+      for (const conf of children) {
+        const entries = conf?.standings?.entries;
+        if (!entries) continue;
+        for (const entry of entries) {
+          const tid = entry.team?.id;
+          if (!tid) continue;
+          const ptsStat = entry.stats?.find(function(s) { return s.name === 'points'; });
+          const rankStat = entry.stats?.find(function(s) { return s.name === 'rank'; });
+          if (rankStat && rankStat.value != null) {
+            const r = Math.round(rankStat.value);
+            window._mlsOverall[tid] = r + STL.utils.suffix(r);
+          }
+          if (ptsStat && ptsStat.value != null && conf.name && conf.name.includes('Western')) {
+            window._mlsConfTeams.push({ id: tid, pts: Math.round(ptsStat.value) });
+          }
         }
       }
     } catch (e) {}
@@ -267,6 +275,28 @@ STL.api = {
     }
   },
 
+  findNextGameFromScoreboard: async function(team, startDate) {
+    var d = new Date(startDate || Date.now());
+    for (var i = 1; i <= 14; i++) {
+      var check = new Date(d);
+      check.setDate(check.getDate() + i);
+      var dateStr = check.toISOString().slice(0, 10).replace(/-/g, '');
+      try {
+        var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=' + dateStr);
+        if (!resp.ok) continue;
+        var data = await resp.json();
+        for (var j = 0; j < (data.events || []).length; j++) {
+          var ev = data.events[j];
+          var comps = ev.competitions?.[0]?.competitors;
+          if (!comps) continue;
+          var isOurs = comps.some(function(c) { return String(c.team.id) === String(team.id); });
+          if (isOurs && ev.competitions?.[0]?.status?.type?.state === 'pre') return ev;
+        }
+      } catch (e) { continue; }
+    }
+    return null;
+  },
+
   fetchTeam: async function(team) {
     if (team.leagueSlug === 'mlsnp') {
       await STL.api.fetchTeamASA(team);
@@ -285,13 +315,14 @@ STL.api = {
 
     let lastEvent = null;
     let nextEvent = null;
+    let allEvents = [];
     try {
       const schedResp = await fetch(baseUrl + '/schedule');
       if (schedResp.ok) {
         const schedData = await schedResp.json();
-        const events = schedData.events || [];
+        allEvents = schedData.events || [];
         let lastDate = null, nextDate = null;
-        for (const e of events) {
+        for (const e of allEvents) {
           const st = e.competitions?.[0]?.status?.type;
           const d = new Date(e.date);
           if (!isFinite(d)) continue;
@@ -303,6 +334,39 @@ STL.api = {
         }
       }
     } catch (e) {}
+
+    const completedEvents = allEvents
+      .filter(function(e) { var st = e.competitions?.[0]?.status?.type; return st && (st.completed === true || st.state === 'post'); })
+      .sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+    let streak = 0;
+    for (const ev of completedEvents) {
+      const ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === String(team.id); });
+      const opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== String(team.id); });
+      if (!ha || !opp) continue;
+      if (ha.winner === true) {
+        if (streak >= 0) streak++; else break;
+      } else if (!opp.winner) {
+        break;
+      } else {
+        if (streak <= 0) streak--; else break;
+      }
+    }
+    team._computedStreak = streak;
+
+    let compWins = 0, compLosses = 0, compDraws = 0;
+    for (const ev of completedEvents) {
+      const ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === String(team.id); });
+      const opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== String(team.id); });
+      if (!ha || !opp) continue;
+      if (ha.winner === true) compWins++;
+      else if (opp.winner === true) compLosses++;
+      else compDraws++;
+    }
+    team._computedRecord = { wins: compWins, losses: compLosses, ties: compDraws, points: compWins * 3 + compDraws };
+
+    if (!nextEvent) {
+      nextEvent = await STL.api.findNextGameFromScoreboard(team, lastEvent ? lastEvent.date : null);
+    }
 
     const renders = [];
     if (nextEvent) {

@@ -2,6 +2,7 @@ window.STL = window.STL || {};
 
 window._lineupOpen = {};
 window._mlsOverall = {};
+window._mlsConfTeams = [];
 
 var refreshTimer = null;
 var isRefreshing = false;
@@ -30,6 +31,7 @@ STL.dashboard = {
     label.textContent = 'Updating';
 
     window._mlsOverall = {};
+    window._mlsConfTeams = [];
     await STL.api.enrichLiveScores();
     await Promise.all([...STL.config.TEAMS.map(t => STL.api.fetchTeam(t)), STL.api.fetchMlsStandings()]);
     STL.dashboard.adjustRefreshInterval();
