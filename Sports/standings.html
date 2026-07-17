@@ -176,6 +176,39 @@ async function loadStandings() {
     var results = await Promise.all(DIVISIONS.map(function(d) {
       return fetch(d.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
     }));
+
+    var citySched = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/21812/schedule')
+      .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    if (citySched && citySched.events) {
+      var compW = 0, compL = 0, compD = 0;
+      citySched.events.forEach(function(ev) {
+        var st = ev.competitions && ev.competitions[0] && ev.competitions[0].status && ev.competitions[0].status.type;
+        if (!st || (st.completed !== true && st.state !== 'post')) return;
+        var ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === '21812'; });
+        var opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== '21812'; });
+        if (!ha || !opp) return;
+        if (ha.winner === true) compW++;
+        else if (opp.winner === true) compL++;
+        else compD++;
+      });
+      var cityPts = compW * 3 + compD;
+      var cityDiv = results.find(function(r) { return r && r.standings && r.standings.entries && r.standings.entries.some(function(e) { return e.team && String(e.team.id) === '21812'; }); });
+      if (cityDiv) {
+        var cityEntry = cityDiv.standings.entries.find(function(e) { return e.team && String(e.team.id) === '21812'; });
+        if (cityEntry) {
+          var setStat = function(name, val) {
+            var s = cityEntry.stats.find(function(x) { return x.name === name; });
+            if (s) { s.value = val; s.displayValue = String(val); }
+          };
+          setStat('wins', compW);
+          setStat('losses', compL);
+          setStat('ties', compD);
+          setStat('points', cityPts);
+          setStat('gamesPlayed', compW + compL + compD);
+        }
+      }
+    }
+
     var html = '';
     var loaded = 0;
     DIVISIONS.forEach(function(d, i) {
