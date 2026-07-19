@@ -110,11 +110,15 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 </div>
 
 <script>
+var CORS_PROXY = 'https://proxy.cors.sh/';
+var ASA_API = 'https://app.americansocceranalysis.com/api/v1/';
+
 var TEAMS = [
   { id: '24',  name: 'Cardinals',  sport: 'baseball', league: 'mlb',        color: '#C41E3A' },
   { id: '19',  name: 'Blues',      sport: 'hockey',   league: 'nhl',         color: '#003087' },
   { id: '21812', name: 'CITY SC',   sport: 'soccer',   league: 'usa.1',      color: '#E80A4D' },
   { id: '112651', name: 'BattleHawks', sport: 'football', league: 'ufl',    color: '#00529B' },
+  { id: 'eVq3Z0D5WO', name: 'CITY2',   sport: 'soccer',   league: 'mlsnp',  color: '#E80A4D', asa: true },
 ];
 
 function safe(v) {
@@ -157,6 +161,42 @@ async function loadTeamStats(team) {
   }
 
   if (team.sport === 'soccer') {
+    if (team.asa) {
+      var xgResp = await fetch(CORS_PROXY + ASA_API + 'mlsnp/players/xgoals?season_name=2026&team_id=' + team.id);
+      if (!xgResp.ok) return null;
+      var xgData = await xgResp.json();
+      if (!xgData || !xgData.length) return null;
+      var pids = xgData.map(function(p) { return p.player_id; });
+      var playersResp = await fetch(CORS_PROXY + ASA_API + 'mlsnp/players');
+      if (!playersResp.ok) return null;
+      var allPlayers = await playersResp.json();
+      var nameMap = {};
+      for (var pi = 0; pi < allPlayers.length; pi++) {
+        var ap = allPlayers[pi];
+        if (pids.indexOf(ap.player_id) !== -1) {
+          nameMap[ap.player_id] = ap.player_name;
+        }
+      }
+      var players = [];
+      for (var xi = 0; xi < xgData.length; xi++) {
+        var xp = xgData[xi];
+        if (xp.minutes_played < 90) continue;
+        players.push({
+          name: nameMap[xp.player_id] || xp.player_id,
+          goals: xp.goals || 0,
+          assists: xp.primary_assists || 0
+        });
+      }
+      var top = function(arr, key) {
+        return [...arr].sort(function(a, b) { return b[key] - a[key]; }).filter(function(p) { return p[key] > 0; }).slice(0, 5);
+      };
+      var result = [];
+      var g = top(players, 'goals');
+      if (g.length) result.push({ cat: 'Goals', items: g.map(function(p) { return { name: p.name, val: p.goals }; }) });
+      var a = top(players, 'assists');
+      if (a.length) result.push({ cat: 'Assists', items: a.map(function(p) { return { name: p.name, val: p.assists }; }) });
+      return result.length ? result : null;
+    }
     var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
     if (!resp.ok) return null;
     var roster = await resp.json();
