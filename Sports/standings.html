@@ -70,9 +70,10 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .highlight td:first-child { border-left: 3px solid; padding-left: 9px; }
 .team-cell { display: flex; align-items: center; gap: 8px; }
 .team-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
-.strk-w { color: #4caf50; }
-.strk-l { color: #f44336; }
-.strk-t { color: #ff9800; }
+.strk-w { color: #4caf50; font-weight: 700; }
+.strk-l { color: #f44336; font-weight: 700; }
+.strk-t { color: #ff9800; font-weight: 700; }
+.strk-dot { display: inline-block; width: 22px; text-align: center; }
 @media (max-width: 640px) {
   body { padding: 16px; }
   .standings-table { font-size: 0.78rem; }
@@ -159,7 +160,7 @@ var DIVISIONS = [
   {
     id: 'citysc', name: 'Western Conference', team: 'CITY SC', teamId: '21812', color: '#E80A4D',
     url: 'https://site.web.api.espn.com/apis/v2/sports/soccer/usa.1/standings?group=2', childId: null,
-    cols: ['W','L','T','PTS'], statNames: ['wins','losses','ties','points'],
+    cols: ['W','L','T','PTS','STRK'], statNames: ['wins','losses','ties','points','streak'],
     fmt: {}
   },
   {
@@ -186,15 +187,6 @@ function fmtGb(v) {
   var n = parseFloat(v);
   if (isNaN(n)) return v;
   return n % 1 === 0 ? String(Math.round(n)) : n.toFixed(1);
-}
-
-function streakClass(v) {
-  if (!v) return '';
-  var c = v.charAt(0);
-  if (c === 'W') return 'strk-w';
-  if (c === 'L') return 'strk-l';
-  if (c === 'D' || c === 'T') return 'strk-t';
-  return '';
 }
 
 function formatStat(s, fmtType) {
@@ -229,10 +221,27 @@ async function loadStandings() {
             else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
             else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
           }
+          var streaks = {};
+          for (var si = 0; si < asaGames.length; si++) {
+            var sg = asaGames[si];
+            if (sg.status !== 'FullTime') continue;
+            if (!streaks[sg.home_team_id]) streaks[sg.home_team_id] = [];
+            if (!streaks[sg.away_team_id]) streaks[sg.away_team_id] = [];
+            streaks[sg.home_team_id].push({ teamId: sg.home_team_id, score: sg.home_score, oppScore: sg.away_score, date: sg.date_time_utc });
+            streaks[sg.away_team_id].push({ teamId: sg.away_team_id, score: sg.away_score, oppScore: sg.home_score, date: sg.date_time_utc });
+          }
           var newEntries = ASAWEST.map(function(t) {
             var s = std[t.asa] || { w:0, l:0, d:0, pts:0 };
             var at = asaTeams.find(function(x) { return x.team_id === t.asa; });
             var name = at ? at.team_name : '?';
+            var formArr = (streaks[t.asa] || [])
+              .sort(function(a, b) { return b.date.localeCompare(a.date); })
+              .slice(0, 5)
+              .map(function(g) {
+                if (g.score > g.oppScore) return 'W';
+                if (g.score < g.oppScore) return 'L';
+                return 'D';
+              });
             return {
               team: {
                 id: t.espn,
@@ -243,7 +252,8 @@ async function loadStandings() {
                 { name: 'wins', value: s.w, displayValue: String(s.w) },
                 { name: 'losses', value: s.l, displayValue: String(s.l) },
                 { name: 'ties', value: s.d, displayValue: String(s.d) },
-                { name: 'points', value: s.pts, displayValue: String(s.pts) }
+                { name: 'points', value: s.pts, displayValue: String(s.pts) },
+                { name: 'streak', value: formArr.join('-'), displayValue: formArr.join('-') }
               ]
             };
           });
@@ -307,11 +317,25 @@ async function loadStandings() {
             '<span class="team-name">' + (isOurs ? '<strong>' + name + '</strong>' : name) + '</span>' +
           '</div></td>';
         d.statNames.forEach(function(sn) {
-          var s = getStat(stats, sn);
-          var fmt = d.fmt[sn] || null;
-          var val = formatStat(s, fmt);
-          var cls = sn === 'streak' ? streakClass(val) : '';
-          html += '<td class="num ' + cls + '">' + val + '</td>';
+          if (sn === 'streak') {
+            var s = getStat(stats, sn);
+            var val = formatStat(s, null);
+            if (val && val.indexOf('-') !== -1) {
+              var parts = val.split('-').map(function(l) {
+                var cls = l === 'W' ? 'strk-w' : l === 'L' ? 'strk-l' : 'strk-t';
+                return '<span class="strk-dot ' + cls + '">' + l + '</span>';
+              }).join('');
+              html += '<td class="num">' + parts + '</td>';
+            } else {
+              var cls = val ? (val[0] === 'W' ? 'strk-w' : val[0] === 'L' ? 'strk-l' : 'strk-t') : '';
+              html += '<td class="num ' + cls + '">' + (val || '') + '</td>';
+            }
+          } else {
+            var s = getStat(stats, sn);
+            var fmt = d.fmt[sn] || null;
+            var val = formatStat(s, fmt);
+            html += '<td class="num">' + val + '</td>';
+          }
         });
         html += '</tr>';
       });
