@@ -33,7 +33,8 @@ STL.dashboard = {
     window._mlsOverall = {};
     window._mlsConfTeams = [];
     await STL.api.enrichLiveScores();
-    await Promise.all([...STL.config.TEAMS.map(t => STL.api.fetchTeam(t)), STL.api.fetchMlsStandings()]);
+    await STL.api.fetchMlsStandings();
+    await Promise.all(STL.config.TEAMS.map(t => STL.api.fetchTeam(t)));
     STL.dashboard.adjustRefreshInterval();
     STL.dashboard.startCountdownTimer();
 

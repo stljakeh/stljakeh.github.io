@@ -8,6 +8,25 @@ STL.config = {
     'zeQZe4DqKw','4wM4E4d5jB','2vQ1XzlqrA',
     'Oa5wDy8q14','BLMv6m3Mxe','KXMe8Z2Q64','N6MmWV0qEG'
   ]),
+
+  ASA_WEST: [
+    { asa: 'pzeQZ6xQKw', espn: '184', abbr: 'COL' },
+    { asa: 'mKAqBBmqbg', espn: '185', abbr: 'DAL' },
+    { asa: 'Z2vQ1xlqrA', espn: '186', abbr: 'SKC' },
+    { asa: 'kaDQ0wRqEv', espn: '187', abbr: 'LAG' },
+    { asa: 'YgOMngl5wN', espn: '6077', abbr: 'HOU' },
+    { asa: 'a2lqR4JMr0', espn: '4771', abbr: 'RSL' },
+    { asa: '0KPqjA456v', espn: '191', abbr: 'SJ' },
+    { asa: 'WBLMvYAQxe', espn: '9723', abbr: 'POR' },
+    { asa: 'jYQJ19EqGR', espn: '9726', abbr: 'SEA' },
+    { asa: 'lgpMOvnQzy', espn: '9727', abbr: 'VAN' },
+    { asa: 'kRQand1MKZ', espn: '17362', abbr: 'MIN' },
+    { asa: 'eVq3ya6MWO', espn: '18966', abbr: 'LAFC' },
+    { asa: 'gpMOLwl5zy', espn: '20906', abbr: 'ATX' },
+    { asa: 'wvq9B9wQWn', espn: '21812', abbr: 'STL' },
+    { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
+  ],
+
   TEAMS: [
     {
       id: '24',

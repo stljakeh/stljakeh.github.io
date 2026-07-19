@@ -68,28 +68,29 @@ STL.api = {
 
   fetchMlsStandings: async function() {
     try {
-      const resp = await fetch('https://site.web.api.espn.com/apis/v2/sports/soccer/usa.1/standings?season=2026');
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const children = data?.children;
-      if (!children) return;
-      for (const conf of children) {
-        const entries = conf?.standings?.entries;
-        if (!entries) continue;
-        for (const entry of entries) {
-          const tid = entry.team?.id;
-          if (!tid) continue;
-          const ptsStat = entry.stats?.find(function(s) { return s.name === 'points'; });
-          const rankStat = entry.stats?.find(function(s) { return s.name === 'rank'; });
-          if (rankStat && rankStat.value != null) {
-            const r = Math.round(rankStat.value);
-            window._mlsOverall[tid] = r + STL.utils.suffix(r);
-          }
-          if (ptsStat && ptsStat.value != null && conf.name && conf.name.includes('Western')) {
-            window._mlsConfTeams.push({ id: tid, pts: Math.round(ptsStat.value) });
-          }
+      const games = await STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
+      if (!games || !games.length) return;
+
+      const std = {};
+      for (const g of games) {
+        if (g.status !== 'FullTime') continue;
+        if (g.home_score == null || g.away_score == null) continue;
+        for (const id of [g.home_team_id, g.away_team_id]) {
+          if (!std[id]) std[id] = { w: 0, l: 0, d: 0, pts: 0 };
         }
+        if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
+        else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
+        else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
       }
+
+      const west = STL.config.ASA_WEST.map(function(t) {
+        return { id: t.espn, pts: (std[t.asa] || { pts: 0 }).pts };
+      });
+      west.sort(function(a, b) { return b.pts - a.pts || a.id.localeCompare(b.id); });
+      west.forEach(function(t, i) {
+        window._mlsConfTeams.push({ id: t.id, pts: t.pts });
+        window._mlsOverall[t.id] = (i + 1) + STL.utils.suffix(i + 1);
+      });
     } catch (e) {}
   },
 

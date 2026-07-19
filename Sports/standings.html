@@ -107,6 +107,42 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 </div>
 
 <script>
+var ASAWEST = [
+  { asa: 'pzeQZ6xQKw', espn: '184', abbr: 'COL' },
+  { asa: 'mKAqBBmqbg', espn: '185', abbr: 'DAL' },
+  { asa: 'Z2vQ1xlqrA', espn: '186', abbr: 'SKC' },
+  { asa: 'kaDQ0wRqEv', espn: '187', abbr: 'LAG' },
+  { asa: 'YgOMngl5wN', espn: '6077', abbr: 'HOU' },
+  { asa: 'a2lqR4JMr0', espn: '4771', abbr: 'RSL' },
+  { asa: '0KPqjA456v', espn: '191', abbr: 'SJ' },
+  { asa: 'WBLMvYAQxe', espn: '9723', abbr: 'POR' },
+  { asa: 'jYQJ19EqGR', espn: '9726', abbr: 'SEA' },
+  { asa: 'lgpMOvnQzy', espn: '9727', abbr: 'VAN' },
+  { asa: 'kRQand1MKZ', espn: '17362', abbr: 'MIN' },
+  { asa: 'eVq3ya6MWO', espn: '18966', abbr: 'LAFC' },
+  { asa: 'gpMOLwl5zy', espn: '20906', abbr: 'ATX' },
+  { asa: 'wvq9B9wQWn', espn: '21812', abbr: 'STL' },
+  { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
+];
+
+function c2url(url) { return 'https://proxy.cors.sh/' + url; }
+
+function cachedFetch(url, ttlMs) {
+  var key = 'asa_' + btoa(url);
+  ttlMs = ttlMs || 3600000;
+  try {
+    var cached = JSON.parse(localStorage.getItem(key));
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+  } catch (e) {}
+  return fetch(c2url(url)).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(data) {
+    try { localStorage.setItem(key, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    return data;
+  });
+}
+
 var DIVISIONS = [
   {
     id: 'cardinals', name: 'NL Central', team: 'Cardinals', teamId: '24', color: '#C41E3A',
@@ -177,36 +213,53 @@ async function loadStandings() {
       return fetch(d.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
     }));
 
-    var citySched = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/21812/schedule')
-      .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
-    if (citySched && citySched.events) {
-      var compW = 0, compL = 0, compD = 0;
-      citySched.events.forEach(function(ev) {
-        var st = ev.competitions && ev.competitions[0] && ev.competitions[0].status && ev.competitions[0].status.type;
-        if (!st || (st.completed !== true && st.state !== 'post')) return;
-        var ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === '21812'; });
-        var opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== '21812'; });
-        if (!ha || !opp) return;
-        if (ha.winner === true) compW++;
-        else if (opp.winner === true) compL++;
-        else compD++;
-      });
-      var cityPts = compW * 3 + compD;
-      var cityDiv = results.find(function(r) { return r && r.standings && r.standings.entries && r.standings.entries.some(function(e) { return e.team && String(e.team.id) === '21812'; }); });
-      if (cityDiv) {
-        var cityEntry = cityDiv.standings.entries.find(function(e) { return e.team && String(e.team.id) === '21812'; });
-        if (cityEntry) {
-          var setStat = function(name, val) {
-            var s = cityEntry.stats.find(function(x) { return x.name === name; });
-            if (s) { s.value = val; s.displayValue = String(val); }
-          };
-          setStat('wins', compW);
-          setStat('losses', compL);
-          setStat('ties', compD);
-          setStat('points', cityPts);
-          setStat('gamesPlayed', compW + compL + compD);
+    var mlsResult = results[2];
+    if (mlsResult) {
+      try {
+        var asaGames = await cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
+        var asaTeams = await cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/teams', 6 * 3600000);
+        if (asaGames && asaGames.length) {
+          var std = {};
+          for (var gi = 0; gi < asaGames.length; gi++) {
+            var g = asaGames[gi];
+            if (g.status !== 'FullTime' || g.home_score == null) continue;
+            if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, d:0, pts:0 };
+            if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, d:0, pts:0 };
+            if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
+            else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
+            else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
+          }
+          var newEntries = ASAWEST.map(function(t) {
+            var s = std[t.asa] || { w:0, l:0, d:0, pts:0 };
+            var at = asaTeams.find(function(x) { return x.team_id === t.asa; });
+            var name = at ? at.team_name : '?';
+            return {
+              team: {
+                id: t.espn,
+                displayName: name,
+                logos: [{ href: 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500-dark/' + t.espn + '.png' }]
+              },
+              stats: [
+                { name: 'wins', value: s.w, displayValue: String(s.w) },
+                { name: 'losses', value: s.l, displayValue: String(s.l) },
+                { name: 'ties', value: s.d, displayValue: String(s.d) },
+                { name: 'points', value: s.pts, displayValue: String(s.pts) }
+              ]
+            };
+          });
+          newEntries.sort(function(a, b) {
+            var aPts = a.stats.find(function(x) { return x.name === 'points'; }).value;
+            var bPts = b.stats.find(function(x) { return x.name === 'points'; }).value;
+            return bPts - aPts;
+          });
+          if (mlsResult.children) {
+            var wc = mlsResult.children.find(function(c) { return c.name && c.name.indexOf('Western') !== -1; });
+            if (wc) wc.standings.entries = newEntries;
+          } else if (mlsResult.standings) {
+            mlsResult.standings.entries = newEntries;
+          }
         }
-      }
+      } catch (e) {}
     }
 
     var html = '';
@@ -277,6 +330,7 @@ async function loadStandings() {
   }
 }
 loadStandings();
+setInterval(loadStandings, 60000);
 </script>
 </body>
 </html>
