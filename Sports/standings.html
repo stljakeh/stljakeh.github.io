@@ -56,6 +56,7 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
 .standings-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.table-wrap { overflow-x: auto; }
 .standings-table th {
   text-align: left; padding: 8px 12px; font-size: 0.7rem;
   color: #666; text-transform: uppercase; letter-spacing: 1px;
@@ -77,9 +78,9 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 @media (max-width: 640px) {
   body { padding: 16px; }
   .standings-table { font-size: 0.78rem; }
-  .standings-table th, .standings-table td { padding: 6px 8px; }
+  .standings-table th, .standings-table td { padding: 6px 8px; white-space: normal; }
   .team-logo { display: none; }
-
+  .strk-dot { width: 16px; font-size: 0.7rem; }
 }
 .error-msg { text-align: center; color: #f44336; padding: 40px; }
 .loading { text-align: center; color: #888; padding: 40px; }
@@ -302,7 +303,7 @@ async function loadStandings() {
           '<h2 style="color:' + d.color + ';">' + d.name + '</h2>' +
           '<span class="section-team">' + d.team + '</span>' +
         '</div>' +
-        '<table class="standings-table"><thead><tr>' +
+        '<div class="table-wrap"><table class="standings-table"><thead><tr>' +
           '<th style="width:28px;">#</th><th>Team</th>' +
           d.cols.map(function(c) { return '<th class="num">' + c + '</th>'; }).join('') +
         '</tr></thead><tbody>';
@@ -340,7 +341,7 @@ async function loadStandings() {
         });
         html += '</tr>';
       });
-      html += '</tbody></table></div>';
+      html += '</tbody></table></div></div>';
     });
     if (!loaded) {
       container.innerHTML = '<div class="error-msg">Could not load standings data.</div>';
