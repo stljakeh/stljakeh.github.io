@@ -79,6 +79,7 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   body { padding: 16px; }
   .standings-table { font-size: 0.78rem; }
   .standings-table th, .standings-table td { padding: 6px 8px; white-space: normal; }
+  .standings-table th.num, .standings-table td.num { white-space: nowrap; }
   .team-logo { display: none; }
   .strk-dot { width: 16px; font-size: 0.7rem; }
 }
@@ -238,7 +239,7 @@ async function loadStandings() {
             var name = at ? at.team_name : '?';
             var formArr = (streaks[t.asa] || [])
               .sort(function(a, b) { return b.date.localeCompare(a.date); })
-              .slice(0, 5)
+              .slice(0, window.innerWidth <= 640 ? 3 : 5)
               .map(function(g) {
                 if (g.score > g.oppScore) return 'W';
                 if (g.score < g.oppScore) return 'L';
