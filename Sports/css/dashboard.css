@@ -100,9 +100,16 @@ header h1 {
 }
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
-  body { padding: 16px; }
+  body { padding: 12px; }
   header h1 { font-size: 1.5rem; letter-spacing: 2px; }
-
+  .card-head { padding: 12px 14px; }
+  .card-head::after { left: 14px; right: 14px; }
+  .team-name { font-size: 0.95rem; }
+  .card-body { padding: 10px 14px 14px; }
+  .stat-row { font-size: 0.78rem; padding: 4px 0; }
+  .next-game { padding: 6px 10px; font-size: 0.75rem; }
+  .live-score { font-size: 1.1rem; }
+  .links { gap: 8px; padding-top: 8px; margin-top: 8px; }
 }
 .card {
   background: #0a0a0a;
