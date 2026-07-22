@@ -13,7 +13,7 @@
 @media (max-width: 640px) {
   .hamburger { display: block; }
 
-  nav { flex-wrap: wrap; }
+  nav { flex-wrap: wrap; justify-content: flex-start; }
 
   .nav-links {
     display: none;
