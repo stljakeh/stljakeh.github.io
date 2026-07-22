@@ -380,14 +380,13 @@
   .site-nav a:hover { color: #fff; }
   .site-nav .current { color: #e0e0e0; }
   .site-nav .site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
-  @media (max-width: 640px) {
-    .site-nav .site-label { display: none; }
-    .site-nav { justify-content: center; }
-  }
+
 </style>
+<link rel="stylesheet" href="css/nav.css">
 </head>
 <body>
 <nav class="site-nav">
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
   <div class="nav-links">
     <a href="dashboard.html">Dashboard</a>
     <a href="news.html">News</a>

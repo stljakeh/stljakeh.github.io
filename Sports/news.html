@@ -138,8 +138,7 @@ header .sub {
   .news-card { flex-direction: column; }
   .news-card-thumb { width: 100%; height: 180px; }
   .news-card-accent { width: 100%; height: 4px; }
-  .site-label { display: none; }
-  nav { justify-content: center; }
+
 }
 .error-msg {
   text-align: center;
@@ -154,10 +153,12 @@ header .sub {
   font-size: 0.9rem;
 }
 </style>
+<link rel="stylesheet" href="css/nav.css">
 </head>
 <body>
 
 <nav>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
   <div class="nav-links">
     <a href="dashboard.html">Dashboard</a>
     <a class="current" href="news.html">News</a>

@@ -1,0 +1,28 @@
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.hamburger:hover { color: #fff; }
+
+@media (max-width: 640px) {
+  .hamburger { display: block; }
+
+  nav { flex-wrap: wrap; }
+
+  .nav-links {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+  }
+  .nav-links.open { display: flex; }
+
+  .site-label { display: none; }
+}

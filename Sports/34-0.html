@@ -8,11 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/34-0.css">
+<link rel="stylesheet" href="css/nav.css">
 </head>
 <body>
 
 <nav>
-<div class="nav-links">
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
+  <div class="nav-links">
     <a href="dashboard.html">Dashboard</a>
     <a href="news.html">News</a>
     <a href="standings.html">Standings</a>

@@ -337,7 +337,7 @@ STL.api = {
     } catch (e) {}
 
     const completedEvents = allEvents
-      .filter(function(e) { var st = e.competitions?.[0]?.status?.type; return st && (st.completed === true || st.state === 'post'); })
+      .filter(function(e) { var st = e.competitions?.[0]?.status?.type; return st && (st.completed === true); })
       .sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
     let streak = 0;
     for (const ev of completedEvents) {

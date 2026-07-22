@@ -82,15 +82,17 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .empty-note { color: #666; font-size: 0.8rem; padding: 8px 10px; font-style: italic; }
 @media (max-width: 640px) {
   body { padding: 16px; }
-  .site-label { display: none; }
+
 }
 .error-msg { text-align: center; color: #f44336; padding: 40px; }
 .loading { text-align: center; color: #888; padding: 40px; }
 </style>
+<link rel="stylesheet" href="css/nav.css">
 </head>
 <body>
 
 <nav>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
   <div class="nav-links">
     <a href="dashboard.html">Dashboard</a>
     <a href="news.html">News</a>
