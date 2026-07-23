@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfers - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a, nav .current {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+nav a { color: #888; transition: color 0.2s; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; }
+.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
+#app { width: 100%; max-width: 720px; }
+
+header { text-align: center; margin-bottom: 24px; }
+header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #E80A4D;
+}
+header .sub { font-size: 0.8rem; color: #666; margin-top: 4px; }
+header .sub a { color: #888; text-decoration: none; }
+header .sub a:hover { color: #E80A4D; }
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.tab {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #888;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab:hover { border-color: #555; color: #ccc; }
+.tab.active {
+  background: #E80A4D;
+  border-color: #E80A4D;
+  color: #fff;
+}
+.tab .count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  font-size: 0.7rem;
+}
+.tab.active .count { background: rgba(255,255,255,0.25); }
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.transfer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.transfer-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 10px;
+  transition: border-color 0.2s;
+  border-left: 3px solid transparent;
+}
+.transfer-card:hover { border-color: #333; }
+.transfer-card.direction-in { border-left-color: #4caf50; }
+.transfer-card.direction-out { border-left-color: #f44336; }
+.transfer-card.direction-extension { border-left-color: #ff9800; }
+.transfer-card.direction-loan { border-left-color: #2196f3; }
+
+.pos-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  color: #fff;
+}
+.pos-GK { background: #f5a623; color: #1a1a1a; }
+.pos-CB { background: #4a90d9; }
+.pos-LB, .pos-RB, .pos-RWB, .pos-LWB { background: #26a69a; }
+.pos-DM, .pos-CM { background: #66bb6a; color: #1a1a1a; }
+.pos-AM, .pos-RM, .pos-LM, .pos-LW, .pos-RW { background: #9ccc65; color: #1a1a1a; }
+.pos-ST, .pos-CF, .pos-FW { background: #ef5350; }
+
+.transfer-info { flex: 1; min-width: 0; }
+.player-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-headshot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #222;
+}
+.clubs-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #888;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.club-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #222;
+}
+.arrow { color: #444; font-size: 0.7rem; flex-shrink: 0; }
+
+.transfer-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.fee-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ccc;
+  white-space: nowrap;
+}
+.fee-free { color: #4caf50; }
+.fee-loan { color: #2196f3; }
+.fee-extension { color: #ff9800; }
+.fee-undisclosed { color: #888; }
+.fee-paid { color: #fff; }
+.date-text {
+  font-size: 0.72rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+.error-msg { text-align: center; color: #f44336; padding: 40px; font-size: 0.9rem; }
+.loading { text-align: center; color: #666; padding: 40px; }
+.empty-msg { text-align: center; color: #555; padding: 32px; font-size: 0.85rem; }
+
+@media (max-width: 640px) {
+  body { padding: 12px; }
+  .transfer-card { padding: 12px; gap: 10px; }
+  .player-headshot { width: 36px; height: 36px; }
+  .pos-badge { width: 32px; height: 32px; font-size: 0.65rem; }
+  .player-name { font-size: 0.88rem; }
+  .transfer-meta { gap: 1px; }
+  .fee-text { font-size: 0.8rem; }
+}
+</style>
+<link rel="stylesheet" href="css/nav.css">
+</head>
+<body>
+
+<nav>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="news.html">News</a>
+    <a href="standings.html">Standings</a>
+    <a href="stats.html">Stats</a>
+    <a class="current" href="transfers.html">Transfers</a>
+    <a href="xi-builder.html">XI Builder</a>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>CITY SC Transfers</h1>
+    <div class="sub" id="feedSub">Loading transfers...</div>
+  </header>
+  <div class="tabs" id="tabs" style="display:none;">
+    <button class="tab active" data-filter="all">All<span class="count" id="countAll"></span></button>
+    <button class="tab" data-filter="in">In<span class="count" id="countIn"></span></button>
+    <button class="tab" data-filter="out">Out<span class="count" id="countOut"></span></button>
+    <button class="tab" data-filter="extension">Loans<span class="count" id="countExt"></span></button>
+  </div>
+  <div id="transferContent"><div class="loading">Loading transfers...</div></div>
+</div>
+
+<script>
+var TEAM_ID = 1427963;
+var TEAM_NAME = 'St. Louis City';
+var PROXY = 'https://proxy.cors.sh/';
+var FOTMOB_URL = 'https://www.fotmob.com/teams/' + TEAM_ID + '/transfers/st-louis-city';
+
+var POS_COLORS = {
+  GK: 'pos-GK', CB: 'pos-CB', LB: 'pos-LB', RB: 'pos-RB',
+  RWB: 'pos-RWB', LWB: 'pos-LWB', DM: 'pos-DM', CM: 'pos-CM',
+  AM: 'pos-AM', RM: 'pos-RM', LM: 'pos-LM', LW: 'pos-LW',
+  RW: 'pos-RW', ST: 'pos-ST', CF: 'pos-CF', FW: 'pos-FW'
+};
+
+var transfers = [];
+var currentFilter = 'all';
+
+function formatDate(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function shortDate(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function formatFee(fee) {
+  if (!fee) return '';
+  var loc = fee.localizedFeeText || '';
+  if (loc === 'transfer_type_free_transfer') return 'Free';
+  if (loc === 'on_loan') return 'Loan';
+  if (loc === 'undisclosed') return 'Undisclosed';
+  if (loc === 'transfer_fee' && fee.value) {
+    if (fee.value >= 1000000) return '\u20AC' + (fee.value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (fee.value >= 1000) return '\u20AC' + (fee.value / 1000) + 'K';
+    return '\u20AC' + fee.value;
+  }
+  return fee.feeText || '';
+}
+
+function feeClass(fee) {
+  if (!fee) return '';
+  var loc = fee.localizedFeeText || '';
+  if (loc === 'transfer_type_free_transfer') return 'fee-free';
+  if (loc === 'on_loan') return 'fee-loan';
+  if (loc === 'undisclosed') return 'fee-undisclosed';
+  if (loc === 'transfer_fee' && fee.value) return 'fee-paid';
+  return '';
+}
+
+function getDirection(t) {
+  if (t.contractExtension) return 'extension';
+  if (t.onLoan) return 'loan';
+  if (t.toClubId === TEAM_ID) return 'in';
+  if (t.fromClubId === TEAM_ID) return 'out';
+  return 'out';
+}
+
+function transferTypeLabel(t) {
+  if (t.contractExtension) return 'extension';
+  if (t.onLoan) return 'loan';
+  return getDirection(t);
+}
+
+function posClass(pos) {
+  if (!pos || !pos.label) return '';
+  return 'pos-' + pos.label;
+}
+
+function renderTransfer(t) {
+  var dir = getDirection(t);
+  var typeLabel = transferTypeLabel(t);
+  var dirClass = typeLabel === 'extension' ? 'direction-extension' : typeLabel === 'loan' ? 'direction-loan' : 'direction-' + dir;
+  var pos = t.position ? t.position.label : '';
+  var headshotUrl = 'https://images.fotmob.com/image_resources/logo/playerimages/' + t.playerId + '.png';
+  var fromLogo = 'https://images.fotmob.com/image_resources/logo/teamlogo/' + t.fromClubId + '_xsmall.png';
+  var toLogo = 'https://images.fotmob.com/image_resources/logo/teamlogo/' + t.toClubId + '_xsmall.png';
+  var fee = formatFee(t.fee);
+  var feeCls = feeClass(t.fee);
+  var date = shortDate(t.transferDate);
+
+  return '<div class="transfer-card ' + dirClass + '">' +
+    '<img class="player-headshot" src="' + headshotUrl + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+    '<div class="pos-badge ' + posClass(t.position) + '">' + (pos || '?') + '</div>' +
+    '<div class="transfer-info">' +
+      '<div class="player-name">' + escapeHtml(t.name) + '</div>' +
+      '<div class="clubs-line">' +
+        '<img class="club-icon" src="' + fromLogo + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<span>' + escapeHtml(t.fromClub) + '</span>' +
+        '<span class="arrow">\u2192</span>' +
+        '<img class="club-icon" src="' + toLogo + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<span>' + escapeHtml(t.toClub) + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="transfer-meta">' +
+      '<div class="fee-text ' + feeCls + '">' + (fee || '\u2014') + '</div>' +
+      '<div class="date-text">' + date + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function render() {
+  var filtered = transfers.filter(function(t) {
+    if (currentFilter === 'all') return true;
+    var d = getDirection(t);
+    var ext = t.contractExtension;
+    if (currentFilter === 'in') return d === 'in' && !ext;
+    if (currentFilter === 'out') return d === 'out' && !ext && !t.onLoan;
+    if (currentFilter === 'extension') return ext || t.onLoan;
+    return true;
+  });
+
+  var container = document.getElementById('transferContent');
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-msg">No transfers in this category.</div>';
+    return;
+  }
+
+  var html = '<div class="transfer-list">';
+  filtered.forEach(function(t) {
+    html += renderTransfer(t);
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function updateCounts() {
+  var inCount = 0, outCount = 0, extCount = 0;
+  transfers.forEach(function(t) {
+    var d = getDirection(t);
+    if (t.contractExtension || t.onLoan) extCount++;
+    else if (d === 'in') inCount++;
+    else outCount++;
+  });
+  document.getElementById('countAll').textContent = transfers.length;
+  document.getElementById('countIn').textContent = inCount;
+  document.getElementById('countOut').textContent = outCount;
+  document.getElementById('countExt').textContent = extCount;
+}
+
+function parseTransfersFromHTML(html) {
+  var match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!match) throw new Error('No __NEXT_DATA__ found');
+  var data = JSON.parse(match[1]);
+  var fallback = data.props && data.props.pageProps && data.props.pageProps.fallback;
+  if (!fallback) throw new Error('No fallback data');
+  var teamKey = 'team-' + TEAM_ID;
+  var teamData = fallback[teamKey];
+  if (!teamData || !teamData.transfers || !teamData.transfers.data) {
+    throw new Error('No transfer data for team');
+  }
+  var tData = teamData.transfers.data;
+  var all = [];
+  (tData['Players in'] || []).forEach(function(t) { t._dir = 'in'; all.push(t); });
+  (tData['Players out'] || []).forEach(function(t) { t._dir = 'out'; all.push(t); });
+  return all;
+}
+
+function loadTransfers() {
+  var container = document.getElementById('transferContent');
+  var sub = document.getElementById('feedSub');
+  var tabs = document.getElementById('tabs');
+
+  fetch(PROXY + FOTMOB_URL)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(html) {
+      transfers = parseTransfersFromHTML(html);
+      transfers.sort(function(a, b) {
+        return new Date(b.transferDate) - new Date(a.transferDate);
+      });
+      updateCounts();
+      tabs.style.display = 'flex';
+      render();
+      sub.innerHTML = 'Updated ' + new Date().toLocaleTimeString() + ' &middot; Source: <a href="' + FOTMOB_URL + '" target="_blank">FotMob</a>';
+    })
+    .catch(function(err) {
+      container.innerHTML = '<div class="error-msg">Could not load transfer data.<br><small>' + escapeHtml(err.message) + '</small></div>';
+      sub.textContent = 'Error';
+    });
+}
+
+document.getElementById('tabs').addEventListener('click', function(e) {
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  render();
+});
+
+loadTransfers();
+</script>
+</body>
+</html>
