@@ -129,16 +129,20 @@ var UFL_FRANCHISES = [
     name: 'St. Louis Battlehawks', color: '#00529B', currentId: '112651',
     coach2026: 'Ricky Proehl',
     history: [
-      { year: 2024, coach: 'Anthony Becht', w: 7, l: 3 },
-      { year: 2025, coach: 'Anthony Becht', w: 8, l: 2 }
+      { year: 2020, coach: 'Jonathan Hayes', w: 3, l: 2, league: 'XFL' },
+      { year: 2023, coach: 'Anthony Becht', w: 7, l: 3, league: 'XFL' },
+      { year: 2024, coach: 'Anthony Becht', w: 7, l: 3, league: 'UFL' },
+      { year: 2025, coach: 'Anthony Becht', w: 8, l: 2, league: 'UFL' }
     ]
   },
   {
     name: 'Birmingham Stallions', color: '#a32035', currentId: '126073',
     coach2026: 'AJ McCarron',
     history: [
-      { year: 2024, coach: 'Skip Holtz', w: 9, l: 1, champ: true },
-      { year: 2025, coach: 'Skip Holtz', w: 7, l: 3 }
+      { year: 2022, coach: 'Skip Holtz', w: 9, l: 1, champ: true, league: 'USFL' },
+      { year: 2023, coach: 'Skip Holtz', w: 8, l: 2, champ: true, league: 'USFL' },
+      { year: 2024, coach: 'Skip Holtz', w: 9, l: 1, champ: true, league: 'UFL' },
+      { year: 2025, coach: 'Skip Holtz', w: 7, l: 3, league: 'UFL' }
     ]
   },
   {
@@ -155,16 +159,22 @@ var UFL_FRANCHISES = [
     name: 'DC Defenders', color: '#c8102e', currentId: '112646',
     coach2026: 'Shannon Harris',
     history: [
-      { year: 2024, coach: 'Reggie Barlow', w: 4, l: 6 },
-      { year: 2025, coach: 'Shannon Harris', w: 6, l: 4, champ: true }
+      { year: 2020, coach: 'Pep Hamilton', w: 3, l: 2, league: 'XFL' },
+      { year: 2023, coach: 'Reggie Barlow', w: 9, l: 1, league: 'XFL' },
+      { year: 2024, coach: 'Reggie Barlow', w: 4, l: 6, league: 'UFL' },
+      { year: 2025, coach: 'Shannon Harris', w: 6, l: 4, champ: true, league: 'UFL' }
     ]
   },
   {
     name: 'Houston Gamblers', color: '#e4002b', currentId: '126075',
     coach2026: 'Kevin Sumlin',
     history: [
-      { year: 2024, coach: 'CJ Johnson', w: 1, l: 9 },
-      { year: 2025, coach: 'CJ Johnson', w: 5, l: 5 }
+      { year: 2020, coach: 'June Jones', w: 5, l: 0, league: 'XFL' },
+      { year: 2022, coach: 'Kevin Sumlin', w: 3, l: 7, league: 'USFL' },
+      { year: 2023, coach: 'Curtis Johnson', w: 5, l: 5, league: 'USFL' },
+      { year: 2023, coach: 'Wade Phillips', w: 7, l: 3, league: 'XFL' },
+      { year: 2024, coach: 'CJ Johnson', w: 1, l: 9, league: 'UFL' },
+      { year: 2025, coach: 'CJ Johnson', w: 5, l: 5, league: 'UFL' }
     ]
   },
   {
@@ -176,8 +186,39 @@ var UFL_FRANCHISES = [
     name: 'Dallas Renegades', color: '#69b3e7', currentId: '112647',
     coach2026: 'Rick Neuheisel',
     history: [
-      { year: 2024, coach: 'Bob Stoops', w: 3, l: 7, prev: 'Arlington Renegades' },
-      { year: 2025, coach: 'Bob Stoops', w: 5, l: 5, prev: 'Arlington Renegades' }
+      { year: 2020, coach: 'Bob Stoops', w: 2, l: 3, league: 'XFL', teamName: 'Dallas Renegades' },
+      { year: 2023, coach: 'Bob Stoops', w: 4, l: 6, champ: true, league: 'XFL' },
+      { year: 2024, coach: 'Bob Stoops', w: 3, l: 7, league: 'UFL' },
+      { year: 2025, coach: 'Bob Stoops', w: 5, l: 5, league: 'UFL' }
+    ]
+  },
+  {
+    name: 'San Antonio Brahmas', color: '#FCE300',
+    coach2026: null,
+    history: [
+      { year: 2023, coach: 'Hines Ward', w: 3, l: 7, league: 'XFL' },
+      { year: 2024, coach: 'Wade Phillips', w: 7, l: 3, league: 'UFL' },
+      { year: 2025, coach: 'Wade Phillips', w: 1, l: 9, league: 'UFL' }
+    ]
+  },
+  {
+    name: 'Memphis Showboats', color: '#13294B',
+    coach2026: null,
+    history: [
+      { year: 2022, coach: 'Todd Haley', w: 4, l: 6, league: 'USFL', teamName: 'Tampa Bay Bandits' },
+      { year: 2023, coach: 'Todd Haley', w: 5, l: 5, league: 'USFL' },
+      { year: 2024, coach: 'John DeFilippo', w: 2, l: 8, league: 'UFL' },
+      { year: 2025, coach: 'Jim Turner', w: 2, l: 8, league: 'UFL' }
+    ]
+  },
+  {
+    name: 'Michigan Panthers', color: '#6F2C3F',
+    coach2026: null,
+    history: [
+      { year: 2022, coach: 'Jeff Fisher', w: 2, l: 8, league: 'USFL' },
+      { year: 2023, coach: 'Mike Nolan', w: 4, l: 6, league: 'USFL' },
+      { year: 2024, coach: 'Mike Nolan', w: 7, l: 3, league: 'UFL' },
+      { year: 2025, coach: 'Mike Nolan', w: 6, l: 4, league: 'UFL' }
     ]
   }
 ];
@@ -384,10 +425,10 @@ async function loadUFLCoaching() {
   }
   var html = '<div class="section">' +
     '<div class="section-header" style="border-bottom-color:#888;">' +
-      '<h2 style="color:#888;">UFL Coaching Records</h2>' +
+      '<h2 style="color:#888;">Spring Football Franchise Records</h2>' +
     '</div>' +
     '<div class="stat-group">' +
-      '<div class="stat-group-title">2024\u2013Present</div>';
+      '<div class="stat-group-title">XFL \u00B7 USFL \u00B7 UFL</div>';
   var sorted = UFL_FRANCHISES.slice().sort(function(a, b) {
     var aR = teamMap[a.currentId];
     var bR = teamMap[b.currentId];
@@ -403,19 +444,25 @@ async function loadUFLCoaching() {
       '</div>';
     for (var h = 0; h < frac.history.length; h++) {
       var rec = frac.history[h];
-      var label = rec.year + ': ' + rec.w + '-' + rec.l;
+      var yearLabel = '(' + rec.year + (rec.league ? ' ' + rec.league : '') + ')';
       html += '<div class="player-row">' +
-        '<span class="player-name">' + escHtml(rec.coach) + ' <span style="color:#666;font-size:0.75rem;">(' + rec.year + ')' + (rec.champ ? ' \uD83C\uDFC6' : '') + '</span></span>' +
+        '<span class="player-name">' + escHtml(rec.coach) + ' <span style="color:#666;font-size:0.75rem;">' + yearLabel + (rec.champ ? ' \uD83C\uDFC6' : '') + '</span></span>' +
         '<span class="player-val">' + rec.w + '-' + rec.l + '</span>' +
       '</div>';
+      if (rec.teamName) {
+        html += '<div class="player-row"><span class="player-name" style="color:#555;font-size:0.75rem;padding-left:16px;">' + escHtml(rec.teamName) + '</span><span class="player-val"></span></div>';
+      }
     }
-    var cur = teamMap[frac.currentId];
-    var curW = cur ? cur.w : 0;
-    var curL = cur ? cur.l : 0;
-    html += '<div class="player-row" style="font-weight:600;">' +
-      '<span class="player-name">' + escHtml(frac.coach2026) + ' <span style="color:#666;font-size:0.75rem;">(2026)' + (frac.champ2026 ? ' \uD83C\uDFC6' : '') + '</span></span>' +
-      '<span class="player-val">' + curW + '-' + curL + '</span>' +
-    '</div>';
+    var curW = 0, curL = 0;
+    if (frac.coach2026) {
+      var cur = teamMap[frac.currentId];
+      curW = cur ? cur.w : 0;
+      curL = cur ? cur.l : 0;
+      html += '<div class="player-row" style="font-weight:600;">' +
+        '<span class="player-name">' + escHtml(frac.coach2026) + ' <span style="color:#666;font-size:0.75rem;">(2026 UFL)' + (frac.champ2026 ? ' \uD83C\uDFC6' : '') + '</span></span>' +
+        '<span class="player-val">' + curW + '-' + curL + '</span>' +
+      '</div>';
+    }
     var totW = 0, totL = 0;
     for (var j = 0; j < frac.history.length; j++) { totW += frac.history[j].w; totL += frac.history[j].l; }
     totW += curW; totL += curL;
