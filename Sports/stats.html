@@ -75,10 +75,10 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .stat-table tr:hover td { background: #1a1a1a; }
 .stat-label { color: #999; }
 .stat-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; }
-.player-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.85rem; white-space: nowrap; }
+.player-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.85rem; }
 .player-row:nth-child(even) { background: rgba(255,255,255,0.02); }
 .player-name { color: #e0e0e0; }
-.player-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.player-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .empty-note { color: #666; font-size: 0.8rem; padding: 8px 10px; font-style: italic; }
 @media (max-width: 640px) {
   body { padding: 16px; }
@@ -402,7 +402,7 @@ async function loadUFLCoaching() {
       var yearLabel = '(' + rec.year + (rec.league ? ' ' + rec.league : '') + ')';
       html += '<div class="player-row">' +
         '<span class="player-name">' + escHtml(rec.coach) + ' <span style="color:#666;font-size:0.75rem;">' + yearLabel + (rec.champ ? ' \uD83C\uDFC6' : '') + '</span></span>' +
-        '<span class="player-val">' + rec.w + '-' + rec.l + (rec.pf != null ? ' <span style="color:#666;font-size:0.75rem;margin-left:12px;">PF ' + rec.pf + ' PA ' + rec.pa + ' ' + (rec.pf - rec.pa > 0 ? '+' : '') + (rec.pf - rec.pa) + '</span>' : '') + '</span>' +
+        '<span class="player-val">' + (rec.pf != null ? '<span style="color:#666;font-size:0.75rem;margin-right:12px;">PF ' + rec.pf + ' PA ' + rec.pa + ' ' + (rec.pf - rec.pa > 0 ? '+' : '') + (rec.pf - rec.pa) + '</span> ' : '') + rec.w + '-' + rec.l + '</span>' +
       '</div>';
       if (rec.teamName) {
         html += '<div class="player-row"><span class="player-name" style="color:#555;font-size:0.75rem;padding-left:16px;">' + escHtml(rec.teamName) + '</span><span class="player-val"></span></div>';
@@ -415,17 +415,17 @@ async function loadUFLCoaching() {
       curL = cur ? cur.l : 0;
       html += '<div class="player-row" style="font-weight:600;">' +
         '<span class="player-name">' + escHtml(frac.coach2026) + ' <span style="color:#666;font-size:0.75rem;">(2026 UFL)' + (frac.champ2026 ? ' \uD83C\uDFC6' : '') + '</span></span>' +
-        '<span class="player-val">' + curW + '-' + curL + (cur && cur.pf != null ? ' <span style="color:#666;font-size:0.75rem;margin-left:12px;">PF ' + cur.pf + ' PA ' + cur.pa + ' ' + (cur.diff > 0 ? '+' : '') + cur.diff + '</span>' : '') + '</span>' +
+        '<span class="player-val">' + (cur && cur.pf != null ? '<span style="color:#666;font-size:0.75rem;margin-right:12px;">PF ' + cur.pf + ' PA ' + cur.pa + ' ' + (cur.diff > 0 ? '+' : '') + cur.diff + '</span> ' : '') + curW + '-' + curL + '</span>' +
       '</div>';
     }
     var totW = 0, totL = 0, totPF = 0, totPA = 0;
     for (var j = 0; j < frac.history.length; j++) { totW += frac.history[j].w; totL += frac.history[j].l; if (frac.history[j].pf != null) { totPF += frac.history[j].pf; totPA += frac.history[j].pa; } }
     if (cur && cur.pf != null) { totPF += cur.pf; totPA += cur.pa; }
     totW += curW; totL += curL;
-    html += '<div class="player-row" style="border-top:1px solid #2a2a2a;color:#aaa;">' +
-      '<span class="player-name" style="color:#aaa;font-size:0.8rem;">Franchise Total</span>' +
-      '<span class="player-val" style="color:#aaa;">' + totW + '-' + totL + (totPF ? ' <span style="color:#888;font-size:0.75rem;margin-left:12px;">PF ' + totPF + ' PA ' + totPA + ' ' + (totPF - totPA > 0 ? '+' : '') + (totPF - totPA) + '</span>' : '') + '</span>' +
-    '</div>';
+      html += '<div class="player-row" style="border-top:1px solid #2a2a2a;color:#aaa;">' +
+        '<span class="player-name" style="color:#aaa;font-size:0.8rem;">Franchise Total</span>' +
+        '<span class="player-val" style="color:#aaa;">' + (totPF ? '<span style="color:#888;font-size:0.75rem;margin-right:12px;">PF ' + totPF + ' PA ' + totPA + ' ' + (totPF - totPA > 0 ? '+' : '') + (totPF - totPA) + '</span> ' : '') + totW + '-' + totL + '</span>' +
+      '</div>';
     html += '</div>';
   }
   html += '</div></div>';
