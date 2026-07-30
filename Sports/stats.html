@@ -129,10 +129,10 @@ var UFL_FRANCHISES = [
     name: 'St. Louis Battlehawks', color: '#00529B', currentId: '112651',
     coach2026: 'Ricky Proehl',
     history: [
-      { year: 2020, coach: 'Jonathan Hayes', w: 3, l: 2, league: 'XFL' },
-      { year: 2023, coach: 'Anthony Becht', w: 7, l: 3, league: 'XFL' },
-      { year: 2024, coach: 'Anthony Becht', w: 7, l: 3, league: 'UFL' },
-      { year: 2025, coach: 'Anthony Becht', w: 8, l: 2, league: 'UFL' }
+      { year: 2020, coach: 'Jonathan Hayes', w: 3, l: 2, league: 'XFL', pf: 97, pa: 77 },
+      { year: 2023, coach: 'Anthony Becht', w: 7, l: 3, league: 'XFL', pf: 249, pa: 202 },
+      { year: 2024, coach: 'Anthony Becht', w: 7, l: 3, league: 'UFL', pf: 260, pa: 202 },
+      { year: 2025, coach: 'Anthony Becht', w: 8, l: 2, league: 'UFL', pf: 231, pa: 163 }
     ]
   },
   {
@@ -149,10 +149,10 @@ var UFL_FRANCHISES = [
     name: 'DC Defenders', color: '#c8102e', currentId: '112646',
     coach2026: 'Shannon Harris',
     history: [
-      { year: 2020, coach: 'Pep Hamilton', w: 3, l: 2, league: 'XFL' },
-      { year: 2023, coach: 'Reggie Barlow', w: 9, l: 1, league: 'XFL' },
-      { year: 2024, coach: 'Reggie Barlow', w: 4, l: 6, league: 'UFL' },
-      { year: 2025, coach: 'Shannon Harris', w: 6, l: 4, champ: true, league: 'UFL' }
+      { year: 2020, coach: 'Pep Hamilton', w: 3, l: 2, league: 'XFL', pf: 82, pa: 89 },
+      { year: 2023, coach: 'Reggie Barlow', w: 9, l: 1, league: 'XFL', pf: 298, pa: 240 },
+      { year: 2024, coach: 'Reggie Barlow', w: 4, l: 6, league: 'UFL', pf: 209, pa: 251 },
+      { year: 2025, coach: 'Shannon Harris', w: 6, l: 4, champ: true, league: 'UFL', pf: 225, pa: 224 }
     ]
   },
   {
@@ -164,10 +164,10 @@ var UFL_FRANCHISES = [
     name: 'Dallas Renegades', color: '#69b3e7', currentId: '112647',
     coach2026: 'Rick Neuheisel',
     history: [
-      { year: 2020, coach: 'Bob Stoops', w: 2, l: 3, league: 'XFL', teamName: 'Dallas Renegades' },
-      { year: 2023, coach: 'Bob Stoops', w: 4, l: 6, champ: true, league: 'XFL' },
-      { year: 2024, coach: 'Bob Stoops', w: 3, l: 7, league: 'UFL' },
-      { year: 2025, coach: 'Bob Stoops', w: 5, l: 5, league: 'UFL' }
+      { year: 2020, coach: 'Bob Stoops', w: 2, l: 3, league: 'XFL', teamName: 'Dallas Renegades', pf: 90, pa: 102 },
+      { year: 2023, coach: 'Bob Stoops', w: 4, l: 6, champ: true, league: 'XFL', pf: 146, pa: 194 },
+      { year: 2024, coach: 'Bob Stoops', w: 3, l: 7, league: 'UFL', pf: 247, pa: 249 },
+      { year: 2025, coach: 'Bob Stoops', w: 5, l: 5, league: 'UFL', pf: 229, pa: 168 }
     ]
   },
 ];
@@ -401,7 +401,7 @@ async function loadUFLCoaching() {
       var yearLabel = '(' + rec.year + (rec.league ? ' ' + rec.league : '') + ')';
       html += '<div class="player-row">' +
         '<span class="player-name">' + escHtml(rec.coach) + ' <span style="color:#666;font-size:0.75rem;">' + yearLabel + (rec.champ ? ' \uD83C\uDFC6' : '') + '</span></span>' +
-        '<span class="player-val">' + rec.w + '-' + rec.l + '</span>' +
+        '<span class="player-val">' + rec.w + '-' + rec.l + (rec.pf != null ? ' <span style="color:#666;font-size:0.75rem;margin-left:12px;">PF ' + rec.pf + ' PA ' + rec.pa + ' ' + (rec.pf - rec.pa > 0 ? '+' : '') + (rec.pf - rec.pa) + '</span>' : '') + '</span>' +
       '</div>';
       if (rec.teamName) {
         html += '<div class="player-row"><span class="player-name" style="color:#555;font-size:0.75rem;padding-left:16px;">' + escHtml(rec.teamName) + '</span><span class="player-val"></span></div>';
@@ -417,12 +417,13 @@ async function loadUFLCoaching() {
         '<span class="player-val">' + curW + '-' + curL + (cur && cur.pf != null ? ' <span style="color:#666;font-size:0.75rem;margin-left:12px;">PF ' + cur.pf + ' PA ' + cur.pa + ' ' + (cur.diff > 0 ? '+' : '') + cur.diff + '</span>' : '') + '</span>' +
       '</div>';
     }
-    var totW = 0, totL = 0;
-    for (var j = 0; j < frac.history.length; j++) { totW += frac.history[j].w; totL += frac.history[j].l; }
+    var totW = 0, totL = 0, totPF = 0, totPA = 0;
+    for (var j = 0; j < frac.history.length; j++) { totW += frac.history[j].w; totL += frac.history[j].l; if (frac.history[j].pf != null) { totPF += frac.history[j].pf; totPA += frac.history[j].pa; } }
+    if (cur && cur.pf != null) { totPF += cur.pf; totPA += cur.pa; }
     totW += curW; totL += curL;
     html += '<div class="player-row" style="border-top:1px solid #2a2a2a;color:#aaa;">' +
       '<span class="player-name" style="color:#aaa;font-size:0.8rem;">Franchise Total</span>' +
-      '<span class="player-val" style="color:#aaa;">' + totW + '-' + totL + '</span>' +
+      '<span class="player-val" style="color:#aaa;">' + totW + '-' + totL + (totPF ? ' <span style="color:#888;font-size:0.75rem;margin-left:12px;">PF ' + totPF + ' PA ' + totPA + ' ' + (totPF - totPA > 0 ? '+' : '') + (totPF - totPA) + '</span>' : '') + '</span>' +
     '</div>';
     html += '</div>';
   }
