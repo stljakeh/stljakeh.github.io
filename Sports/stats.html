@@ -370,7 +370,10 @@ async function loadUFLCoaching() {
     var t = entries[i].team;
     var wStat = entries[i].stats.find(function(s) { return s.name === 'wins'; });
     var lStat = entries[i].stats.find(function(s) { return s.name === 'losses'; });
-    teamMap[String(t.id)] = { w: wStat ? wStat.value : 0, l: lStat ? lStat.value : 0 };
+    var pfStat = entries[i].stats.find(function(s) { return s.name === 'pointsFor'; });
+    var paStat = entries[i].stats.find(function(s) { return s.name === 'pointsAgainst'; });
+    var diffStat = entries[i].stats.find(function(s) { return s.name === 'pointDifferential'; });
+    teamMap[String(t.id)] = { w: wStat ? wStat.value : 0, l: lStat ? lStat.value : 0, pf: pfStat ? pfStat.value : null, pa: paStat ? paStat.value : null, diff: diffStat ? diffStat.value : null };
     if (t.logos && t.logos.length) logoMap[String(t.id)] = t.logos[0].href;
   }
   var html = '<div class="section">' +
@@ -411,7 +414,7 @@ async function loadUFLCoaching() {
       curL = cur ? cur.l : 0;
       html += '<div class="player-row" style="font-weight:600;">' +
         '<span class="player-name">' + escHtml(frac.coach2026) + ' <span style="color:#666;font-size:0.75rem;">(2026 UFL)' + (frac.champ2026 ? ' \uD83C\uDFC6' : '') + '</span></span>' +
-        '<span class="player-val">' + curW + '-' + curL + '</span>' +
+        '<span class="player-val">' + curW + '-' + curL + (cur && cur.pf != null ? ' <span style="color:#666;font-size:0.75rem;margin-left:12px;">PF ' + cur.pf + ' PA ' + cur.pa + ' ' + (cur.diff > 0 ? '+' : '') + cur.diff + '</span>' : '') + '</span>' +
       '</div>';
     }
     var totW = 0, totL = 0;
