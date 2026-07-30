@@ -365,12 +365,13 @@ async function loadUFLCoaching() {
   if (!resp.ok) return null;
   var data = await resp.json();
   var entries = data?.standings?.entries || [];
-  var teamMap = {};
+  var teamMap = {}, logoMap = {};
   for (var i = 0; i < entries.length; i++) {
     var t = entries[i].team;
     var wStat = entries[i].stats.find(function(s) { return s.name === 'wins'; });
     var lStat = entries[i].stats.find(function(s) { return s.name === 'losses'; });
     teamMap[String(t.id)] = { w: wStat ? wStat.value : 0, l: lStat ? lStat.value : 0 };
+    if (t.logos && t.logos.length) logoMap[String(t.id)] = t.logos[0].href;
   }
   var html = '<div class="section">' +
     '<div class="section-header" style="border-bottom-color:#888;">' +
@@ -388,7 +389,8 @@ async function loadUFLCoaching() {
   for (var f = 0; f < sorted.length; f++) {
     var frac = sorted[f];
     html += '<div style="margin-bottom:16px;">' +
-      '<div style="font-size:0.75rem;font-weight:600;color:' + frac.color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a1a1a;">' +
+      '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:600;color:' + frac.color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a1a1a;">' +
+        (logoMap[frac.currentId] ? '<img src="' + logoMap[frac.currentId] + '" style="width:24px;height:24px;object-fit:contain;">' : '') +
         escHtml(frac.name) +
       '</div>';
     for (var h = 0; h < frac.history.length; h++) {
