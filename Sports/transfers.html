@@ -265,6 +265,7 @@ var POS_COLORS = {
 
 var transfers = [];
 var currentFilter = 'all';
+var ratesByDate = {};
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -280,13 +281,19 @@ function shortDate(iso) {
   return months[d.getMonth()] + ' ' + d.getDate();
 }
 
-function formatFee(fee) {
+function formatFee(fee, usdRate) {
   if (!fee) return '';
   var loc = fee.localizedFeeText || '';
   if (loc === 'transfer_type_free_transfer') return 'Free';
   if (loc === 'on_loan') return 'Loan';
   if (loc === 'undisclosed') return 'Undisclosed';
   if (loc === 'transfer_fee' && fee.value) {
+    if (usdRate) {
+      var usd = fee.value * usdRate;
+      if (usd >= 1000000) return '$' + (usd / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (usd >= 1000) return '$' + Math.round(usd / 1000) + 'K';
+      return '$' + Math.round(usd);
+    }
     if (fee.value >= 1000000) return '\u20AC' + (fee.value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
     if (fee.value >= 1000) return '\u20AC' + (fee.value / 1000) + 'K';
     return '\u20AC' + fee.value;
@@ -302,6 +309,21 @@ function feeClass(fee) {
   if (loc === 'undisclosed') return 'fee-undisclosed';
   if (loc === 'transfer_fee' && fee.value) return 'fee-paid';
   return '';
+}
+
+function fetchUsdRate(date) {
+  if (ratesByDate[date] !== undefined) return Promise.resolve(ratesByDate[date]);
+  return fetch('https://api.frankfurter.dev/v1/' + date + '?base=EUR&symbols=USD')
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      var rate = j.rates && j.rates.USD ? j.rates.USD : null;
+      ratesByDate[date] = rate;
+      return rate;
+    })
+    .catch(function() {
+      ratesByDate[date] = null;
+      return null;
+    });
 }
 
 function getDirection(t) {
@@ -331,7 +353,7 @@ function renderTransfer(t) {
   var headshotUrl = 'https://images.fotmob.com/image_resources/logo/playerimages/' + t.playerId + '.png';
   var fromLogo = 'https://images.fotmob.com/image_resources/logo/teamlogo/' + t.fromClubId + '_xsmall.png';
   var toLogo = 'https://images.fotmob.com/image_resources/logo/teamlogo/' + t.toClubId + '_xsmall.png';
-  var fee = formatFee(t.fee);
+  var fee = formatFee(t.fee, t.transferDate ? ratesByDate[t.transferDate.slice(0, 10)] : null);
   var feeCls = feeClass(t.fee);
   var date = shortDate(t.transferDate);
 
@@ -433,10 +455,19 @@ function loadTransfers() {
       transfers.sort(function(a, b) {
         return new Date(b.transferDate) - new Date(a.transferDate);
       });
-      updateCounts();
-      tabs.style.display = 'flex';
-      render();
-      sub.innerHTML = 'Updated ' + new Date().toLocaleTimeString() + ' &middot; Source: <a href="' + FOTMOB_URL + '" target="_blank">FotMob</a>';
+      var paidDates = [];
+      transfers.forEach(function(t) {
+        if (t.fee && t.fee.localizedFeeText === 'transfer_fee' && t.fee.value && t.transferDate) {
+          var key = t.transferDate.slice(0, 10);
+          if (paidDates.indexOf(key) === -1) paidDates.push(key);
+        }
+      });
+      Promise.all(paidDates.map(fetchUsdRate)).then(function() {
+        updateCounts();
+        tabs.style.display = 'flex';
+        render();
+        sub.innerHTML = 'Updated ' + new Date().toLocaleTimeString() + ' &middot; Fees in USD &middot; Source: <a href="' + FOTMOB_URL + '" target="_blank">FotMob</a>';
+      });
     })
     .catch(function(err) {
       container.innerHTML = '<div class="error-msg">Could not load transfer data.<br><small>' + escapeHtml(err.message) + '</small></div>';
