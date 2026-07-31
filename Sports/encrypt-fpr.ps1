@@ -101,9 +101,9 @@ $bootstrap = @'
     font-weight: 700;
   }
   .lock h1 {
-    font-size: 42px;
+    font-size: 28px;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     margin: 4px 0 24px;
   }
@@ -137,7 +137,7 @@ $bootstrap = @'
 <body>
   <div class="lock">
     <div class="eyebrow">PERSONAL</div>
-    <h1>FPR</h1>
+    <h1>Forest Park Rangers</h1>
     <input type="password" id="pw" placeholder="Password" autocomplete="off">
     <button id="unlockBtn">Unlock</button>
     <div class="err" id="err">Wrong password.</div>
