@@ -56,6 +56,11 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .stat-group { margin-bottom: 20px; }
 .stat-group:last-child { margin-bottom: 0; }
+.stat-groups { display: block; }
+@media (min-width: 641px) {
+  .stat-groups { display: flex; flex-wrap: wrap; gap: 24px; }
+  .stat-group { flex: 1 1 260px; margin-bottom: 0; }
+}
 .stat-group-title {
   font-size: 0.75rem; font-weight: 600; color: #aaa;
   text-transform: uppercase; letter-spacing: 1px;
@@ -447,19 +452,21 @@ async function loadStats() {
         '<div class="section-header" style="border-bottom-color:' + TEAMS[i].color + ';">' +
           '<h2 style="color:' + TEAMS[i].color + ';">' + escHtml(TEAMS[i].name) + '</h2>' +
         '</div>';
+      var groupHtml = '';
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
-        html += '<div class="stat-group">' +
+        groupHtml += '<div class="stat-group">' +
             '<div class="stat-group-title">' + escHtml(safe(group.cat)) + '</div>';
         for (var k = 0; k < group.items.length; k++) {
           var p = group.items[k];
-          html += '<div class="player-row">' +
+          groupHtml += '<div class="player-row">' +
             '<span class="player-name">' + escHtml(safe(p.name)) + '</span>' +
             '<span class="player-val">' + escHtml(safe(String(p.val))) + '</span>' +
           '</div>';
         }
-        html += '</div>';
+        groupHtml += '</div>';
       }
+      html += '<div class="stat-groups">' + groupHtml + '</div>';
       html += '</div>';
     }
     if (!loaded) {
