@@ -257,6 +257,152 @@
     border: none;
     cursor: pointer;
   }
+  .add-match-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    background: var(--amber);
+    color: #12181a;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+  }
+  .add-match-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .match-list { margin-bottom: 12px; }
+  .match-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: #0d1210;
+    margin-bottom: 8px;
+  }
+  .match-card-title {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .match-card-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .match-actions { display: flex; gap: 6px; }
+  .match-actions button {
+    background: none;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .match-actions .delete { color: var(--danger); border-color: #7a3030; }
+  .empty-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 12px 0;
+    border: 1px dashed var(--card-border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .match-form {
+    border-top: 1px solid var(--card-border);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .match-form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .match-form-field { flex: 1; }
+  .match-form-field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .match-form-field input[type="date"] {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: #0d1210;
+    color: var(--chalk-strong);
+  }
+  .match-slot-section {
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #0d1210;
+  }
+  .match-slot-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .match-slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .match-slot-grid .stat-field label { font-size: 9px; }
+  .match-slot-grid .stat-field input {
+    font-size: 13px;
+    padding: 6px;
+  }
+  .match-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .save-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 4px;
+    background: var(--amber);
+    color: #12181a;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+  }
+  .cancel-btn {
+    padding: 10px 16px;
+    border-radius: 4px;
+    background: none;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .stat-total {
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 16px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    background: #0d1210;
+    color: var(--amber);
+  }
+  .logged-line {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+  }
   .drawer {
     width: 100%;
     max-width: 360px;
@@ -425,6 +571,29 @@
         <button class="add-btn" id="addStatBtn">Add</button>
       </div>
     </div>
+
+    <div class="stat-panel">
+      <div class="panel-title">MATCH LOG</div>
+      <div class="match-list" id="matchList"></div>
+      <button class="add-match-btn" id="addMatchBtn">+ Add Match</button>
+      <div class="match-form" id="matchForm" style="display:none">
+        <div class="match-form-row">
+          <div class="match-form-field">
+            <label>DATE</label>
+            <input type="date" id="matchDate">
+          </div>
+          <div class="match-form-field">
+            <label>OPPONENT</label>
+            <input class="text-input" id="matchOpponent" placeholder="e.g. Minnesota">
+          </div>
+        </div>
+        <div id="matchSlotFields"></div>
+        <div class="match-form-actions">
+          <button class="save-btn" id="saveMatchBtn">Save match</button>
+          <button class="cancel-btn" id="cancelMatchBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="drawer" id="drawer">
@@ -527,8 +696,11 @@ const STORAGE_PREFIX = "xi-builder:";
 let formationKey = localStorage.getItem(STORAGE_PREFIX + "last-formation") || "4-3-3";
 let statFields = loadJSON(STORAGE_PREFIX + "stat-fields", DEFAULT_STATS);
 let players = loadJSON(STORAGE_PREFIX + formationKey, {});
+let matches = loadJSON(STORAGE_PREFIX + "matches:" + formationKey, []);
+migratePlayers();
 let activeSlotId = null;
 let editingSlotId = null;
+let editingMatchId = null;
 
 function loadJSON(key, fallback) {
   try {
@@ -538,14 +710,29 @@ function loadJSON(key, fallback) {
     return fallback;
   }
 }
+function migratePlayers() {
+  let dirty = false;
+  Object.keys(players).forEach((slotId) => {
+    const p = players[slotId];
+    if (p && p.stats && !p.baseline) {
+      p.baseline = p.stats;
+      delete p.stats;
+      dirty = true;
+    }
+  });
+  if (dirty) savePlayers();
+}
 function saveStatFields() {
   localStorage.setItem(STORAGE_PREFIX + "stat-fields", JSON.stringify(statFields));
 }
 function savePlayers() {
   localStorage.setItem(STORAGE_PREFIX + formationKey, JSON.stringify(players));
 }
+function saveMatches() {
+  localStorage.setItem(STORAGE_PREFIX + "matches:" + formationKey, JSON.stringify(matches));
+}
 function emptyPlayer(name) {
-  return { name, stats: {}, notes: "" };
+  return { name, baseline: {}, notes: "" };
 }
 
 function renderFormationButtons() {
@@ -559,8 +746,10 @@ function renderFormationButtons() {
       localStorage.setItem(STORAGE_PREFIX + "last-formation", key);
       formationKey = key;
       players = loadJSON(STORAGE_PREFIX + formationKey, {});
+      matches = loadJSON(STORAGE_PREFIX + "matches:" + formationKey, []);
       activeSlotId = null;
       editingSlotId = null;
+      editingMatchId = null;
       renderAll();
     };
     container.appendChild(btn);
@@ -672,16 +861,17 @@ function renderDrawer() {
     const label = document.createElement("label");
     label.textContent = s.label;
     field.appendChild(label);
-    const input = document.createElement("input");
-    input.type = "number";
-    input.value = player.stats[s.key] ?? "";
-    input.addEventListener("input", () => {
-      player.stats[s.key] = input.value;
-      savePlayers();
-    });
-    field.appendChild(input);
+    const total = document.createElement("div");
+    total.className = "stat-total";
+    total.textContent = s.key === "apps" ? appCount(activeSlotId) : statTotal(activeSlotId, s);
+    field.appendChild(total);
     grid.appendChild(field);
   });
+  const logged = document.createElement("div");
+  logged.className = "logged-line";
+  const loggedCount = loggedMatchCount(activeSlotId);
+  logged.textContent = "Logged: " + loggedCount + " match" + (loggedCount === 1 ? "" : "es");
+  grid.appendChild(logged);
 
   drawer.classList.add("open");
 }
@@ -728,11 +918,175 @@ function addStatField() {
   renderAll();
 }
 
+function statTotal(slotId, field) {
+  const player = players[slotId];
+  if (!player) return 0;
+  const baseline = Number(player.baseline?.[field.key]) || 0;
+  let sum = baseline;
+  let count = player.baseline && player.baseline[field.key] !== undefined && player.baseline[field.key] !== "" ? 1 : 0;
+  matches.forEach((m) => {
+    const entry = m.entries?.[slotId];
+    if (!entry) return;
+    const v = entry[field.key];
+    if (v === undefined || v === null || v === "") return;
+    const n = Number(v);
+    if (isNaN(n)) return;
+    sum += n;
+    count++;
+  });
+  if (field.key === "rating" || field.label === "RTG") {
+    return count ? Math.round((sum / count) * 10) / 10 : 0;
+  }
+  return sum;
+}
+
+function loggedMatchCount(slotId) {
+  return matches.filter((m) => {
+    const entry = m.entries?.[slotId];
+    return entry && Object.values(entry).some((v) => v !== "" && v !== null && v !== undefined);
+  }).length;
+}
+
+function appCount(slotId) {
+  const player = players[slotId];
+  if (!player) return 0;
+  return (Number(player.baseline?.apps) || 0) + loggedMatchCount(slotId);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "No date";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function renderMatchList() {
+  const container = document.getElementById("matchList");
+  container.innerHTML = "";
+  if (matches.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-hint";
+    empty.textContent = "No matches logged yet.";
+    container.appendChild(empty);
+    return;
+  }
+  const sorted = [...matches].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  sorted.forEach((m) => {
+    const card = document.createElement("div");
+    card.className = "match-card";
+    const info = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "match-card-title";
+    title.textContent = (m.opponent ? "vs " + m.opponent : "Match") + " \u00b7 " + formatDate(m.date);
+    const sub = document.createElement("div");
+    sub.className = "match-card-sub";
+    const entryCount = Object.keys(m.entries || {}).length;
+    sub.textContent = entryCount + " player" + (entryCount === 1 ? "" : "s") + " logged";
+    info.appendChild(title);
+    info.appendChild(sub);
+    card.appendChild(info);
+    const actions = document.createElement("div");
+    actions.className = "match-actions";
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.onclick = () => openMatchForm(m.id);
+    const delBtn = document.createElement("button");
+    delBtn.className = "delete";
+    delBtn.textContent = "Delete";
+    delBtn.onclick = () => {
+      if (!confirm("Delete this match and its stats?")) return;
+      matches = matches.filter((x) => x.id !== m.id);
+      saveMatches();
+      if (editingMatchId === m.id) closeMatchForm();
+      renderAll();
+    };
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    card.appendChild(actions);
+    container.appendChild(card);
+  });
+}
+
+function openMatchForm(matchId) {
+  editingMatchId = matchId || null;
+  const match = matchId ? matches.find((m) => m.id === matchId) : null;
+  document.getElementById("matchDate").value = match ? match.date : new Date().toISOString().slice(0, 10);
+  document.getElementById("matchOpponent").value = match ? match.opponent : "";
+  renderMatchSlotFields(match);
+  document.getElementById("addMatchBtn").style.display = "none";
+  document.getElementById("matchForm").style.display = "block";
+}
+
+function closeMatchForm() {
+  editingMatchId = null;
+  document.getElementById("matchForm").style.display = "none";
+  document.getElementById("addMatchBtn").style.display = "block";
+}
+
+function renderMatchSlotFields(match) {
+  const container = document.getElementById("matchSlotFields");
+  container.innerHTML = "";
+  FORMATIONS[formationKey].filter((s) => players[s.id]).forEach((slot) => {
+    const section = document.createElement("div");
+    section.className = "match-slot-section";
+    const title = document.createElement("div");
+    title.className = "match-slot-title";
+    title.textContent = slot.label + " \u2014 " + players[slot.id].name;
+    section.appendChild(title);
+    const grid = document.createElement("div");
+    grid.className = "match-slot-grid";
+    statFields.forEach((f) => {
+      if (f.key === "apps") return;
+      const field = document.createElement("div");
+      field.className = "stat-field";
+      const label = document.createElement("label");
+      label.textContent = f.label;
+      field.appendChild(label);
+      const input = document.createElement("input");
+      input.type = "number";
+      input.dataset.slot = slot.id;
+      input.dataset.key = f.key;
+      input.value = match?.entries?.[slot.id]?.[f.key] ?? "";
+      field.appendChild(input);
+      grid.appendChild(field);
+    });
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+}
+
+function saveMatch() {
+  const date = document.getElementById("matchDate").value;
+  const opponent = document.getElementById("matchOpponent").value.trim();
+  if (!date) { alert("Pick a date."); return; }
+  const entries = {};
+  document.querySelectorAll("#matchSlotFields input[data-slot]").forEach((input) => {
+    const slotId = input.dataset.slot;
+    const key = input.dataset.key;
+    if (!entries[slotId]) entries[slotId] = {};
+    entries[slotId][key] = input.value;
+  });
+  if (editingMatchId) {
+    const match = matches.find((m) => m.id === editingMatchId);
+    if (match) { match.date = date; match.opponent = opponent; match.entries = entries; }
+  } else {
+    matches.push({ id: "m" + Date.now(), date, opponent, entries });
+  }
+  saveMatches();
+  closeMatchForm();
+  renderAll();
+}
+
+document.getElementById("addMatchBtn").onclick = () => openMatchForm(null);
+document.getElementById("saveMatchBtn").onclick = saveMatch;
+document.getElementById("cancelMatchBtn").onclick = closeMatchForm;
+
 function renderAll() {
   renderFormationButtons();
   renderPitch();
   renderStatChips();
   renderDrawer();
+  renderMatchList();
 }
 
 renderAll();
