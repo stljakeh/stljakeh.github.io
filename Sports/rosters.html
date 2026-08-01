@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rosters - St. Louis Sports</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+nav {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+}
+.nav-links { display: flex; gap: 20px; align-items: center; }
+nav a, nav .current {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+nav a { color: #888; transition: color 0.2s; }
+nav a:hover { color: #fff; }
+nav .current { color: #e0e0e0; }
+.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
+#app { width: 100%; max-width: 960px; }
+header { text-align: center; margin-bottom: 32px; }
+header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
+.roster-section { margin-bottom: 32px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+.section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.roster-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.table-wrap { overflow-x: auto; }
+.roster-table th {
+  text-align: left; padding: 8px 10px; font-size: 0.7rem;
+  color: #666; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2a2a; font-weight: 600;
+}
+.roster-table th.num, .roster-table td.num { text-align: right; }
+.roster-table td {
+  padding: 6px 10px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
+}
+.roster-table tr:hover td { background: #1a1a1a; }
+.roster-table tr:hover td.group-row { background: #161616; }
+.roster-table td.group-row {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: #888; padding: 10px 10px 4px; border-bottom: none;
+}
+.player-name { font-weight: 600; }
+.muted { color: #888; }
+.error-msg { text-align: center; color: #f44336; padding: 40px; }
+.loading { text-align: center; color: #888; padding: 40px; }
+@media (max-width: 640px) {
+  body { padding: 16px; }
+  .roster-table { font-size: 0.78rem; }
+  .roster-table th, .roster-table td { padding: 6px 8px; white-space: normal; }
+}
+</style>
+<link rel="stylesheet" href="css/nav.css">
+</head>
+<body>
+
+<nav>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="news.html">News</a>
+    <a href="standings.html">Standings</a>
+    <a class="current" href="rosters.html">Rosters</a>
+    <a href="stats.html">Stats</a>
+    <a href="transfers.html">Transfers</a>
+    <a href="FPR.html">FPR</a>
+  </div>
+  <div class="site-label">St. Louis Sports</div>
+</nav>
+
+<div id="app">
+  <header>
+    <h1>Rosters</h1>
+  </header>
+  <div id="rostersContent"><div class="loading">Loading rosters...</div></div>
+</div>
+
+<script>
+var TEAMS = [
+  {
+    id: 'cardinals', name: 'Cardinals', color: '#C41E3A',
+    type: 'espn', sport: 'baseball', slug: 'mlb', teamId: '24',
+    posGroups: null
+  },
+  {
+    id: 'blues', name: 'Blues', color: '#003087',
+    type: 'espn', sport: 'hockey', slug: 'nhl', teamId: '19',
+    posGroups: null
+  },
+  {
+    id: 'citysc', name: 'CITY SC', color: '#E80A4D',
+    type: 'espn', sport: 'soccer', slug: 'usa.1', teamId: '21812',
+    posLabels: { G: 'Goalkeepers', D: 'Defenders', M: 'Midfielders', F: 'Forwards' }
+  },
+  {
+    id: 'battlehawks', name: 'BattleHawks', color: '#00529B',
+    type: 'ufl', teamId: '1', showAge: false
+  }
+];
+
+var UFL_OFF = ['QB','RB','FB','WR','TE','OT','OG','C','G','OL'];
+var UFL_DEF = ['DL','DE','DT','NT','LB','OLB','ILB','MLB','CB','S','FS','SS','DB'];
+var UFL_ST  = ['K','P','LS'];
+
+function uflGroup(pos) {
+  if (UFL_ST.indexOf(pos) !== -1) return 'Special Teams';
+  if (UFL_DEF.indexOf(pos) !== -1) return 'Defense';
+  return 'Offense';
+}
+
+function fmtHeightInches(h) {
+  var n = parseFloat(h);
+  if (!isFinite(n)) return '&mdash;';
+  var ft = Math.floor(n / 12), inch = Math.round(n % 12);
+  return ft + "' " + inch + '"';
+}
+
+function fmtWeight(w) {
+  var n = parseFloat(w);
+  if (!isFinite(n)) return '&mdash;';
+  return String(n % 1 === 0 ? n : n.toFixed(1));
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function rosterRow(player, jersey, pos, ht, wt, extra, showAge) {
+  var name = player.displayName || player.full_name || '';
+  return '<tr>' +
+    '<td class="num"><span class="muted">' + (jersey ? esc(jersey) : '&mdash;') + '</span></td>' +
+    '<td><span class="player-name">' + esc(name) + '</span></td>' +
+    '<td>' + esc(pos) + '</td>' +
+    '<td>' + ht + '</td>' +
+    '<td>' + wt + '</td>' +
+    (extra ? '<td class="' + (extra.extraClass || '') + '">' + extra.html + '</td>' : '') +
+    (showAge !== false ? '<td class="num muted">' + (player.age != null ? player.age : '&mdash;') + '</td>' : '') +
+    '</tr>';
+}
+
+function tableHtml(cols, groups) {
+  var colCount = 5 + (cols.extra ? 1 : 0) + (cols.showAge !== false ? 1 : 0);
+  var html = '<div class="table-wrap"><table class="roster-table"><thead><tr>' +
+    '<th class="num" style="width:28px;">#</th><th>Name</th><th>Pos</th><th>Ht</th><th>Wt</th>' +
+    (cols.extra ? '<th>' + cols.extra + '</th>' : '') +
+    (cols.showAge !== false ? '<th class="num">Age</th>' : '') +
+    '</tr></thead><tbody>';
+  groups.forEach(function(g) {
+    html += '<tr class="group-row"><td colspan="' + colCount + '" style="color:' + (cols.color || '#888') + ';">' + esc(g.name) + '</td></tr>';
+    var rows = g.items.map(function(item) {
+      var extra = null;
+      if (cols.extra) {
+        var bits = [item.college, item.hometown].filter(Boolean);
+        extra = { html: bits.map(esc).join(' &middot; ') || '&mdash;', extraClass: 'muted' };
+      }
+      return rosterRow(item.player, item.jersey, item.pos, item.ht || '&mdash;', item.wt || '&mdash;', extra, cols.showAge);
+    });
+    html += rows.join('');
+  });
+  return html + '</tbody></table></div>';
+}
+
+function renderRoster(team, groups) {
+  var cols = {
+    extra: team.type === 'ufl' ? 'College &middot; Hometown' : null,
+    showAge: team.showAge,
+    color: team.color
+  };
+  return tableHtml(cols, groups);
+}
+
+function espnGroups(team, data) {
+  var ath = data.athletes || [];
+  if (!ath.length) return [];
+  if (Array.isArray(ath[0].items)) {
+    return ath.map(function(g) {
+      return {
+        name: g.position,
+        items: g.items.map(function(p) {
+          return {
+            player: p,
+            jersey: p.jersey,
+            pos: p.position ? p.position.abbreviation : '',
+            ht: p.displayHeight || '&mdash;',
+            wt: p.displayWeight || '&mdash;'
+          };
+        })
+      };
+    });
+  }
+  var labels = team.posLabels || {};
+  var byPos = {};
+  ath.forEach(function(p) {
+    var ab = p.position ? p.position.abbreviation : '';
+    var key = ab || '?';
+    if (!byPos[key]) byPos[key] = [];
+    byPos[key].push({
+      player: p,
+      jersey: p.jersey,
+      pos: ab,
+      ht: p.displayHeight || '&mdash;',
+      wt: p.displayWeight || '&mdash;'
+    });
+  });
+  return Object.keys(byPos).sort().map(function(ab) {
+    return { name: labels[ab] || ab, items: byPos[ab] };
+  });
+}
+
+async function fetchEspn(team) {
+  var url = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.slug + '/teams/' + team.teamId + '/roster';
+  var resp = await fetch(url);
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return espnGroups(team, await resp.json());
+}
+
+async function fetchUfl() {
+  var listResp = await fetch('https://www.theufl.com/api/rosters?filter[team_id]=1&include=season');
+  if (!listResp.ok) throw new Error('HTTP ' + listResp.status);
+  var list = (await listResp.json()).data || [];
+  var reg = list
+    .filter(function(r) { return String(r.team_id) === '1' && r.season && r.season.title && r.season.title.indexOf('Postseason') === -1; })
+    .sort(function(a, b) { return new Date(b.season.start_date) - new Date(a.season.start_date); });
+  var roster = reg[0];
+  if (!roster) throw new Error('no roster');
+  var detailResp = await fetch(
+    'https://www.theufl.com/api/rosters/' + roster.id + '?include=visiblePlayerRosters.photo,visiblePlayerRosters.player.photo'
+  );
+  if (!detailResp.ok) throw new Error('HTTP ' + detailResp.status);
+  var detail = await detailResp.json();
+  var prs = detail.data && detail.data.visible_player_rosters;
+  if (!prs || !prs.length) throw new Error('empty roster');
+  var byGroup = {};
+  prs.forEach(function(pr) {
+    var p = pr.player || {};
+    var pos = pr.position || p.position || '';
+    var g = uflGroup(pos);
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push({
+      player: { displayName: p.full_name, age: null, photo: p.photo ? p.photo.src : null, headshot: null },
+      jersey: pr.jersey_number || p.jersey_number,
+      pos: pos,
+      ht: fmtHeightInches(p.height),
+      wt: fmtWeight(p.weight),
+      college: p.college,
+      hometown: p.birth_place
+    });
+  });
+  var order = ['Offense', 'Defense', 'Special Teams'];
+  return order.filter(function(g) { return byGroup[g]; }).map(function(g) {
+    return { name: g, items: byGroup[g] };
+  });
+}
+
+async function loadRosters() {
+  var container = document.getElementById('rostersContent');
+  var loaded = 0;
+  var html = '';
+
+  await Promise.all(TEAMS.map(async function(team) {
+    try {
+      var groups = team.type === 'ufl' ? await fetchUfl() : await fetchEspn(team);
+      if (!groups.length) throw new Error('empty roster');
+      loaded++;
+      html += '<div class="roster-section">' +
+        '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
+          '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
+          '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + '</span>' +
+        '</div>' + renderRoster(team, groups) + '</div>';
+    } catch (e) {
+      html += '<div class="roster-section">' +
+        '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
+          '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
+        '</div>' +
+        '<div class="error-msg">Could not load roster.</div></div>';
+    }
+  }));
+
+  if (!loaded) {
+    container.innerHTML = '<div class="error-msg">Could not load roster data.</div>';
+    return;
+  }
+  container.innerHTML = html;
+}
+
+loadRosters();
+setInterval(loadRosters, 60000);
+</script>
+</body>
+</html>
