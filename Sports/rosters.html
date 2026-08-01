@@ -287,32 +287,34 @@ async function fetchUfl() {
 async function loadRosters() {
   var container = document.getElementById('rostersContent');
   var loaded = 0;
-  var html = '';
+  var sections = new Array(TEAMS.length);
 
-  await Promise.all(TEAMS.map(async function(team) {
-    try {
-      var groups = team.type === 'ufl' ? await fetchUfl() : await fetchEspn(team);
-      if (!groups.length) throw new Error('empty roster');
-      loaded++;
-      html += '<div class="roster-section">' +
-        '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
-          '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
-          '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + '</span>' +
-        '</div>' + renderRoster(team, groups) + '</div>';
-    } catch (e) {
-      html += '<div class="roster-section">' +
-        '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
-          '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
-        '</div>' +
-        '<div class="error-msg">Could not load roster.</div></div>';
-    }
+  await Promise.all(TEAMS.map(function(team, idx) {
+    return Promise.resolve()
+      .then(function() { return team.type === 'ufl' ? fetchUfl() : fetchEspn(team); })
+      .then(function(groups) {
+        if (!groups.length) throw new Error('empty roster');
+        loaded++;
+        sections[idx] = '<div class="roster-section">' +
+          '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
+            '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
+            '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + '</span>' +
+          '</div>' + renderRoster(team, groups) + '</div>';
+      })
+      .catch(function() {
+        sections[idx] = '<div class="roster-section">' +
+          '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
+            '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
+          '</div>' +
+          '<div class="error-msg">Could not load roster.</div></div>';
+      });
   }));
 
   if (!loaded) {
     container.innerHTML = '<div class="error-msg">Could not load roster data.</div>';
     return;
   }
-  container.innerHTML = html;
+  container.innerHTML = sections.join('');
 }
 
 loadRosters();
