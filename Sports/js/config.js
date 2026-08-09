@@ -104,6 +104,21 @@ STL.config = {
         { text: 'Official Site', href: 'https://www.stlcitysc.com/city2/' },
         { text: 'Schedule', href: 'https://www.mlsnextpro.com/clubs/st-louis-city2/schedule/' },
       ]
+    },
+    {
+      id: '2565',
+      name: 'SIUE Cougars',
+      league: "NCAA Men's Basketball",
+      leagueFull: 'Ohio Valley Conference',
+      sport: 'basketball',
+      leagueSlug: 'mens-college-basketball',
+      cardClass: 'cougars',
+      icon: 'SIUE',
+      links: [
+        { text: 'Official Site', href: 'https://www.siuecougars.com/sports/mens-basketball' },
+        { text: 'Schedule', href: 'https://www.siuecougars.com/sports/mens-basketball/schedule' },
+        { text: 'Roster', href: 'https://www.siuecougars.com/sports/mens-basketball/roster' },
+      ]
     }
   ]
 };
