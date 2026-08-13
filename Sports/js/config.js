@@ -109,7 +109,7 @@ STL.config = {
       id: '2565',
       name: 'SIUE Cougars',
       league: "NCAA Men's Basketball",
-      leagueFull: 'Ohio Valley Conference',
+      leagueFull: 'OVC',
       sport: 'basketball',
       leagueSlug: 'mens-college-basketball',
       cardClass: 'cougars',
