@@ -1,4 +1,12 @@
-nav { flex-wrap: wrap; }
+nav {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+.site-label { display: none; }
 
 .hamburger {
   display: flex;
@@ -25,7 +33,3 @@ nav .nav-links {
   padding-top: 12px;
 }
 nav .nav-links.open { display: flex; }
-
-@media (max-width: 640px) {
-  .site-label { display: none; }
-}
