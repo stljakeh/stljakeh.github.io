@@ -188,6 +188,7 @@ header h1 {
 .stat-value { font-weight: 600; text-align: right; }
 .stat-value.win { color: #4caf50; }
 .stat-value.loss { color: #f44336; }
+.stat-value.draw { color: #ff9800; }
 .links {
   display: flex;
   gap: 12px;

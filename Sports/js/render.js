@@ -148,9 +148,10 @@ STL.render = {
     if (st.completed === true || st.state === 'post') {
       const ourScore = homeAway.score ? homeAway.score.displayValue : '?';
       const oppScore = opponent.score ? opponent.score.displayValue : '?';
-      const won = homeAway.winner;
-      const resultChar = won ? 'W' : 'L';
-      const resultClass = won ? 'win' : 'loss';
+      const won = homeAway.winner === true;
+      const lost = opponent.winner === true;
+      const resultChar = won ? 'W' : lost ? 'L' : 'D';
+      const resultClass = won ? 'win' : lost ? 'loss' : 'draw';
       const dateLabel = STL.utils.formatDateStr(comp.date);
       result.lastGameHtml = '<span class="stat-value ' + resultClass + '">' + resultChar + ' ' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + ' &middot; ' + dateLabel + '</span>';
     } else if (st.state === 'in') {
@@ -272,7 +273,7 @@ STL.render = {
             streakClass = 'loss';
           } else {
             streakStr = 'Drew 1';
-            streakClass = '';
+            streakClass = 'draw';
           }
         }
       }
