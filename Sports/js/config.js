@@ -119,6 +119,21 @@ STL.config = {
         { text: 'Schedule', href: 'https://www.siuecougars.com/sports/mens-basketball/schedule' },
         { text: 'Roster', href: 'https://www.siuecougars.com/sports/mens-basketball/roster' },
       ]
+    },
+    {
+      id: '17412',
+      name: "SIUE Men's Soccer",
+      league: "NCAA Men's Soccer",
+      leagueFull: 'OVC',
+      sport: 'soccer',
+      leagueSlug: 'college-men',
+      cardClass: 'cougars-soccer',
+      icon: 'SIUE',
+      links: [
+        { text: 'Official Site', href: 'https://www.siuecougars.com/sports/mens-soccer' },
+        { text: 'Schedule', href: 'https://www.siuecougars.com/sports/mens-soccer/schedule' },
+        { text: 'Roster', href: 'https://www.siuecougars.com/sports/mens-soccer/roster' },
+      ]
     }
   ]
 };

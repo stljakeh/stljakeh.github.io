@@ -141,6 +141,7 @@ header h1 {
 .battlehawks .card-head::after { background: #00529B; }
 .city2 .card-head::after { background: #E80A4D; }
 .cougars .card-head::after { background: #E90029; }
+.cougars-soccer .card-head::after { background: #C8102E; }
 .team-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .team-icon {
   width: 40px; height: 40px;
@@ -158,6 +159,7 @@ header h1 {
 .battlehawks .team-icon { background: #fff; color: #00529B; }
 .city2 .team-icon { background: #E80A4D; color: #fff; }
 .cougars .team-icon { background: #fff; color: #E90029; }
+.cougars-soccer .team-icon { background: #C8102E; color: #fff; }
 .team-name { font-weight: 700; font-size: 1.1rem; }
 .team-league { font-size: 0.75rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-badge {
@@ -217,6 +219,7 @@ header h1 {
 .battlehawks .next-game { background: rgba(0, 82, 155, 0.05); border-left: 3px solid #00529B; }
 .city2 .next-game { background: rgba(232, 10, 77, 0.05); border-left: 3px solid #E80A4D; }
 .cougars .next-game { background: rgba(233, 0, 41, 0.05); border-left: 3px solid #E90029; }
+.cougars-soccer .next-game { background: rgba(200, 16, 46, 0.05); border-left: 3px solid #C8102E; }
 .next-game-label { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
 .next-game-detail { font-weight: 600; }
 .countdown-timer { font-size: 0.78rem; color: #4caf50; font-weight: 600; margin-top: 3px; }
