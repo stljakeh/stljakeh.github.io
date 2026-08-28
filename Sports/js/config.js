@@ -126,7 +126,7 @@ STL.config = {
       league: "NCAA Men's Soccer",
       leagueFull: 'OVC',
       sport: 'soccer',
-      leagueSlug: 'college-men',
+      leagueSlug: 'usa.ncaa.m.1',
       cardClass: 'cougars-soccer',
       icon: 'SIUE',
       links: [
