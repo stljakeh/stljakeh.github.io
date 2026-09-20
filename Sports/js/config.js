@@ -5,7 +5,8 @@ STL.config = {
   SOFA: {
     CITY2_TEAM: 411361,
     MLS_NP_TOURNAMENT: 18641,
-    MLS_NP_SEASON: 89065
+    MLS_NP_SEASON: 89065,
+    HOSTS: ['https://api.sofascore.app', 'https://api.sofascore.com']
   },
   WEST_CONF: new Set([
     'eV5Dw4EMKn','gOMnJnOMwN','eVq3Z0D5WO','2lqRX1AMr0',

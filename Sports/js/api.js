@@ -276,27 +276,36 @@ STL.api = {
     }
   },
 
-  /* Sofascore-sourced teams (CITY2): CORS-open API, direct fetch + localStorage caching */
+  /* Sofascore-sourced teams (CITY2): CORS-mirror API, host fallback chain + localStorage caching */
 
   fetchSofa: async function(path, ttlMs) {
-    const cacheKey = 'sofa_cache_' + btoa(path);
+    const cacheKey = 'sofa_cache_v1_' + btoa(path);
     ttlMs = ttlMs || 10 * 60000;
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Date.now() < parsed.expiry) return parsed.data;
+        if (parsed.data != null && Date.now() < parsed.expiry) return parsed.data;
       }
     } catch (e) {}
-    let data = null;
-    try {
-      const resp = await fetch('https://api.sofascore.com' + path);
-      if (resp.ok) data = await resp.json();
-    } catch (e) {}
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
-    } catch (e) {}
-    return data;
+    const hosts = (STL.config.SOFA && STL.config.SOFA.HOSTS) || ['https://api.sofascore.com'];
+    for (const host of hosts) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const resp = await fetch(host + path, { signal: AbortSignal.timeout(8000) });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data != null) {
+              try {
+                localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
+              } catch (e) {}
+              return data;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    return null;
   },
 
   fetchSofaSeason: async function(tournament, fallback) {
@@ -420,8 +429,8 @@ STL.api = {
   fetchTeamSofa: async function(team) {
     const sofaTeam = team.sofaId || STL.config.SOFA.CITY2_TEAM;
     const tour = STL.config.SOFA.MLS_NP_TOURNAMENT;
-    const season = await STL.api.fetchSofaSeason(tour, STL.config.SOFA.MLS_NP_SEASON);
     try {
+      const season = await STL.api.fetchSofaSeason(tour, STL.config.SOFA.MLS_NP_SEASON);
       const [standings, lastPage, nextPage] = await Promise.all([
         STL.api.fetchSofa('/api/v1/unique-tournament/' + tour + '/season/' + season + '/standings/total', 6 * 3600000),
         STL.api.fetchSofa('/api/v1/team/' + sofaTeam + '/events/last/0', 60000),
