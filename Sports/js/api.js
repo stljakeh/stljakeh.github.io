@@ -283,7 +283,8 @@ STL.api = {
     try {
       const resp = await fetch('data/city2.json?v=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) return null;
-      const data = await resp.json();
+      const text = await resp.text();
+      const data = JSON.parse(text.replace(/^\uFEFF/, ''));
       if (!data || !data.fetchedAt) return null;
       return data;
     } catch (e) {
