@@ -410,7 +410,7 @@ STL.api = {
         team._liveScoreData = snap.live.competitors;
         team._liveStatus = snap.live.status;
       }
-      await STL.render.renderTeam(team, snap.team, snap.lastEvent || null, snap.nextEvent || null);
+      await STL.render.renderTeam(team, { team: snap.team }, snap.lastEvent || null, snap.nextEvent || null);
     } catch (e) {
       STL.render.renderError(team, 'Failed to load CITY2 data');
     }
