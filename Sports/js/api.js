@@ -405,12 +405,21 @@ STL.api = {
         STL.render.renderError(team, 'Failed to load CITY2 data');
         return;
       }
+      const remapIds = function(ev) {
+        if (!ev || !ev.competitions || !ev.competitions[0]) return ev;
+        ev.competitions[0].competitors.forEach(function(c) {
+          if (String(c.team.id) === String(snap.team.id)) c.team.id = team.id;
+        });
+        return ev;
+      };
+      const lastEvent = snap.lastEvent ? remapIds(snap.lastEvent) : null;
+      const nextEvent = snap.nextEvent ? remapIds(snap.nextEvent) : null;
       if (snap.live) {
-        team._liveEvent = snap.live.event;
-        team._liveScoreData = snap.live.competitors;
+        team._liveEvent = remapIds(snap.live.event);
+        team._liveScoreData = team._liveEvent.competitions[0].competitors;
         team._liveStatus = snap.live.status;
       }
-      await STL.render.renderTeam(team, { team: snap.team }, snap.lastEvent || null, snap.nextEvent || null);
+      await STL.render.renderTeam(team, { team: snap.team }, lastEvent, nextEvent);
     } catch (e) {
       STL.render.renderError(team, 'Failed to load CITY2 data');
     }

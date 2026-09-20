@@ -120,6 +120,7 @@ const nextEvent = liveEv || (nextG ? bld(nextG) : null);
 const snap = {
   fetchedAt: new Date().toISOString(),
   team: {
+    id: String(TEAM),
     logos: [{ href: LOGO }],
     displayName: 'CITY2',
     record: { items: [{ stats: [
