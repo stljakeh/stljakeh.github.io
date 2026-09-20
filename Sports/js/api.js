@@ -1,4 +1,4 @@
-window.STL = window.STL || {};
+﻿window.STL = window.STL || {};
 
 STL.api = {
 
@@ -276,6 +276,41 @@ STL.api = {
     }
   },
 
+  /* Sofascore-sourced teams (CITY2): CORS-open API, direct fetch + localStorage caching */
+
+  fetchSofa: async function(path, ttlMs) {
+    const cacheKey = 'sofa_cache_' + btoa(path);
+    ttlMs = ttlMs || 10 * 60000;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() < parsed.expiry) return parsed.data;
+      }
+    } catch (e) {}
+    let data = null;
+    try {
+      const resp = await fetch('https://api.sofascore.com' + path);
+      if (resp.ok) data = await resp.json();
+    } catch (e) {}
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
+    } catch (e) {}
+    return data;
+  },
+
+  fetchSofaSeason: async function(tournament, fallback) {
+    const data = await STL.api.fetchSofa('/api/v1/unique-tournament/' + tournament + '/seasons', 24 * 3600000);
+    const year = new Date().getFullYear();
+    if (data && Array.isArray(data.seasons)) {
+      const cur = data.seasons
+        .filter(function(s) { return Number(s.year) === year; })
+        .sort(function(a, b) { return b.id - a.id; })[0];
+      if (cur) return cur.id;
+    }
+    return fallback;
+  },
+
   findNextGameFromScoreboard: async function(team, startDate) {
     var d = new Date(startDate || Date.now());
     for (var i = 1; i <= 14; i++) {
@@ -300,7 +335,7 @@ STL.api = {
 
   fetchTeam: async function(team) {
     if (team.leagueSlug === 'mlsnp') {
-      await STL.api.fetchTeamASA(team);
+      await STL.api.fetchTeamSofa(team);
       return;
     }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
@@ -382,68 +417,47 @@ STL.api = {
     await Promise.all(renders);
   },
 
-  fetchTeamASA: async function(team) {
+  fetchTeamSofa: async function(team) {
+    const sofaTeam = team.sofaId || STL.config.SOFA.CITY2_TEAM;
+    const tour = STL.config.SOFA.MLS_NP_TOURNAMENT;
+    const season = await STL.api.fetchSofaSeason(tour, STL.config.SOFA.MLS_NP_SEASON);
     try {
-      const [fullGames, premGames, asaTeams, asaStadia] = await Promise.all([
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026', 6 * 3600000),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026&status=PreMatch', 5 * 60000),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/teams'),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/stadia')
+      const [standings, lastPage, nextPage] = await Promise.all([
+        STL.api.fetchSofa('/api/v1/unique-tournament/' + tour + '/season/' + season + '/standings/total', 6 * 3600000),
+        STL.api.fetchSofa('/api/v1/team/' + sofaTeam + '/events/last/0', 60000),
+        STL.api.fetchSofa('/api/v1/team/' + sofaTeam + '/events/next/0', 10 * 60000)
       ]);
-      const allGames = fullGames.concat(premGames);
 
-      const std = {};
-      for (const g of allGames) {
-        if (g.status !== 'FullTime') continue;
-        if (g.home_score == null || g.away_score == null) continue;
-        if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, t:0, pts:0 };
-        if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, t:0, pts:0 };
-        if (g.home_penalties != null || g.away_penalties != null) {
-          std[g.home_team_id].t++; std[g.away_team_id].t++;
-          const hp = g.home_penalties || 0, ap = g.away_penalties || 0;
-          std[g.home_team_id].pts += hp > ap ? 2 : 1;
-          std[g.away_team_id].pts += ap > hp ? 2 : 1;
-        } else if (g.home_score > g.away_score) {
-          std[g.home_team_id].w++; std[g.home_team_id].pts += 3;
-          std[g.away_team_id].l++;
-        } else {
-          std[g.away_team_id].w++; std[g.away_team_id].pts += 3;
-          std[g.home_team_id].l++;
-        }
+      if (!standings && !lastPage && !nextPage) {
+        STL.render.renderError(team, 'Failed to load CITY2 data');
+        return;
       }
 
-      if (team.winsOffset) {
-        if (!std[team.id]) std[team.id] = { w:0, l:0, t:0, pts:0 };
-        std[team.id].w += team.winsOffset;
-        std[team.id].pts += team.winsOffset * 3;
-      }
-
-      const west = Object.entries(std).filter(x => STL.config.WEST_CONF.has(x[0])).sort((a, b) => b[1].pts - a[1].pts);
-      const idx = west.findIndex(x => x[0] === team.id);
-      const rank = idx >= 0 ? idx + 1 : null;
-      const rec = std[team.id] || { w:0, l:0, t:0, pts:0 };
+      const groups = (standings && standings.standings) || [];
+      const west = groups.find(function(g) { return String(g.name || '').indexOf('Western') !== -1; }) || groups.find(function(g) { return (g.rows || []).some(function(r) { return String(r.team.id) === String(sofaTeam); }); });
+      const row = west ? (west.rows || []).find(function(r) { return String(r.team.id) === String(sofaTeam); }) : null;
+      const rank = row ? row.position : null;
+      const rec = {
+        wins: row ? (row.wins || 0) : 0,
+        losses: row ? (row.losses || 0) : 0,
+        ties: row ? (row.draws || 0) : 0,
+        pts: row ? (row.points || 0) : 0
+      };
       const standingStr = rank != null ? rank + STL.utils.suffix(rank) + ' in Western Conference' : 'Western Conference';
 
-      const c2g = allGames.filter(g => g.home_team_id === team.id || g.away_team_id === team.id);
-      const done = c2g.filter(g => g.status === 'FullTime').sort((a, b) => b.date_time_utc.localeCompare(a.date_time_utc));
-      const soon = c2g.filter(g => g.status === 'PreMatch').sort((a, b) => a.date_time_utc.localeCompare(b.date_time_utc));
-      const lastG = done[0] || null;
-      const nextG = soon[0] || null;
+      const events = (lastPage && lastPage.events) || [];
+      const ourEvents = events.filter(function(e) { return Number(e.homeTeam && e.homeTeam.id) === sofaTeam || Number(e.awayTeam && e.awayTeam.id) === sofaTeam; });
+      const finished = ourEvents
+        .filter(function(e) { return e.status && e.status.type === 'finished'; })
+        .sort(function(a, b) { return b.startTimestamp - a.startTimestamp; });
+      const live = ourEvents.find(function(e) { return e.status && e.status.type === 'inprogress'; });
 
       let streak = 0;
-      for (const g of done) {
-        let won;
-        if (g.home_penalties != null || g.away_penalties != null) {
-          won = g.home_team_id === team.id
-            ? (g.home_penalties || 0) > (g.away_penalties || 0)
-            : (g.away_penalties || 0) > (g.home_penalties || 0);
-        } else if (g.home_score > g.away_score) {
-          won = g.home_team_id === team.id;
-        } else if (g.away_score > g.home_score) {
-          won = g.away_team_id === team.id;
-        } else {
-          break;
-        }
+      for (const g of finished) {
+        if (g.season && Number(g.season.id) !== season) break;
+        const wc = g.winnerCode == null ? 0 : Number(g.winnerCode);
+        if (wc !== 1 && wc !== 2) break;
+        const won = wc === 1 ? Number(g.homeTeam.id) === sofaTeam : Number(g.awayTeam.id) === sofaTeam;
         if (streak === 0) {
           streak = won ? 1 : -1;
         } else if ((streak > 0 && won) || (streak < 0 && !won)) {
@@ -453,49 +467,74 @@ STL.api = {
         }
       }
 
-      var info = function(id) {
-        if (!Array.isArray(asaTeams)) return { team_id: id, team_abbreviation: '?', team_name: '?' };
-        return asaTeams.find(t => t.team_id === id) || { team_id: id, team_abbreviation: '?', team_name: '?' };
-      };
+      let nextG = null;
+      if (nextPage && Array.isArray(nextPage.events)) {
+        const nxt = nextPage.events
+          .filter(function(e) { return Number(e.homeTeam && e.homeTeam.id) === sofaTeam || Number(e.awayTeam && e.awayTeam.id) === sofaTeam; })
+          .filter(function(e) { return e.status && e.status.type === 'notstarted'; })
+          .sort(function(a, b) { return a.startTimestamp - b.startTimestamp; });
+        const league = nxt.filter(function(e) { return e.uniqueTournament && Number(e.uniqueTournament.id) === tour; });
+        nextG = league[0] || nxt[0] || null;
+      }
 
-      var mc = function(info, ha, score, win) {
-        return { team: { id: info.team_id, abbreviation: info.team_abbreviation, displayName: info.team_name }, homeAway: ha, score: score != null ? { displayValue: String(score) } : null, winner: win };
-      };
-
-      var bld = function(g, last) {
-        const homeI = info(g.home_team_id), awayI = info(g.away_team_id);
-        const stad = asaStadia && asaStadia.length ? asaStadia.find(s => s.stadium_id === g.stadium_id) : null;
-        let homeW = null;
-        if (last && g.home_score != null && g.away_score != null) {
-          homeW = (g.home_penalties != null || g.away_penalties != null)
-            ? (g.home_penalties || 0) > (g.away_penalties || 0)
-            : g.home_score > g.away_score;
-        }
-        const d = g.date_time_utc.replace(' ', 'T').replace(' UTC', 'Z');
+      const mc = function(info, ha, score, win) {
         return {
-          id: g.game_id, date: d,
+          team: { id: String(info.id), abbreviation: info.nameCode || info.shortName || '?', displayName: info.name },
+          homeAway: ha, score: score != null ? { displayValue: String(score) } : null, winner: win
+        };
+      };
+
+      const bld = function(e) {
+        const fin = e.status && e.status.type === 'finished';
+        const liveEv = e.status && e.status.type === 'inprogress';
+        const home = e.homeTeam, away = e.awayTeam;
+        let homeWin = null;
+        if (fin && e.winnerCode != null) homeWin = Number(e.winnerCode) === 1;
+        const d = new Date(Math.floor(e.startTimestamp) * 1000).toISOString();
+        return {
+          id: String(e.id), date: d,
           competitions: [{
-            date: d, seasonType: { name: 'Regular Season' },
-            status: { type: last ? { completed: true, state: 'post' } : { state: 'pre', completed: false }, displayClock: null },
-            venue: { fullName: stad ? stad.stadium_name : '' },
-            broadcasts: [{ media: { shortName: 'MLSNextPro.com' } }, { media: { shortName: 'OneFootball' } }],
-            competitors: [mc(homeI, 'home', g.home_score, homeW), mc(awayI, 'away', g.away_score, homeW != null ? !homeW : null)]
+            date: d, seasonType: { name: (e.season && e.season.name ? e.season.name : 'Regular Season') },
+            status: {
+              type: fin
+                ? { completed: true, state: 'post', detail: e.status.description || '' }
+                : liveEv
+                  ? { state: 'in', completed: false, detail: e.status.description || '', displayClock: null }
+                  : { state: 'pre', completed: false },
+              displayClock: null
+            },
+            venue: { fullName: (e.venue && e.venue.name) ? e.venue.name : '' },
+            broadcasts: [{ media: { shortName: 'MLSNextPro.com' } }],
+            competitors: [
+              mc(home, 'home', (home && e.homeScore) ? e.homeScore.current : null, fin ? homeWin : null),
+              mc(away, 'away', (away && e.awayScore) ? e.awayScore.current : null, fin ? (homeWin != null ? !homeWin : null) : null)
+            ]
           }]
         };
       };
+
+      const lastEvent = finished[0] ? bld(finished[0]) : null;
+      const liveEv = live ? bld(live) : null;
+      const upcoming = liveEv || (nextG ? bld(nextG) : null);
+
+      if (liveEv) {
+        team._liveEvent = liveEv;
+        team._liveScoreData = liveEv.competitions[0].competitors;
+        team._liveStatus = liveEv.competitions[0].status;
+      }
 
       await STL.render.renderTeam(team, {
         team: {
           logos: [{ href: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/St._Louis_City_SC_II.png' }],
           displayName: team.name,
           record: { items: [{ stats: [
-            { name: 'wins', value: rec.w }, { name: 'losses', value: rec.l },
-            { name: 'ties', value: rec.t }, { name: 'points', value: rec.pts },
+            { name: 'wins', value: rec.wins }, { name: 'losses', value: rec.losses },
+            { name: 'ties', value: rec.ties }, { name: 'points', value: rec.pts },
             { name: 'streak', value: streak }
           ]}]},
           standingSummary: standingStr
         }
-      }, lastG ? bld(lastG, true) : null, nextG ? bld(nextG, false) : null);
+      }, lastEvent, upcoming);
 
     } catch (e) {
       STL.render.renderError(team, 'Failed to load CITY2 data');

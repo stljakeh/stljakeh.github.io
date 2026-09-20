@@ -279,7 +279,7 @@ STL.render = {
       }
     }
 
-    if (upcomingEvent && STL.utils.isGameDay(upcomingEvent)) {
+    if (upcomingEvent && STL.utils.isGameDay(upcomingEvent) && team.leagueSlug !== 'mlsnp') {
       await STL.api.fetchLineup(team, upcomingEvent);
     }
 
