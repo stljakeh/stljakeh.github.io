@@ -1,0 +1,247 @@
+﻿{
+    "fetchedAt":  "2026-09-20T21:36:36.883Z",
+    "team":  {
+                 "logos":  [
+                               {
+                                   "href":  "https://upload.wikimedia.org/wikipedia/commons/7/7e/St._Louis_City_SC_II.png"
+                               }
+                           ],
+                 "displayName":  "CITY2",
+                 "record":  {
+                                "items":  [
+                                              {
+                                                  "stats":  [
+                                                                {
+                                                                    "name":  "wins",
+                                                                    "value":  10
+                                                                },
+                                                                {
+                                                                    "name":  "losses",
+                                                                    "value":  8
+                                                                },
+                                                                {
+                                                                    "name":  "ties",
+                                                                    "value":  10
+                                                                },
+                                                                {
+                                                                    "name":  "points",
+                                                                    "value":  44
+                                                                },
+                                                                {
+                                                                    "name":  "streak",
+                                                                    "value":  -1
+                                                                }
+                                                            ]
+                                              }
+                                          ]
+                            },
+                 "standingSummary":  "6th in Western Conference"
+             },
+    "lastEvent":  {
+                      "id":  "15421235",
+                      "date":  "2026-09-14T20:00:00.000Z",
+                      "competitions":  [
+                                           {
+                                               "date":  "2026-09-14T20:00:00.000Z",
+                                               "seasonType":  {
+                                                                  "name":  "MLS Next Pro 2026"
+                                                              },
+                                               "status":  {
+                                                              "type":  {
+                                                                           "completed":  true,
+                                                                           "state":  "post",
+                                                                           "detail":  "AP"
+                                                                       },
+                                                              "displayClock":  null
+                                                          },
+                                               "venue":  {
+                                                             "fullName":  ""
+                                                         },
+                                               "broadcasts":  [
+                                                                  {
+                                                                      "media":  {
+                                                                                    "shortName":  "MLSNextPro.com"
+                                                                                }
+                                                                  }
+                                                              ],
+                                               "competitors":  [
+                                                                   {
+                                                                       "team":  {
+                                                                                    "id":  "197063",
+                                                                                    "abbreviation":  "PII",
+                                                                                    "displayName":  "Portland Timbers II"
+                                                                                },
+                                                                       "homeAway":  "home",
+                                                                       "score":  {
+                                                                                     "displayValue":  "7"
+                                                                                 },
+                                                                       "winner":  true
+                                                                   },
+                                                                   {
+                                                                       "team":  {
+                                                                                    "id":  "411361",
+                                                                                    "abbreviation":  "SAI",
+                                                                                    "displayName":  "Saint Louis City SC 2"
+                                                                                },
+                                                                       "homeAway":  "away",
+                                                                       "score":  {
+                                                                                     "displayValue":  "6"
+                                                                                 },
+                                                                       "winner":  false
+                                                                   }
+                                                               ]
+                                           }
+                                       ]
+                  },
+    "nextEvent":  {
+                      "id":  "15421247",
+                      "date":  "2026-09-20T21:00:00.000Z",
+                      "competitions":  [
+                                           {
+                                               "date":  "2026-09-20T21:00:00.000Z",
+                                               "seasonType":  {
+                                                                  "name":  "MLS Next Pro 2026"
+                                                              },
+                                               "status":  {
+                                                              "type":  {
+                                                                           "state":  "in",
+                                                                           "completed":  false,
+                                                                           "detail":  "1st half",
+                                                                           "displayClock":  null
+                                                                       },
+                                                              "displayClock":  null
+                                                          },
+                                               "venue":  {
+                                                             "fullName":  ""
+                                                         },
+                                               "broadcasts":  [
+                                                                  {
+                                                                      "media":  {
+                                                                                    "shortName":  "MLSNextPro.com"
+                                                                                }
+                                                                  }
+                                                              ],
+                                               "competitors":  [
+                                                                   {
+                                                                       "team":  {
+                                                                                    "id":  "411361",
+                                                                                    "abbreviation":  "SAI",
+                                                                                    "displayName":  "Saint Louis City SC 2"
+                                                                                },
+                                                                       "homeAway":  "home",
+                                                                       "score":  {
+                                                                                     "displayValue":  "0"
+                                                                                 },
+                                                                       "winner":  null
+                                                                   },
+                                                                   {
+                                                                       "team":  {
+                                                                                    "id":  "467301",
+                                                                                    "abbreviation":  "AUS",
+                                                                                    "displayName":  "Austin FC II"
+                                                                                },
+                                                                       "homeAway":  "away",
+                                                                       "score":  {
+                                                                                     "displayValue":  "1"
+                                                                                 },
+                                                                       "winner":  null
+                                                                   }
+                                                               ]
+                                           }
+                                       ]
+                  },
+    "live":  {
+                 "event":  {
+                               "id":  "15421247",
+                               "date":  "2026-09-20T21:00:00.000Z",
+                               "competitions":  [
+                                                    {
+                                                        "date":  "2026-09-20T21:00:00.000Z",
+                                                        "seasonType":  {
+                                                                           "name":  "MLS Next Pro 2026"
+                                                                       },
+                                                        "status":  {
+                                                                       "type":  {
+                                                                                    "state":  "in",
+                                                                                    "completed":  false,
+                                                                                    "detail":  "1st half",
+                                                                                    "displayClock":  null
+                                                                                },
+                                                                       "displayClock":  null
+                                                                   },
+                                                        "venue":  {
+                                                                      "fullName":  ""
+                                                                  },
+                                                        "broadcasts":  [
+                                                                           {
+                                                                               "media":  {
+                                                                                             "shortName":  "MLSNextPro.com"
+                                                                                         }
+                                                                           }
+                                                                       ],
+                                                        "competitors":  [
+                                                                            {
+                                                                                "team":  {
+                                                                                             "id":  "411361",
+                                                                                             "abbreviation":  "SAI",
+                                                                                             "displayName":  "Saint Louis City SC 2"
+                                                                                         },
+                                                                                "homeAway":  "home",
+                                                                                "score":  {
+                                                                                              "displayValue":  "0"
+                                                                                          },
+                                                                                "winner":  null
+                                                                            },
+                                                                            {
+                                                                                "team":  {
+                                                                                             "id":  "467301",
+                                                                                             "abbreviation":  "AUS",
+                                                                                             "displayName":  "Austin FC II"
+                                                                                         },
+                                                                                "homeAway":  "away",
+                                                                                "score":  {
+                                                                                              "displayValue":  "1"
+                                                                                          },
+                                                                                "winner":  null
+                                                                            }
+                                                                        ]
+                                                    }
+                                                ]
+                           },
+                 "competitors":  [
+                                     {
+                                         "team":  {
+                                                      "id":  "411361",
+                                                      "abbreviation":  "SAI",
+                                                      "displayName":  "Saint Louis City SC 2"
+                                                  },
+                                         "homeAway":  "home",
+                                         "score":  {
+                                                       "displayValue":  "0"
+                                                   },
+                                         "winner":  null
+                                     },
+                                     {
+                                         "team":  {
+                                                      "id":  "467301",
+                                                      "abbreviation":  "AUS",
+                                                      "displayName":  "Austin FC II"
+                                                  },
+                                         "homeAway":  "away",
+                                         "score":  {
+                                                       "displayValue":  "1"
+                                                   },
+                                         "winner":  null
+                                     }
+                                 ],
+                 "status":  {
+                                "type":  {
+                                             "state":  "in",
+                                             "completed":  false,
+                                             "detail":  "1st half",
+                                             "displayClock":  null
+                                         },
+                                "displayClock":  null
+                            }
+             }
+}

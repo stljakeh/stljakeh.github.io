@@ -2,12 +2,6 @@ window.STL = window.STL || {};
 
 STL.config = {
   CITY2_CP: 'https://proxy.cors.sh/',
-  SOFA: {
-    CITY2_TEAM: 411361,
-    MLS_NP_TOURNAMENT: 18641,
-    MLS_NP_SEASON: 89065,
-    HOSTS: ['https://api.sofascore.app', 'https://api.sofascore.com']
-  },
   WEST_CONF: new Set([
     'eV5Dw4EMKn','gOMnJnOMwN','eVq3Z0D5WO','2lqRX1AMr0',
     'ljqE94Vqx0','2vQ14GKqrA','7VqG1oWMvW',
@@ -105,7 +99,6 @@ STL.config = {
       leagueSlug: 'mlsnp',
       cardClass: 'city2',
       icon: 'CITY',
-      sofaId: 411361,
       links: [
         { text: 'Official Site', href: 'https://www.stlcitysc.com/city2/' },
         { text: 'Schedule', href: 'https://www.mlsnextpro.com/clubs/st-louis-city2/schedule/' },
