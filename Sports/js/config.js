@@ -1,7 +1,7 @@
 window.STL = window.STL || {};
 
 STL.config = {
-  CITY2_CP: 'https://proxy.cors.sh/',
+  CITY2_CP: 'https://corsproxy.io/?',
   WEST_CONF: new Set([
     'eV5Dw4EMKn','gOMnJnOMwN','eVq3Z0D5WO','2lqRX1AMr0',
     'ljqE94Vqx0','2vQ14GKqrA','7VqG1oWMvW',
