@@ -241,43 +241,46 @@ STL.api = {
         if (entry.value != null) return String(entry.value);
         return '';
       };
+      const SKIP_LABEL = '__SKIP__';
       const labelFor = function(entry, idx) {
         if (entry && typeof entry === 'object') {
           const n = parseInt(entry.number, 10);
           if (!isNaN(n)) return n <= 3 ? String(n) : (n === 4 ? 'OT' : n === 5 ? 'SO' : String(n));
-          if (entry.displayValue) return String(entry.displayValue);
+          if (entry.name) {
+            const nm = String(entry.name).trim().replace(/[^a-z0-9]/gi, '').toLowerCase();
+            if (nm === 't' || nm === 'tot' || nm === 'total' || nm === 'f' || nm === 'fin' || nm === 'final' || nm === 'ft') return SKIP_LABEL;
+            if (nm === 'ot' || nm === 'ovt' || nm === 'overtime') return 'OT';
+            if (nm === 'so' || nm === 'shootout' || nm === 'ps') return 'SO';
+            const dm = nm.match(/^(\d+)$/);
+            if (dm) return sport === 'basketball' ? 'Q' + dm[1] : dm[1];
+            const qm = nm.match(/^q(\d+)$/) || nm.match(/^(\d+)q(r|t)?$/);
+            if (qm) return 'Q' + qm[1];
+            const hm = nm.match(/^(\d+)h(alf)?$/);
+            if (hm) return hm[1] + 'H';
+          }
         }
         return String((idx || 0) + 1);
+      };
+      const pushParts = function(la, lb) {
+        const len = Math.max(la.length, lb.length);
+        for (let i = 0; i < len; i++) {
+          const label = labelFor(la[i] || lb[i] || { number: i + 1 }, i);
+          if (label === SKIP_LABEL) continue;
+          bs.parts.push({ label: label, home: lineVal(la[i]), away: lineVal(lb[i]) });
+        }
+        bs.parts.push({ label: 'T', home: bs.header.home.score, away: bs.header.away.score });
       };
 
       const homeLS = home.linescores;
       const awayLS = away.linescores;
       if (homeLS && awayLS && homeLS.length && awayLS.length) {
-        const len = Math.max(homeLS.length, awayLS.length);
-        for (let i = 0; i < len; i++) {
-          bs.parts.push({
-            label: labelFor(homeLS[i] || awayLS[i] || { number: i + 1 }, i),
-            home: lineVal(homeLS[i]),
-            away: lineVal(awayLS[i])
-          });
-        }
-        bs.parts.push({ label: 'T', home: bs.header.home.score, away: bs.header.away.score });
+        pushParts(homeLS, awayLS);
       } else if (data?.boxscore?.teams) {
         const hb = data.boxscore.teams.find(t => String(t.team?.id) === String(home.team?.id));
         const ab = data.boxscore.teams.find(t => String(t.team?.id) === String(away.team?.id));
         const hls = hb && hb.linescores;
         const als = ab && ab.linescores;
-        if (hls && als && hls.length && als.length) {
-          const len = Math.max(hls.length, als.length);
-          for (let i = 0; i < len; i++) {
-            bs.parts.push({
-              label: labelFor(hls[i] || als[i] || { number: i + 1 }, i),
-              home: lineVal(hls[i]),
-              away: lineVal(als[i])
-            });
-          }
-          bs.parts.push({ label: 'T', home: bs.header.home.score, away: bs.header.away.score });
-        }
+        if (hls && als && hls.length && als.length) pushParts(hls, als);
       }
 
       const plays = data?.scoringPlays || [];
@@ -324,6 +327,7 @@ STL.api = {
         const skaters = [];
         for (const blk of data.boxscore.players) {
           const tri = String(blk.team?.id || '');
+          if (tri !== String(team.id)) continue;
           const abbr = abbrFor(tri) || blk.team?.abbreviation || '';
           const cats = blk.statistics || [];
           for (const cat of cats) {
@@ -352,6 +356,7 @@ STL.api = {
         bs.skaters = skaters;
         for (const blk of data.boxscore.players) {
           const tri = String(blk.team?.id || '');
+          if (tri !== String(team.id)) continue;
           const gstat = (blk.statistics || []).find(s => s.name === 'goalies');
           if (gstat && gstat.athletes) {
             for (const a of gstat.athletes) {
