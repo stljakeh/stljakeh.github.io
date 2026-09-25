@@ -281,7 +281,11 @@ STL.api = {
         if (hls && als && hls.length && als.length) pushParts(hls, als);
       }
 
-      const plays = data?.scoringPlays || [];
+      let plays = data?.scoringPlays || [];
+      if (!plays.length) {
+        const dets = data?.header?.competitions?.[0]?.details || data?.competitions?.[0]?.details || [];
+        plays = dets.filter(function(d) { return d && d.scoringPlay === true; });
+      }
       if (plays.length) {
         const periodLabel = function(p) {
           if (p && typeof p === 'object') {
@@ -302,8 +306,8 @@ STL.api = {
             const scorer = pNames[0];
             const assists = pNames.slice(1);
             text = scorer + (assists.length ? ' (' + assists.join(', ') + ')' : '');
-          } else if (play.description || play.textDescription) {
-            text = play.description || play.textDescription;
+          } else if (play.text || play.description || play.textDescription) {
+            text = play.text || play.description || play.textDescription;
           } else {
             continue;
           }
