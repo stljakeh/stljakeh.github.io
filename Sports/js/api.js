@@ -281,13 +281,33 @@ STL.api = {
         if (hls && als && hls.length && als.length) pushParts(hls, als);
       }
 
+      const isGoalType = function(d) {
+        const t = d && d.type && (d.type.text || d.type.name);
+        return !!t && /goal|touchdown|home.?run|field goal|extra point|two.?point|safety|dunk|layup|three.?point|free throw/i.test(String(t));
+      };
+      const playSources = [
+        data?.header?.competitions?.[0]?.details,
+        data?.competitions?.[0]?.details,
+        data?.plays
+      ];
       let plays = data?.scoringPlays || [];
       if (!plays.length) {
-        const dets = data?.header?.competitions?.[0]?.details || data?.competitions?.[0]?.details || [];
-        plays = dets.filter(function(d) { return d && d.scoringPlay === true; });
+        for (const src of playSources) {
+          if (!src || !src.length) continue;
+          const flagged = src.filter(function(d) { return d && d.scoringPlay === true; });
+          if (flagged.length) { plays = flagged; break; }
+        }
+      }
+      if (!plays.length) {
+        for (const src of playSources) {
+          if (!src || !src.length) continue;
+          const typed = src.filter(function(d) { return d && isGoalType(d); });
+          if (typed.length) { plays = typed; break; }
+        }
       }
       if (plays.length) {
         const periodLabel = function(p) {
+          if (typeof p === 'number') return p <= 3 ? ['1st', '2nd', '3rd'][p - 1] : (p === 4 ? 'OT' : p === 5 ? 'SO' : String(p));
           if (p && typeof p === 'object') {
             const n = parseInt(p.number, 10);
             if (!isNaN(n)) return n <= 3 ? ['1st', '2nd', '3rd'][n - 1] : (n === 4 ? 'OT' : n === 5 ? 'SO' : String(n));
@@ -306,8 +326,8 @@ STL.api = {
             const scorer = pNames[0];
             const assists = pNames.slice(1);
             text = scorer + (assists.length ? ' (' + assists.join(', ') + ')' : '');
-          } else if (play.text || play.description || play.textDescription) {
-            text = play.text || play.description || play.textDescription;
+          } else if (play.text || play.shortText || play.description || play.textDescription) {
+            text = play.text || play.shortText || play.description || play.textDescription;
           } else {
             continue;
           }
