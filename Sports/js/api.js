@@ -1,4 +1,4 @@
-﻿window.STL = window.STL || {};
+window.STL = window.STL || {};
 
 STL.api = {
 
@@ -229,8 +229,6 @@ STL.api = {
         },
         parts: [],
         scoring: [],
-        skaters: [],
-        goalies: [],
         teamStats: []
       };
 
@@ -322,59 +320,6 @@ STL.api = {
         }
       }
 
-      if (sport === 'hockey' && data?.boxscore?.players) {
-        const num = function(x) { const n = parseInt(x, 10); return isNaN(n) ? null : n; };
-        const skaters = [];
-        for (const blk of data.boxscore.players) {
-          const tri = String(blk.team?.id || '');
-          if (tri !== String(team.id)) continue;
-          const abbr = abbrFor(tri) || blk.team?.abbreviation || '';
-          const cats = blk.statistics || [];
-          for (const cat of cats) {
-            if (cat.name !== 'forwards' && cat.name !== 'defenses') continue;
-            for (const a of (cat.athletes || [])) {
-              const av = a.stats || a.statistics;
-              let g = null, aa = null, pm = null;
-              if (Array.isArray(av)) {
-                g = num(av[0]);
-                aa = num(av[1]);
-                pm = num(av[2]);
-              }
-              skaters.push({
-                abbr: abbr,
-                ours: tri === String(team.id),
-                name: (a.athlete && a.athlete.displayName) || '',
-                pos: (a.athlete && a.athlete.position && a.athlete.position.abbreviation) || '',
-                g: g,
-                a: aa,
-                p: (g != null && aa != null) ? g + aa : null,
-                pm: pm != null ? (pm > 0 ? '+' + pm : String(pm)) : null
-              });
-            }
-          }
-        }
-        bs.skaters = skaters;
-        for (const blk of data.boxscore.players) {
-          const tri = String(blk.team?.id || '');
-          if (tri !== String(team.id)) continue;
-          const gstat = (blk.statistics || []).find(s => s.name === 'goalies');
-          if (gstat && gstat.athletes) {
-            for (const a of gstat.athletes) {
-              const av = a.stats || a.statistics;
-              bs.goalies.push({
-                abbr: abbrFor(tri) || blk.team?.abbreviation || '',
-                ours: tri === String(team.id),
-                name: (a.athlete && a.athlete.displayName) || '',
-                sa: (Array.isArray(av) && !isNaN(parseInt(av[0], 10))) ? parseInt(av[0], 10) : null,
-                ga: (Array.isArray(av) && !isNaN(parseInt(av[1], 10))) ? parseInt(av[1], 10) : null,
-                sv: (Array.isArray(av) && !isNaN(parseInt(av[2], 10))) ? parseInt(av[2], 10) : null,
-                svpct: (Array.isArray(av) && av[3] != null) ? String(av[3]) : null
-              });
-            }
-          }
-        }
-      }
-
       if (data?.boxscore?.teams) {
         for (const blk of data.boxscore.teams) {
           const tri = String(blk.team?.id || '');
@@ -407,7 +352,7 @@ STL.api = {
         }
       }
 
-      if (!bs.parts.length && !bs.scoring.length && !bs.skaters.length && !bs.goalies.length && !bs.teamStats.length) return null;
+      if (!bs.parts.length && !bs.scoring.length && !bs.teamStats.length) return null;
       return bs;
     } catch (e) { return null; }
   },

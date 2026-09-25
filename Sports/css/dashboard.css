@@ -290,7 +290,6 @@ header h1 {
 .bs-row .bs-scorer { color: #ccc; }
 .bs-row.ours .bs-scorer { color: #58a6ff; font-weight: 600; }
 .bs-row .bs-abbr { margin-left: auto; color: #666; }
-.bs-name { min-width: 130px; }
 .lineup-row { display: flex; gap: 8px; align-items: baseline; }
 .lineup-row .order { color: #555; min-width: 18px; text-align: right; }
 .lineup-row .pos { color: #777; min-width: 28px; font-weight: 600; }

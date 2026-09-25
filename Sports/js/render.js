@@ -242,36 +242,6 @@ STL.render = {
       html += '</div>';
     }
 
-    if (bs.skaters.length) {
-      const rows = bs.skaters.map(function(s) {
-        return '<tr class="' + (s.ours ? 'bs-ours' : '') + '">' +
-          '<td class="bs-name">' + s.name + '</td>' +
-          '<td>' + (s.g != null ? s.g : '-') + '</td>' +
-          '<td>' + (s.a != null ? s.a : '-') + '</td>' +
-          '<td>' + (s.p != null ? s.p : '-') + '</td>' +
-          '<td>' + (s.pm != null ? s.pm : '-') + '</td>' +
-        '</tr>';
-      }).join('');
-      html += '<div class="lineup-header">Skaters</div>' +
-        '<table class="bs-parts bs-skaters"><thead><tr><th class="bs-name">Player</th><th>G</th><th>A</th><th>P</th><th>+/-</th></tr></thead><tbody>' +
-        rows + '</tbody></table>';
-    }
-
-    if (bs.goalies.length) {
-      const rows = bs.goalies.map(function(g) {
-        return '<tr class="' + (g.ours ? 'bs-ours' : '') + '">' +
-          '<td class="bs-name">' + g.name + '</td>' +
-          '<td>' + (g.sa != null ? g.sa : '-') + '</td>' +
-          '<td>' + (g.ga != null ? g.ga : '-') + '</td>' +
-          '<td>' + (g.sv != null ? g.sv : '-') + '</td>' +
-          '<td>' + (g.svpct != null ? g.svpct : '-') + '</td>' +
-        '</tr>';
-      }).join('');
-      html += '<div class="lineup-header">Goalies</div>' +
-        '<table class="bs-parts"><thead><tr><th class="bs-name">Player</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th></tr></thead><tbody>' +
-        rows + '</tbody></table>';
-    }
-
     return html;
   },
 
