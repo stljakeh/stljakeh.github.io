@@ -68,9 +68,5 @@ STL.utils = {
       return { text: 'Playoffs', className: 'status-playoffs' };
     }
     return { text: 'Active', className: 'status-active' };
-  },
-
-  c2url: function(url) {
-    return STL.config.ASA_CP + encodeURIComponent(url);
   }
 };

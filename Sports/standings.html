@@ -112,50 +112,56 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 </div>
 
 <script>
-var ASAWEST = [
-  { asa: 'pzeQZ6xQKw', espn: '184', abbr: 'COL' },
-  { asa: 'mKAqBBmqbg', espn: '185', abbr: 'DAL' },
-  { asa: 'Z2vQ1xlqrA', espn: '186', abbr: 'SKC' },
-  { asa: 'kaDQ0wRqEv', espn: '187', abbr: 'LAG' },
-  { asa: 'YgOMngl5wN', espn: '6077', abbr: 'HOU' },
-  { asa: 'a2lqR4JMr0', espn: '4771', abbr: 'RSL' },
-  { asa: '0KPqjA456v', espn: '191', abbr: 'SJ' },
-  { asa: 'WBLMvYAQxe', espn: '9723', abbr: 'POR' },
-  { asa: 'jYQJ19EqGR', espn: '9726', abbr: 'SEA' },
-  { asa: 'lgpMOvnQzy', espn: '9727', abbr: 'VAN' },
-  { asa: 'kRQand1MKZ', espn: '17362', abbr: 'MIN' },
-  { asa: 'eVq3ya6MWO', espn: '18966', abbr: 'LAFC' },
-  { asa: 'gpMOLwl5zy', espn: '20906', abbr: 'ATX' },
-  { asa: 'wvq9B9wQWn', espn: '21812', abbr: 'STL' },
-  { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
+// Western Conference: MLS three-letter code -> ESPN team id (for logos + highlight).
+// Verified against stats-api 2026-09-25 (30 codes league-wide; LAG's code is 'LA').
+var MLSWEST = [
+  { code: 'COL', espn: '184' },
+  { code: 'DAL', espn: '185' },
+  { code: 'SKC', espn: '186' },
+  { code: 'LA', espn: '187' },
+  { code: 'HOU', espn: '6077' },
+  { code: 'RSL', espn: '4771' },
+  { code: 'SJ', espn: '191' },
+  { code: 'POR', espn: '9723' },
+  { code: 'SEA', espn: '9726' },
+  { code: 'VAN', espn: '9727' },
+  { code: 'MIN', espn: '17362' },
+  { code: 'LAFC', espn: '18966' },
+  { code: 'ATX', espn: '20906' },
+  { code: 'STL', espn: '21812' },
+  { code: 'SD', espn: '22529' }
 ];
 
-// Proxy knob: keep in sync with STL.config.ASA_CP in js/config.js. Swap this if blocked.
-var ASA_CP = 'https://api.cors.lol/?url=';
-function c2url(url) { return ASA_CP + encodeURIComponent(url); }
+// MLS season id is per-season; next year's comes from mlssoccer.com's currentSeasonSportecId.
+var MLS_SEASON_ID = 'MLS-SEA-0001KA';
+var MLS_COMPETITION_ID = 'MLS-COM-000001';
 
-function cachedFetch(url, ttlMs) {
-  var key = 'asa_' + btoa(url);
+// Direct fetch with localStorage cache. stats-api.mlssoccer.com sends
+// Access-Control-Allow-Origin: *, so no CORS proxy is needed.
+function cachedDirectFetch(url, ttlMs) {
+  var key = 'mls_' + btoa(url);
   ttlMs = ttlMs || 3600000;
   try {
     var cached = JSON.parse(localStorage.getItem(key));
     if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
   } catch (e) {}
-  var attempts = 0;
-  function fetchOnce() {
-    attempts++;
-    return fetch(c2url(url)).then(function(r) {
-      if (r.status === 429 && attempts < 4) {
-        return new Promise(function(res) { setTimeout(res, 1500 * attempts); }).then(fetchOnce);
-      }
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function(data) {
-      try { localStorage.setItem(key, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
-      return data;
-    });
-  }
-  return fetchOnce();
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(data) {
+    try { localStorage.setItem(key, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    return data;
+  });
+}
+
+function fetchMlsMatches() {
+  var url = 'https://stats-api.mlssoccer.com/matches/seasons/' + MLS_SEASON_ID +
+    '?competition_id=' + MLS_COMPETITION_ID +
+    '&match_date%5Bgte%5D=2026-02-01&match_date%5Blte%5D=2026-12-31' +
+    '&per_page=1000&sort=planned_kickoff_time%3Aasc';
+  return cachedDirectFetch(url, 6 * 3600000).then(function(data) {
+    return (data && data.schedule) || [];
+  });
 }
 
 var DIVISIONS = [
@@ -216,9 +222,8 @@ async function loadStandings() {
   var container = document.getElementById('standingsContent');
   var sub = document.getElementById('feedSub');
   try {
-    // Kick off ASA fetches in parallel with ESPN so proxy latency overlaps.
-    var asaGamesP = cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
-    var asaTeamsP = cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/teams', 6 * 3600000);
+    // Kick off the MLS fetch alongside ESPN; render ESPN first, patch MLS in after.
+    var mlsMatchesP = fetchMlsMatches();
     var results = await Promise.all(DIVISIONS.map(function(d) {
       return fetch(d.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
     }));
@@ -229,8 +234,8 @@ async function loadStandings() {
     var mlsResult = results[2];
     if (mlsResult) {
       try {
-        var asaData = await Promise.all([asaGamesP, asaTeamsP]);
-        if (applyAsaOverride(mlsResult, asaData[0], asaData[1])) {
+        var matches = await mlsMatchesP;
+        if (applyMlsOverride(mlsResult, matches)) {
           renderTables(results);
         }
       } catch (e) {}
@@ -251,38 +256,39 @@ function espnMlsEntries(mlsResult) {
   return [];
 }
 
-function applyAsaOverride(mlsResult, asaGames, asaTeams) {
-  if (!asaGames || !asaGames.length || !asaTeams || !asaTeams.length) return false;
-  // ESPN fallback streak per team so a missing ASA form never renders a blank cell.
+function applyMlsOverride(mlsResult, matches) {
+  if (!matches || !matches.length) return false;
+  // ESPN fallback streak per team so a missing MLS form never renders a blank cell.
   var espnStreakById = {};
   espnMlsEntries(mlsResult).forEach(function(e) {
     var s = getStat(e.stats || [], 'streak');
     if (e.team && e.team.id != null && s) espnStreakById[String(e.team.id)] = s.displayValue || String(s.value);
   });
   var std = {};
-  for (var gi = 0; gi < asaGames.length; gi++) {
-    var g = asaGames[gi];
-    if (g.status !== 'FullTime' || g.home_score == null || g.away_score == null) continue;
-    if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, d:0, pts:0 };
-    if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, d:0, pts:0 };
-    if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
-    else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
-    else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
+  var names = {};
+  var formGames = {};
+  for (var i = 0; i < matches.length; i++) {
+    var m = matches[i];
+    if (m.match_status !== 'finalWhistle') continue;
+    var hc = m.home_team_three_letter_code;
+    var ac = m.away_team_three_letter_code;
+    if (hc == null || ac == null || m.home_team_goals == null || m.away_team_goals == null) continue;
+    if (!std[hc]) std[hc] = { w:0, l:0, d:0, pts:0 };
+    if (!std[ac]) std[ac] = { w:0, l:0, d:0, pts:0 };
+    names[hc] = m.home_team_name;
+    names[ac] = m.away_team_name;
+    if (m.home_team_goals > m.away_team_goals) { std[hc].w++; std[hc].pts += 3; std[ac].l++; }
+    else if (m.away_team_goals > m.home_team_goals) { std[ac].w++; std[ac].pts += 3; std[hc].l++; }
+    else { std[hc].d++; std[ac].d++; std[hc].pts++; std[ac].pts++; }
+    if (!formGames[hc]) formGames[hc] = [];
+    if (!formGames[ac]) formGames[ac] = [];
+    formGames[hc].push({ code: hc, score: m.home_team_goals, oppScore: m.away_team_goals, date: m.planned_kickoff_time });
+    formGames[ac].push({ code: ac, score: m.away_team_goals, oppScore: m.home_team_goals, date: m.planned_kickoff_time });
   }
-  var streaks = {};
-  for (var si = 0; si < asaGames.length; si++) {
-    var sg = asaGames[si];
-    if (sg.status !== 'FullTime' || sg.home_score == null || sg.away_score == null) continue;
-    if (!streaks[sg.home_team_id]) streaks[sg.home_team_id] = [];
-    if (!streaks[sg.away_team_id]) streaks[sg.away_team_id] = [];
-    streaks[sg.home_team_id].push({ teamId: sg.home_team_id, score: sg.home_score, oppScore: sg.away_score, date: sg.date_time_utc });
-    streaks[sg.away_team_id].push({ teamId: sg.away_team_id, score: sg.away_score, oppScore: sg.home_score, date: sg.date_time_utc });
-  }
-  var newEntries = ASAWEST.map(function(t) {
-    var s = std[t.asa] || { w:0, l:0, d:0, pts:0 };
-    var at = asaTeams.find(function(x) { return x.team_id === t.asa; });
-    var name = at ? at.team_name : '?';
-    var formArr = (streaks[t.asa] || [])
+  var newEntries = MLSWEST.map(function(t) {
+    var s = std[t.code] || { w:0, l:0, d:0, pts:0 };
+    var name = names[t.code] || '?';
+    var formArr = (formGames[t.code] || [])
       .sort(function(a, b) { return new Date(b.date) - new Date(a.date); })
       .slice(0, 5)
       .map(function(g) {

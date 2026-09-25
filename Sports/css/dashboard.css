@@ -268,15 +268,19 @@ header h1 {
 .bs-parts th:first-child { text-align: left; }
 .bs-parts td { text-align: right; padding: 2px 6px; color: #bbb; font-variant-numeric: tabular-nums; }
 .bs-parts td:first-child { text-align: left; font-weight: 600; color: #ddd; }
-.bs-parts .bs-ours td:first-child, .bs-ours td:first-child { color: #58a6ff; }
-.bs-ours td { color: #a3c4ff; }
+.bs-parts .bs-ours td:first-child, .bs-ours td:first-child { font-weight: 700; }
 .bs-stats { color: #888; font-size: 0.7rem; margin: 0 0 8px; }
-.bs-stat-ours { color: #58a6ff; }
+.cardinals .bs-ours td, .cardinals .bs-ours td:first-child, .cardinals .bs-stat-ours, .cardinals .bs-head .bs-stl, .cardinals .bs-row.ours .bs-scorer { color: #EC5F78; }
+.blues .bs-ours td, .blues .bs-ours td:first-child, .blues .bs-stat-ours, .blues .bs-head .bs-stl, .blues .bs-row.ours .bs-scorer { color: #FCB514; }
+.city-sc .bs-ours td, .city-sc .bs-ours td:first-child, .city-sc .bs-stat-ours, .city-sc .bs-head .bs-stl, .city-sc .bs-row.ours .bs-scorer { color: #F4507E; }
+.battlehawks .bs-ours td, .battlehawks .bs-ours td:first-child, .battlehawks .bs-stat-ours, .battlehawks .bs-head .bs-stl, .battlehawks .bs-row.ours .bs-scorer { color: #5AA1E0; }
+.cougars .bs-ours td, .cougars .bs-ours td:first-child, .cougars .bs-stat-ours, .cougars .bs-head .bs-stl, .cougars .bs-row.ours .bs-scorer { color: #F04A62; }
+.cougars-soccer .bs-ours td, .cougars-soccer .bs-ours td:first-child, .cougars-soccer .bs-stat-ours, .cougars-soccer .bs-head .bs-stl, .cougars-soccer .bs-row.ours .bs-scorer { color: #E05262; }
 .bs-scoring { margin-top: 4px; }
 .bs-row { display: flex; gap: 8px; align-items: baseline; padding: 1px 0; }
 .bs-row .bs-clock { color: #555; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
 .bs-row .bs-scorer { color: #ccc; }
-.bs-row.ours .bs-scorer { color: #58a6ff; font-weight: 600; }
+.bs-row.ours .bs-scorer { font-weight: 600; }
 .bs-row .bs-abbr { margin-left: auto; color: #666; }
 .lineup-row { display: flex; gap: 8px; align-items: baseline; }
 .lineup-row .order { color: #555; min-width: 18px; text-align: right; }

@@ -1,23 +1,26 @@
 window.STL = window.STL || {};
 
 STL.config = {
-  ASA_CP: 'https://api.cors.lol/?url=',
-  ASA_WEST: [
-    { asa: 'pzeQZ6xQKw', espn: '184', abbr: 'COL' },
-    { asa: 'mKAqBBmqbg', espn: '185', abbr: 'DAL' },
-    { asa: 'Z2vQ1xlqrA', espn: '186', abbr: 'SKC' },
-    { asa: 'kaDQ0wRqEv', espn: '187', abbr: 'LAG' },
-    { asa: 'YgOMngl5wN', espn: '6077', abbr: 'HOU' },
-    { asa: 'a2lqR4JMr0', espn: '4771', abbr: 'RSL' },
-    { asa: '0KPqjA456v', espn: '191', abbr: 'SJ' },
-    { asa: 'WBLMvYAQxe', espn: '9723', abbr: 'POR' },
-    { asa: 'jYQJ19EqGR', espn: '9726', abbr: 'SEA' },
-    { asa: 'lgpMOvnQzy', espn: '9727', abbr: 'VAN' },
-    { asa: 'kRQand1MKZ', espn: '17362', abbr: 'MIN' },
-    { asa: 'eVq3ya6MWO', espn: '18966', abbr: 'LAFC' },
-    { asa: 'gpMOLwl5zy', espn: '20906', abbr: 'ATX' },
-    { asa: 'wvq9B9wQWn', espn: '21812', abbr: 'STL' },
-    { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
+  // MLS season id is per-season; next year's comes from mlssoccer.com's currentSeasonSportecId.
+  MLS_SEASON_ID: 'MLS-SEA-0001KA',
+  MLS_COMPETITION_ID: 'MLS-COM-000001',
+  // Western Conference: MLS three-letter code -> ESPN team id. Codes verified 2026-09-25 (LAG = 'LA').
+  MLSWEST: [
+    { code: 'COL', espn: '184' },
+    { code: 'DAL', espn: '185' },
+    { code: 'SKC', espn: '186' },
+    { code: 'LA', espn: '187' },
+    { code: 'HOU', espn: '6077' },
+    { code: 'RSL', espn: '4771' },
+    { code: 'SJ', espn: '191' },
+    { code: 'POR', espn: '9723' },
+    { code: 'SEA', espn: '9726' },
+    { code: 'VAN', espn: '9727' },
+    { code: 'MIN', espn: '17362' },
+    { code: 'LAFC', espn: '18966' },
+    { code: 'ATX', espn: '20906' },
+    { code: 'STL', espn: '21812' },
+    { code: 'SD', espn: '22529' }
   ],
 
   TEAMS: [

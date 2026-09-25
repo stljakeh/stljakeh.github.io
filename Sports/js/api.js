@@ -68,23 +68,26 @@ STL.api = {
 
   fetchMlsStandings: async function() {
     try {
-      const games = await STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
-      if (!games || !games.length) return;
+      const matches = await STL.api.fetchMlsMatches();
+      if (!matches || !matches.length) return;
 
       const std = {};
-      for (const g of games) {
-        if (g.status !== 'FullTime') continue;
-        if (g.home_score == null || g.away_score == null) continue;
-        for (const id of [g.home_team_id, g.away_team_id]) {
+      for (const m of matches) {
+        if (m.match_status !== 'finalWhistle') continue;
+        if (m.home_team_goals == null || m.away_team_goals == null) continue;
+        const hc = m.home_team_three_letter_code;
+        const ac = m.away_team_three_letter_code;
+        if (!hc || !ac) continue;
+        for (const id of [hc, ac]) {
           if (!std[id]) std[id] = { w: 0, l: 0, d: 0, pts: 0 };
         }
-        if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
-        else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
-        else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
+        if (m.home_team_goals > m.away_team_goals) { std[hc].w++; std[hc].pts += 3; std[ac].l++; }
+        else if (m.away_team_goals > m.home_team_goals) { std[ac].w++; std[ac].pts += 3; std[hc].l++; }
+        else { std[hc].d++; std[ac].d++; std[hc].pts++; std[ac].pts++; }
       }
 
-      const west = STL.config.ASA_WEST.map(function(t) {
-        return { id: t.espn, pts: (std[t.asa] || { pts: 0 }).pts };
+      const west = STL.config.MLSWEST.map(function(t) {
+        return { id: t.espn, pts: (std[t.code] || { pts: 0 }).pts };
       });
       west.sort(function(a, b) { return b.pts - a.pts || a.id.localeCompare(b.id); });
       west.forEach(function(t, i) {
@@ -441,11 +444,15 @@ STL.api = {
     } catch (e) {}
   },
 
-  /* ASA-sourced data (MLS standings override): fetches via ASA + CORS proxy with localStorage caching */
+  /* MLS-official data: stats-api.mlssoccer.com sends CORS *, so plain fetch with localStorage caching */
 
-  fetchAsa: async function(url, ttlMs) {
-    const cacheKey = 'asa_cache_' + btoa(url);
-    ttlMs = ttlMs || 7 * 86400000;
+  fetchMlsMatches: async function() {
+    const url = 'https://stats-api.mlssoccer.com/matches/seasons/' + STL.config.MLS_SEASON_ID +
+      '?competition_id=' + STL.config.MLS_COMPETITION_ID +
+      '&match_date%5Bgte%5D=2026-02-01&match_date%5Blte%5D=2026-12-31' +
+      '&per_page=1000&sort=planned_kickoff_time%3Aasc';
+    const cacheKey = 'mls_cache_' + btoa(url);
+    const ttlMs = 6 * 3600000;
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -453,24 +460,18 @@ STL.api = {
         if (Date.now() < parsed.expiry) return parsed.data;
       }
     } catch (e) {}
-    for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const matches = (data && data.schedule) || [];
       try {
-        const resp = await fetch(STL.utils.c2url(url));
-        if (resp.status === 429) {
-          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-          continue;
-        }
-        if (!resp.ok) return [];
-        const data = await resp.json();
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
-        } catch (e) {}
-        return data;
-      } catch (e) {
-        if (attempt === 3) return [];
-      }
+        localStorage.setItem(cacheKey, JSON.stringify({ data: matches, expiry: Date.now() + ttlMs }));
+      } catch (e) {}
+      return matches;
+    } catch (e) {
+      return [];
     }
-    return [];
   },
 
   findNextGameFromScoreboard: async function(team, startDate) {

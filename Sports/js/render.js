@@ -191,21 +191,27 @@ STL.render = {
     }
     if (!bs) return null;
     const isLive = !!bs.isLive;
-    const isHome = bs.header.home.id === String(team.id);
-    const home = isHome ? bs.header.home : bs.header.away;
-    const away = isHome ? bs.header.away : bs.header.home;
+    const stlIsAway = bs.header.away.id === String(team.id);
+    const away = bs.header.away;
+    const home = bs.header.home;
+
+    const stlSpan = function(side, text) {
+      const isStl = (stlIsAway && side === 'away') || (!stlIsAway && side === 'home');
+      return isStl ? '<span class="bs-stl">' + text + '</span>' : text;
+    };
 
     let html = '';
     const statusLabel = isLive ? 'LIVE' : 'FINAL';
-    html += '<div class="bs-head">' + statusLabel + ' &middot; ' + home.abbr + ' ' + home.score + ' - ' + away.score + ' ' + away.abbr + '</div>';
+    html += '<div class="bs-head">' + statusLabel + ' &middot; ' +
+      stlSpan('away', away.abbr + ' ' + away.score) + ' - ' + stlSpan('home', home.score + ' ' + home.abbr) + '</div>';
 
     if (bs.parts.length) {
       const head = bs.parts.map(p => '<th>' + p.label + '</th>').join('');
       const homeCells = bs.parts.map(p => '<td>' + p.home + '</td>').join('');
       const awayCells = bs.parts.map(p => '<td>' + p.away + '</td>').join('');
       html += '<table class="bs-parts"><thead><tr><th></th>' + head + '</tr></thead><tbody>' +
-        '<tr class="bs-ours"><td>' + home.abbr + '</td>' + homeCells + '</tr>' +
-        '<tr><td>' + away.abbr + '</td>' + awayCells + '</tr>' +
+        '<tr class="' + (stlIsAway ? 'bs-ours' : '') + '"><td>' + away.abbr + '</td>' + awayCells + '</tr>' +
+        '<tr class="' + (!stlIsAway ? 'bs-ours' : '') + '"><td>' + home.abbr + '</td>' + homeCells + '</tr>' +
         '</tbody></table>';
     }
 
