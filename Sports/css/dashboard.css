@@ -139,7 +139,6 @@ header h1 {
 .blues .card-head::after { background: #003087; }
 .city-sc .card-head::after { background: #E80A4D; }
 .battlehawks .card-head::after { background: #00529B; }
-.city2 .card-head::after { background: #E80A4D; }
 .cougars .card-head::after { background: #E90029; }
 .cougars-soccer .card-head::after { background: #C8102E; }
 .team-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -157,7 +156,6 @@ header h1 {
 .blues .team-icon { background: #003087; color: #FCB514; }
 .city-sc .team-icon { background: #E80A4D; color: #fff; }
 .battlehawks .team-icon { background: #fff; color: #00529B; }
-.city2 .team-icon { background: #E80A4D; color: #fff; }
 .cougars .team-icon { background: #fff; color: #E90029; }
 .cougars-soccer .team-icon { background: #C8102E; color: #fff; }
 .team-name { font-weight: 700; font-size: 1.1rem; }
@@ -217,7 +215,6 @@ header h1 {
 .blues .next-game { background: rgba(0, 48, 135, 0.05); border-left: 3px solid #003087; }
 .city-sc .next-game { background: rgba(232, 10, 77, 0.05); border-left: 3px solid #E80A4D; }
 .battlehawks .next-game { background: rgba(0, 82, 155, 0.05); border-left: 3px solid #00529B; }
-.city2 .next-game { background: rgba(232, 10, 77, 0.05); border-left: 3px solid #E80A4D; }
 .cougars .next-game { background: rgba(233, 0, 41, 0.05); border-left: 3px solid #E90029; }
 .cougars-soccer .next-game { background: rgba(200, 16, 46, 0.05); border-left: 3px solid #C8102E; }
 .next-game-label { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
@@ -260,6 +257,40 @@ header h1 {
   border: 1px solid #1a1a1a; font-size: 0.78rem; line-height: 1.7;
 }
 .lineup-panel.open { display: block; }
+.boxscore-toggle {
+  background: none; border: none; color: #888; cursor: pointer;
+  font-size: 0.75rem; letter-spacing: 0.5px; padding: 6px 0 2px;
+  display: flex; align-items: center; gap: 4px;
+  transition: color 0.2s; font-family: inherit;
+}
+.boxscore-toggle:hover { color: #ddd; }
+.boxscore-toggle-icon {
+  display: inline-block; font-size: 0.6rem; transition: transform 0.2s;
+}
+.boxscore-toggle.open .boxscore-toggle-icon { transform: rotate(90deg); }
+.boxscore-panel {
+  display: none; margin-top: 6px; padding: 8px 10px;
+  background: #050505; border-radius: 6px;
+  border: 1px solid #1a1a1a; font-size: 0.78rem; line-height: 1.7;
+}
+.boxscore-panel.open { display: block; }
+.bs-head { color: #ccc; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
+.bs-parts { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 0.72rem; }
+.bs-parts th { color: #666; font-weight: 600; text-align: right; padding: 2px 6px; border-bottom: 1px solid #1a1a1a; }
+.bs-parts th:first-child { text-align: left; }
+.bs-parts td { text-align: right; padding: 2px 6px; color: #bbb; font-variant-numeric: tabular-nums; }
+.bs-parts td:first-child { text-align: left; font-weight: 600; color: #ddd; }
+.bs-parts .bs-ours td:first-child, .bs-ours td:first-child { color: #58a6ff; }
+.bs-ours td { color: #a3c4ff; }
+.bs-stats { color: #888; font-size: 0.7rem; margin: 0 0 8px; }
+.bs-stat-ours { color: #58a6ff; }
+.bs-scoring { margin-top: 4px; }
+.bs-row { display: flex; gap: 8px; align-items: baseline; padding: 1px 0; }
+.bs-row .bs-clock { color: #555; min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+.bs-row .bs-scorer { color: #ccc; }
+.bs-row.ours .bs-scorer { color: #58a6ff; font-weight: 600; }
+.bs-row .bs-abbr { margin-left: auto; color: #666; }
+.bs-name { min-width: 130px; }
 .lineup-row { display: flex; gap: 8px; align-items: baseline; }
 .lineup-row .order { color: #555; min-width: 18px; text-align: right; }
 .lineup-row .pos { color: #777; min-width: 28px; font-weight: 600; }

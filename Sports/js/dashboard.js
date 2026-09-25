@@ -3,6 +3,7 @@ window.STL = window.STL || {};
 window._lineupOpen = {};
 window._mlsOverall = {};
 window._mlsConfTeams = [];
+window._boxScoreOpen = {};
 
 var refreshTimer = null;
 var isRefreshing = false;
@@ -22,7 +23,7 @@ STL.dashboard = {
   refresh: async function() {
     if (isRefreshing) return;
     isRefreshing = true;
-    STL.config.TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; t._lineupData = null; });
+    STL.config.TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; t._lineupData = null; t._liveBoxScore = null; });
     const btn = document.getElementById('refreshBtn');
     const spinner = document.getElementById('spinner');
     const label = document.getElementById('btnLabel');

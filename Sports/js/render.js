@@ -48,6 +48,7 @@ STL.render = {
             '<span class="live-score" id="liveScore-' + t.cardClass + '"></span>' +
             '<div class="live-info" id="liveInfo-' + t.cardClass + '"></div>' +
           '</div>' +
+          '<div id="boxScore-' + t.cardClass + '"></div>' +
           '<div id="capContainer-' + t.cardClass + '" style="display:none">' +
             '<button class="cap-toggle" onclick="STL.toggle.cap(this,\'' + t.cardClass + '\')">' +
               '<span class="cap-toggle-icon">&#9654;</span> Cap' +
@@ -179,6 +180,101 @@ STL.render = {
     return result;
   },
 
+  renderBoxScore: function(team) {
+    const live = (team._liveStatus && team._liveStatus.type && team._liveStatus.type.state === 'in') || !!(team._liveEvent);
+    let bs = null;
+    if (live) {
+      bs = team._liveBoxScore && team._liveBoxScore.isLive ? team._liveBoxScore : null;
+    } else if (team._boxScoreData && team._boxScoreData.isLive !== true &&
+        team._lastGameEventId != null && team._boxScoreEventId === team._lastGameEventId) {
+      bs = team._boxScoreData;
+    }
+    if (!bs) return null;
+    const isLive = !!bs.isLive;
+    const isHome = bs.header.home.id === String(team.id);
+    const home = isHome ? bs.header.home : bs.header.away;
+    const away = isHome ? bs.header.away : bs.header.home;
+
+    let html = '';
+    const statusLabel = isLive ? 'LIVE' : 'FINAL';
+    html += '<div class="bs-head">' + statusLabel + ' &middot; ' + home.abbr + ' ' + home.score + ' - ' + away.score + ' ' + away.abbr + '</div>';
+
+    if (bs.parts.length) {
+      const head = bs.parts.map(p => '<th>' + p.label + '</th>').join('');
+      const homeCells = bs.parts.map(p => '<td>' + p.home + '</td>').join('');
+      const awayCells = bs.parts.map(p => '<td>' + p.away + '</td>').join('');
+      html += '<table class="bs-parts"><thead><tr><th></th>' + head + '</tr></thead><tbody>' +
+        '<tr class="bs-ours"><td>' + home.abbr + '</td>' + homeCells + '</tr>' +
+        '<tr><td>' + away.abbr + '</td>' + awayCells + '</tr>' +
+        '</tbody></table>';
+    }
+
+    if (bs.teamStats.length) {
+      html += '<div class="bs-stats">' + bs.teamStats.map(function(s) {
+        return '<span class="' + (s.ours ? 'bs-stat-ours' : '') + '">' + s.label + ': ' + s.abbr + ' ' + s.value + '</span>';
+      }).join(' &nbsp;&middot;&nbsp; ') + '</div>';
+    }
+
+    if (bs.scoring.length) {
+      const groups = [];
+      bs.scoring.forEach(function(s) {
+        let g = null;
+        for (let i = 0; i < groups.length; i++) {
+          if (groups[i].period === s.period) { g = groups[i]; break; }
+        }
+        if (!g) {
+          g = { period: s.period, rows: [] };
+          groups.push(g);
+        }
+        g.rows.push(s);
+      });
+      html += '<div class="bs-scoring">';
+      groups.forEach(function(g) {
+        html += '<div class="lineup-header">' + (g.period || 'Scoring') + '</div>';
+        g.rows.forEach(function(r) {
+          html += '<div class="bs-row' + (r.ours ? ' ours' : '') + '">' +
+            '<span class="bs-clock">' + (r.clock ? r.clock : '') + '</span>' +
+            '<span class="bs-scorer">' + r.text + '</span>' +
+            '<span class="bs-abbr">' + r.abbr + '</span>' +
+          '</div>';
+        });
+      });
+      html += '</div>';
+    }
+
+    if (bs.skaters.length) {
+      const rows = bs.skaters.map(function(s) {
+        return '<tr class="' + (s.ours ? 'bs-ours' : '') + '">' +
+          '<td class="bs-name">' + s.name + '</td>' +
+          '<td>' + (s.g != null ? s.g : '-') + '</td>' +
+          '<td>' + (s.a != null ? s.a : '-') + '</td>' +
+          '<td>' + (s.p != null ? s.p : '-') + '</td>' +
+          '<td>' + (s.pm != null ? s.pm : '-') + '</td>' +
+        '</tr>';
+      }).join('');
+      html += '<div class="lineup-header">Skaters</div>' +
+        '<table class="bs-parts bs-skaters"><thead><tr><th class="bs-name">Player</th><th>G</th><th>A</th><th>P</th><th>+/-</th></tr></thead><tbody>' +
+        rows + '</tbody></table>';
+    }
+
+    if (bs.goalies.length) {
+      const rows = bs.goalies.map(function(g) {
+        return '<tr class="' + (g.ours ? 'bs-ours' : '') + '">' +
+          '<td class="bs-name">' + g.name + '</td>' +
+          '<td>' + (g.sa != null ? g.sa : '-') + '</td>' +
+          '<td>' + (g.ga != null ? g.ga : '-') + '</td>' +
+          '<td>' + (g.sv != null ? g.sv : '-') + '</td>' +
+          '<td>' + (g.svpct != null ? g.svpct : '-') + '</td>' +
+        '</tr>';
+      }).join('');
+      html += '<div class="lineup-header">Goalies</div>' +
+        '<table class="bs-parts"><thead><tr><th class="bs-name">Player</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th></tr></thead><tbody>' +
+        rows + '</tbody></table>';
+    }
+
+    return html;
+  },
+
   renderTeam: async function(team, data, schedLastEvent, schedNextEvent) {
     const body = document.getElementById('body-' + team.cardClass);
     const badge = document.getElementById('badge-' + team.cardClass);
@@ -203,7 +299,7 @@ STL.render = {
     const losses = rc ? rc.losses : apiLosses;
     const ties = rc ? rc.ties : apiTies;
     const otLosses = STL.utils.findStat(statsArr, 'otLosses') || 0;
-    const pts = rc ? rc.points : apiPts;
+    const pts = rc && rc.points !== undefined ? rc.points : apiPts;
     const streakVal = team._computedStreak !== undefined ? team._computedStreak : STL.utils.findStat(statsArr, 'streak');
 
     if (standingSummary.includes('in MLS') && team.sport === 'soccer') {
@@ -279,7 +375,7 @@ STL.render = {
       }
     }
 
-    if (upcomingEvent && STL.utils.isGameDay(upcomingEvent) && team.leagueSlug !== 'mlsnp') {
+    if (upcomingEvent && STL.utils.isGameDay(upcomingEvent)) {
       await STL.api.fetchLineup(team, upcomingEvent);
     }
 
@@ -387,6 +483,21 @@ STL.render = {
         }
       } else {
         banner.style.display = 'none';
+      }
+    }
+
+    const boxScoreEl = document.getElementById('boxScore-' + team.cardClass);
+    if (boxScoreEl) {
+      const bsHtml = STL.render.renderBoxScore(team);
+      if (bsHtml) {
+        const open = window._boxScoreOpen && window._boxScoreOpen[team.cardClass];
+        boxScoreEl.innerHTML =
+          '<button class="boxscore-toggle' + (open ? ' open' : '') + '" onclick="STL.toggle.box(this,\'' + team.cardClass + '\')">' +
+            '<span class="boxscore-toggle-icon">&#9654;</span> Box Score' +
+          '</button>' +
+          '<div class="boxscore-panel' + (open ? ' open' : '') + '">' + bsHtml + '</div>';
+      } else {
+        boxScoreEl.innerHTML = '';
       }
     }
 

@@ -98,7 +98,6 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
     <a class="current" href="standings.html">Standings</a>
     <a href="rosters.html">Rosters</a>
     <a href="stats.html">Stats</a>
-    <a href="transfers.html">Transfers</a>
     <a href="FPR.html">FPR</a>
   </div>
   <div class="site-label">St. Louis Sports</div>
@@ -131,7 +130,7 @@ var ASAWEST = [
   { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
 ];
 
-function c2url(url) { return 'https://corsproxy.io/?' + url; }
+function c2url(url) { return 'https://api.cors.lol/?url=' + encodeURIComponent(url); }
 
 function cachedFetch(url, ttlMs) {
   var key = 'asa_' + btoa(url);
@@ -140,13 +139,21 @@ function cachedFetch(url, ttlMs) {
     var cached = JSON.parse(localStorage.getItem(key));
     if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
   } catch (e) {}
-  return fetch(c2url(url)).then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  }).then(function(data) {
-    try { localStorage.setItem(key, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
-    return data;
-  });
+  var attempts = 0;
+  function fetchOnce() {
+    attempts++;
+    return fetch(c2url(url)).then(function(r) {
+      if (r.status === 429 && attempts < 4) {
+        return new Promise(function(res) { setTimeout(res, 1500 * attempts); }).then(fetchOnce);
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      try { localStorage.setItem(key, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+      return data;
+    });
+  }
+  return fetchOnce();
 }
 
 var DIVISIONS = [

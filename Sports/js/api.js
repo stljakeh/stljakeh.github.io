@@ -5,7 +5,7 @@ STL.api = {
   _liveScoreCache: {},
 
   enrichLiveScores: async function() {
-    const sports = new Set(STL.config.TEAMS.filter(t => t.leagueSlug !== 'mlsnp').map(t => t.sport + '/' + t.leagueSlug));
+    const sports = new Set(STL.config.TEAMS.map(t => t.sport + '/' + t.leagueSlug));
     if (sports.size === 0) return;
     const now = new Date();
     const dates = [];
@@ -16,7 +16,7 @@ STL.api = {
     }
     const datesParam = dates.join('-');
     await Promise.all([...sports].map(async function(key) {
-      const sportTeams = STL.config.TEAMS.filter(function(t) { return t.leagueSlug !== 'mlsnp' && t.sport + '/' + t.leagueSlug === key; });
+      const sportTeams = STL.config.TEAMS.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
       for (const t of sportTeams) {
         const cached = STL.api._liveScoreCache[t.cardClass];
@@ -192,6 +192,221 @@ STL.api = {
     } catch (e) {}
   },
 
+  fetchBoxScore: async function(team, event) {
+    if (!event) return;
+    try {
+      const resp = await fetch(
+        'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + event.id
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const bs = STL.api.parseBoxScore(data, event.id, false, team);
+      if (bs) {
+        team._boxScoreData = bs;
+        team._boxScoreEventId = event.id;
+      }
+    } catch (e) {}
+  },
+
+  parseBoxScore: function(data, eventId, isLive, team) {
+    try {
+      const comps = data?.competitions?.[0]?.competitors || data?.header?.competitions?.[0]?.competitors;
+      if (!comps || comps.length < 2) return null;
+      const home = comps.find(c => c.homeAway === 'home');
+      const away = comps.find(c => c.homeAway === 'away') || comps.find(c => c !== home);
+      if (!home || !away) return null;
+      const sport = team ? team.sport : '';
+      const abbrFor = function(id) {
+        const c = comps.find(function(x) { return String(x.team?.id) === String(id); });
+        return c && c.team ? (c.team.abbreviation || c.team.shortDisplayName || '') : '';
+      };
+      const bs = {
+        eventId: eventId,
+        isLive: !!isLive,
+        header: {
+          home: { id: String(home.team?.id), abbr: abbrFor(home.team?.id) || 'H', name: home.team?.displayName || '', score: STL.utils.getScoreDisplay(home) },
+          away: { id: String(away.team?.id), abbr: abbrFor(away.team?.id) || 'A', name: away.team?.displayName || '', score: STL.utils.getScoreDisplay(away) }
+        },
+        parts: [],
+        scoring: [],
+        skaters: [],
+        goalies: [],
+        teamStats: []
+      };
+
+      const lineVal = function(entry) {
+        if (entry == null) return '';
+        if (typeof entry === 'string' || typeof entry === 'number') return String(entry);
+        if (entry.displayValue != null) return String(entry.displayValue);
+        if (entry.value != null) return String(entry.value);
+        return '';
+      };
+      const labelFor = function(entry, idx) {
+        if (entry && typeof entry === 'object') {
+          const n = parseInt(entry.number, 10);
+          if (!isNaN(n)) return n <= 3 ? String(n) : (n === 4 ? 'OT' : n === 5 ? 'SO' : String(n));
+          if (entry.displayValue) return String(entry.displayValue);
+        }
+        return String((idx || 0) + 1);
+      };
+
+      const homeLS = home.linescores;
+      const awayLS = away.linescores;
+      if (homeLS && awayLS && homeLS.length && awayLS.length) {
+        const len = Math.max(homeLS.length, awayLS.length);
+        for (let i = 0; i < len; i++) {
+          bs.parts.push({
+            label: labelFor(homeLS[i] || awayLS[i] || { number: i + 1 }, i),
+            home: lineVal(homeLS[i]),
+            away: lineVal(awayLS[i])
+          });
+        }
+        bs.parts.push({ label: 'T', home: bs.header.home.score, away: bs.header.away.score });
+      } else if (data?.boxscore?.teams) {
+        const hb = data.boxscore.teams.find(t => String(t.team?.id) === String(home.team?.id));
+        const ab = data.boxscore.teams.find(t => String(t.team?.id) === String(away.team?.id));
+        const hls = hb && hb.linescores;
+        const als = ab && ab.linescores;
+        if (hls && als && hls.length && als.length) {
+          const len = Math.max(hls.length, als.length);
+          for (let i = 0; i < len; i++) {
+            bs.parts.push({
+              label: labelFor(hls[i] || als[i] || { number: i + 1 }, i),
+              home: lineVal(hls[i]),
+              away: lineVal(als[i])
+            });
+          }
+          bs.parts.push({ label: 'T', home: bs.header.home.score, away: bs.header.away.score });
+        }
+      }
+
+      const plays = data?.scoringPlays || [];
+      if (plays.length) {
+        const periodLabel = function(p) {
+          if (p && typeof p === 'object') {
+            const n = parseInt(p.number, 10);
+            if (!isNaN(n)) return n <= 3 ? ['1st', '2nd', '3rd'][n - 1] : (n === 4 ? 'OT' : n === 5 ? 'SO' : String(n));
+            if (p.displayValue) return String(p.displayValue);
+          }
+          return '';
+        };
+        for (const play of plays) {
+          const type = (play.type && (play.type.text || play.type.name)) || '';
+          const teamId = play.team && play.team.id;
+          const abbr = abbrFor(teamId) || (play.team && play.team.abbreviation) || '';
+          const pNames = (play.participants || []).map(pn => pn.athlete && pn.athlete.displayName).filter(Boolean);
+          const clock = (play.clock && play.clock.displayValue) || (play.time && play.time.displayValue) || (play.clock && play.clock.value) || '';
+          let text = '';
+          if (pNames.length) {
+            const scorer = pNames[0];
+            const assists = pNames.slice(1);
+            text = scorer + (assists.length ? ' (' + assists.join(', ') + ')' : '');
+          } else if (play.description || play.textDescription) {
+            text = play.description || play.textDescription;
+          } else {
+            continue;
+          }
+          let kind = '';
+          if (type && sport && (sport === 'football' || sport === 'basketball') && type !== 'Goal') kind = type;
+          bs.scoring.push({
+            teamId: teamId != null ? String(teamId) : '',
+            abbr: abbr || '',
+            period: periodLabel(play.period),
+            clock: String(clock),
+            text: kind ? kind + ' ' + text : text,
+            ours: team ? String(teamId) === String(team.id) : false
+          });
+        }
+      }
+
+      if (sport === 'hockey' && data?.boxscore?.players) {
+        const num = function(x) { const n = parseInt(x, 10); return isNaN(n) ? null : n; };
+        const skaters = [];
+        for (const blk of data.boxscore.players) {
+          const tri = String(blk.team?.id || '');
+          const abbr = abbrFor(tri) || blk.team?.abbreviation || '';
+          const cats = blk.statistics || [];
+          for (const cat of cats) {
+            if (cat.name !== 'forwards' && cat.name !== 'defenses') continue;
+            for (const a of (cat.athletes || [])) {
+              const av = a.stats || a.statistics;
+              let g = null, aa = null, pm = null;
+              if (Array.isArray(av)) {
+                g = num(av[0]);
+                aa = num(av[1]);
+                pm = num(av[2]);
+              }
+              skaters.push({
+                abbr: abbr,
+                ours: tri === String(team.id),
+                name: (a.athlete && a.athlete.displayName) || '',
+                pos: (a.athlete && a.athlete.position && a.athlete.position.abbreviation) || '',
+                g: g,
+                a: aa,
+                p: (g != null && aa != null) ? g + aa : null,
+                pm: pm != null ? (pm > 0 ? '+' + pm : String(pm)) : null
+              });
+            }
+          }
+        }
+        bs.skaters = skaters;
+        for (const blk of data.boxscore.players) {
+          const tri = String(blk.team?.id || '');
+          const gstat = (blk.statistics || []).find(s => s.name === 'goalies');
+          if (gstat && gstat.athletes) {
+            for (const a of gstat.athletes) {
+              const av = a.stats || a.statistics;
+              bs.goalies.push({
+                abbr: abbrFor(tri) || blk.team?.abbreviation || '',
+                ours: tri === String(team.id),
+                name: (a.athlete && a.athlete.displayName) || '',
+                sa: (Array.isArray(av) && !isNaN(parseInt(av[0], 10))) ? parseInt(av[0], 10) : null,
+                ga: (Array.isArray(av) && !isNaN(parseInt(av[1], 10))) ? parseInt(av[1], 10) : null,
+                sv: (Array.isArray(av) && !isNaN(parseInt(av[2], 10))) ? parseInt(av[2], 10) : null,
+                svpct: (Array.isArray(av) && av[3] != null) ? String(av[3]) : null
+              });
+            }
+          }
+        }
+      }
+
+      if (data?.boxscore?.teams) {
+        for (const blk of data.boxscore.teams) {
+          const tri = String(blk.team?.id || '');
+          const st = blk.statistics || [];
+          const val = function(name) {
+            const s = st.find(s => s.name === name);
+            return s && s.displayValue != null ? String(s.displayValue) : null;
+          };
+          if (sport === 'baseball') {
+            const R = val('runs'), H = val('hits'), E = val('errors');
+            if (R != null || H != null || E != null) {
+              bs.teamStats.push({
+                abbr: abbrFor(tri) || blk.team?.abbreviation || '',
+                ours: tri === String(team.id),
+                label: 'R-H-E',
+                value: (R == null ? '-' : R) + '-' + (H == null ? '-' : H) + '-' + (E == null ? '-' : E)
+              });
+            }
+          } else if (sport === 'hockey') {
+            const s = val('shotsOnGoal') || val('shots');
+            if (s != null) {
+              bs.teamStats.push({
+                abbr: abbrFor(tri) || blk.team?.abbreviation || '',
+                ours: tri === String(team.id),
+                label: 'Shots',
+                value: s
+              });
+            }
+          }
+        }
+      }
+
+      if (!bs.parts.length && !bs.scoring.length && !bs.skaters.length && !bs.goalies.length && !bs.teamStats.length) return null;
+      return bs;
+    } catch (e) { return null; }
+  },
+
   fetchWinProb: async function(team, event) {
     if (!event) return;
     const comp = event.competitions?.[0];
@@ -214,6 +429,7 @@ STL.api = {
           team._liveScoreData = summaryComps;
           team._liveStatus = summaryStatus;
         }
+        team._liveBoxScore = STL.api.parseBoxScore(data, eventId, true, team) || null;
         const wp = data.winprobability;
         if (!wp || !wp.length) return;
         const latest = wp[wp.length - 1];
@@ -251,7 +467,7 @@ STL.api = {
     } catch (e) {}
   },
 
-  /* ASA-sourced teams (CITY2): fetches via ASA + CORS proxy with localStorage caching */
+  /* ASA-sourced data (MLS standings override): fetches via ASA + CORS proxy with localStorage caching */
 
   fetchAsa: async function(url, ttlMs) {
     const cacheKey = 'asa_cache_' + btoa(url);
@@ -263,17 +479,24 @@ STL.api = {
         if (Date.now() < parsed.expiry) return parsed.data;
       }
     } catch (e) {}
-    try {
-      const resp = await fetch(STL.utils.c2url(url));
-      if (!resp.ok) return [];
-      const data = await resp.json();
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
-      } catch (e) {}
-      return data;
-    } catch (e) {
-      return [];
+        const resp = await fetch(STL.utils.c2url(url));
+        if (resp.status === 429) {
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          continue;
+        }
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs }));
+        } catch (e) {}
+        return data;
+      } catch (e) {
+        if (attempt === 3) return [];
+      }
     }
+    return [];
   },
 
   findNextGameFromScoreboard: async function(team, startDate) {
@@ -299,10 +522,6 @@ STL.api = {
   },
 
   fetchTeam: async function(team) {
-    if (team.leagueSlug === 'mlsnp') {
-      await STL.api.fetchTeamASA(team);
-      return;
-    }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
     let data;
     try {
@@ -363,7 +582,14 @@ STL.api = {
       else if (opp.winner === true) compLosses++;
       else compDraws++;
     }
-    team._computedRecord = { wins: compWins, losses: compLosses, ties: compDraws, points: compWins * 3 + compDraws };
+    const computedRecord = { wins: compWins, losses: compLosses, ties: compDraws };
+    if (team.sport === 'soccer') computedRecord.points = compWins * 3 + compDraws;
+    team._computedRecord = computedRecord;
+
+    team._lastGameEventId = lastEvent ? lastEvent.id : null;
+    if (lastEvent && team._boxScoreEventId !== lastEvent.id) {
+      await STL.api.fetchBoxScore(team, lastEvent);
+    }
 
     if (!nextEvent) {
       nextEvent = await STL.api.findNextGameFromScoreboard(team, lastEvent ? lastEvent.date : null);
@@ -380,125 +606,5 @@ STL.api = {
       }));
     }
     await Promise.all(renders);
-  },
-
-  fetchTeamASA: async function(team) {
-    try {
-      const [fullGames, premGames, asaTeams, asaStadia] = await Promise.all([
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026', 6 * 3600000),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/games?season_name=2026&status=PreMatch', 5 * 60000),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/teams'),
-        STL.api.fetchAsa('https://app.americansocceranalysis.com/api/v1/mlsnp/stadia')
-      ]);
-      const allGames = fullGames.concat(premGames);
-
-      const std = {};
-      for (const g of allGames) {
-        if (g.status !== 'FullTime') continue;
-        if (g.home_score == null || g.away_score == null) continue;
-        if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, t:0, pts:0 };
-        if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, t:0, pts:0 };
-        if (g.home_penalties != null || g.away_penalties != null) {
-          std[g.home_team_id].t++; std[g.away_team_id].t++;
-          const hp = g.home_penalties || 0, ap = g.away_penalties || 0;
-          std[g.home_team_id].pts += hp > ap ? 2 : 1;
-          std[g.away_team_id].pts += ap > hp ? 2 : 1;
-        } else if (g.home_score > g.away_score) {
-          std[g.home_team_id].w++; std[g.home_team_id].pts += 3;
-          std[g.away_team_id].l++;
-        } else {
-          std[g.away_team_id].w++; std[g.away_team_id].pts += 3;
-          std[g.home_team_id].l++;
-        }
-      }
-
-      if (team.winsOffset) {
-        if (!std[team.id]) std[team.id] = { w:0, l:0, t:0, pts:0 };
-        std[team.id].w += team.winsOffset;
-        std[team.id].pts += team.winsOffset * 3;
-      }
-
-      const west = Object.entries(std).filter(x => STL.config.WEST_CONF.has(x[0])).sort((a, b) => b[1].pts - a[1].pts);
-      const idx = west.findIndex(x => x[0] === team.id);
-      const rank = idx >= 0 ? idx + 1 : null;
-      const rec = std[team.id] || { w:0, l:0, t:0, pts:0 };
-      const standingStr = rank != null ? rank + STL.utils.suffix(rank) + ' in Western Conference' : 'Western Conference';
-
-      const c2g = allGames.filter(g => g.home_team_id === team.id || g.away_team_id === team.id);
-      const done = c2g.filter(g => g.status === 'FullTime').sort((a, b) => b.date_time_utc.localeCompare(a.date_time_utc));
-      const soon = c2g.filter(g => g.status === 'PreMatch').sort((a, b) => a.date_time_utc.localeCompare(b.date_time_utc));
-      const lastG = done[0] || null;
-      const nextG = soon[0] || null;
-
-      let streak = 0;
-      for (const g of done) {
-        let won;
-        if (g.home_penalties != null || g.away_penalties != null) {
-          won = g.home_team_id === team.id
-            ? (g.home_penalties || 0) > (g.away_penalties || 0)
-            : (g.away_penalties || 0) > (g.home_penalties || 0);
-        } else if (g.home_score > g.away_score) {
-          won = g.home_team_id === team.id;
-        } else if (g.away_score > g.home_score) {
-          won = g.away_team_id === team.id;
-        } else {
-          break;
-        }
-        if (streak === 0) {
-          streak = won ? 1 : -1;
-        } else if ((streak > 0 && won) || (streak < 0 && !won)) {
-          streak += won ? 1 : -1;
-        } else {
-          break;
-        }
-      }
-
-      var info = function(id) {
-        if (!Array.isArray(asaTeams)) return { team_id: id, team_abbreviation: '?', team_name: '?' };
-        return asaTeams.find(t => t.team_id === id) || { team_id: id, team_abbreviation: '?', team_name: '?' };
-      };
-
-      var mc = function(info, ha, score, win) {
-        return { team: { id: info.team_id, abbreviation: info.team_abbreviation, displayName: info.team_name }, homeAway: ha, score: score != null ? { displayValue: String(score) } : null, winner: win };
-      };
-
-      var bld = function(g, last) {
-        const homeI = info(g.home_team_id), awayI = info(g.away_team_id);
-        const stad = asaStadia && asaStadia.length ? asaStadia.find(s => s.stadium_id === g.stadium_id) : null;
-        let homeW = null;
-        if (last && g.home_score != null && g.away_score != null) {
-          homeW = (g.home_penalties != null || g.away_penalties != null)
-            ? (g.home_penalties || 0) > (g.away_penalties || 0)
-            : g.home_score > g.away_score;
-        }
-        const d = g.date_time_utc.replace(' ', 'T').replace(' UTC', 'Z');
-        return {
-          id: g.game_id, date: d,
-          competitions: [{
-            date: d, seasonType: { name: 'Regular Season' },
-            status: { type: last ? { completed: true, state: 'post' } : { state: 'pre', completed: false }, displayClock: null },
-            venue: { fullName: stad ? stad.stadium_name : '' },
-            broadcasts: [{ media: { shortName: 'MLSNextPro.com' } }, { media: { shortName: 'OneFootball' } }],
-            competitors: [mc(homeI, 'home', g.home_score, homeW), mc(awayI, 'away', g.away_score, homeW != null ? !homeW : null)]
-          }]
-        };
-      };
-
-      await STL.render.renderTeam(team, {
-        team: {
-          logos: [{ href: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/St._Louis_City_SC_II.png' }],
-          displayName: team.name,
-          record: { items: [{ stats: [
-            { name: 'wins', value: rec.w }, { name: 'losses', value: rec.l },
-            { name: 'ties', value: rec.t }, { name: 'points', value: rec.pts },
-            { name: 'streak', value: streak }
-          ]}]},
-          standingSummary: standingStr
-        }
-      }, lastG ? bld(lastG, true) : null, nextG ? bld(nextG, false) : null);
-
-    } catch (e) {
-      STL.render.renderError(team, 'Failed to load CITY2 data');
-    }
   }
 };

@@ -71,6 +71,6 @@ STL.utils = {
   },
 
   c2url: function(url) {
-    return STL.config.CITY2_CP + url;
+    return STL.config.ASA_CP + encodeURIComponent(url);
   }
 };
