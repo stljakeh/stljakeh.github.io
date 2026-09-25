@@ -459,16 +459,7 @@ STL.render = {
     const boxScoreEl = document.getElementById('boxScore-' + team.cardClass);
     if (boxScoreEl) {
       const bsHtml = STL.render.renderBoxScore(team);
-      if (bsHtml) {
-        const open = window._boxScoreOpen && window._boxScoreOpen[team.cardClass];
-        boxScoreEl.innerHTML =
-          '<button class="boxscore-toggle' + (open ? ' open' : '') + '" onclick="STL.toggle.box(this,\'' + team.cardClass + '\')">' +
-            '<span class="boxscore-toggle-icon">&#9654;</span> Most Recent Box Score' +
-          '</button>' +
-          '<div class="boxscore-panel' + (open ? ' open' : '') + '">' + bsHtml + '</div>';
-      } else {
-        boxScoreEl.innerHTML = '';
-      }
+      boxScoreEl.innerHTML = bsHtml ? '<div class="boxscore-body">' + bsHtml + '</div>' : '';
     }
 
     const capContainer = document.getElementById('capContainer-' + team.cardClass);

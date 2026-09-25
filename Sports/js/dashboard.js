@@ -3,7 +3,6 @@ window.STL = window.STL || {};
 window._lineupOpen = {};
 window._mlsOverall = {};
 window._mlsConfTeams = [];
-window._boxScoreOpen = {};
 
 var refreshTimer = null;
 var isRefreshing = false;

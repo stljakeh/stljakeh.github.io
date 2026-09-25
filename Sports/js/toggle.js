@@ -13,12 +13,5 @@ STL.toggle = {
     btn.nextElementSibling.classList.toggle('open');
     window._capOpen = window._capOpen || {};
     window._capOpen[id] = btn.classList.contains('open');
-  },
-
-  box: function(btn, id) {
-    btn.classList.toggle('open');
-    btn.nextElementSibling.classList.toggle('open');
-    window._boxScoreOpen = window._boxScoreOpen || {};
-    window._boxScoreOpen[id] = btn.classList.contains('open');
   }
 };
