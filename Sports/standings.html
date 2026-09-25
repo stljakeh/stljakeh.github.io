@@ -130,7 +130,9 @@ var ASAWEST = [
   { asa: 'zeQZBOzQKw', espn: '22529', abbr: 'SD' }
 ];
 
-function c2url(url) { return 'https://api.cors.lol/?url=' + encodeURIComponent(url); }
+// Proxy knob: keep in sync with STL.config.ASA_CP in js/config.js. Swap this if blocked.
+var ASA_CP = 'https://api.cors.lol/?url=';
+function c2url(url) { return ASA_CP + encodeURIComponent(url); }
 
 function cachedFetch(url, ttlMs) {
   var key = 'asa_' + btoa(url);
@@ -204,6 +206,7 @@ function fmtGb(v) {
 function formatStat(s, fmtType) {
   if (!s) return '&mdash;';
   var v = s.displayValue || String(s.value);
+  if (!v) return '&mdash;';
   if (fmtType === 'pct') return fmtPct(v);
   if (fmtType === 'gb') return fmtGb(v);
   return v;
@@ -213,77 +216,119 @@ async function loadStandings() {
   var container = document.getElementById('standingsContent');
   var sub = document.getElementById('feedSub');
   try {
+    // Kick off ASA fetches in parallel with ESPN so proxy latency overlaps.
+    var asaGamesP = cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
+    var asaTeamsP = cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/teams', 6 * 3600000);
     var results = await Promise.all(DIVISIONS.map(function(d) {
       return fetch(d.url).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
     }));
 
+    // Render ESPN data immediately so a slow proxy never gates the whole page.
+    renderTables(results);
+
     var mlsResult = results[2];
     if (mlsResult) {
       try {
-        var asaGames = await cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/games?season_name=2026&status=FullTime', 6 * 3600000);
-        var asaTeams = await cachedFetch('https://app.americansocceranalysis.com/api/v1/mls/teams', 6 * 3600000);
-        if (asaGames && asaGames.length) {
-          var std = {};
-          for (var gi = 0; gi < asaGames.length; gi++) {
-            var g = asaGames[gi];
-            if (g.status !== 'FullTime' || g.home_score == null) continue;
-            if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, d:0, pts:0 };
-            if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, d:0, pts:0 };
-            if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
-            else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
-            else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
-          }
-          var streaks = {};
-          for (var si = 0; si < asaGames.length; si++) {
-            var sg = asaGames[si];
-            if (sg.status !== 'FullTime') continue;
-            if (!streaks[sg.home_team_id]) streaks[sg.home_team_id] = [];
-            if (!streaks[sg.away_team_id]) streaks[sg.away_team_id] = [];
-            streaks[sg.home_team_id].push({ teamId: sg.home_team_id, score: sg.home_score, oppScore: sg.away_score, date: sg.date_time_utc });
-            streaks[sg.away_team_id].push({ teamId: sg.away_team_id, score: sg.away_score, oppScore: sg.home_score, date: sg.date_time_utc });
-          }
-          var newEntries = ASAWEST.map(function(t) {
-            var s = std[t.asa] || { w:0, l:0, d:0, pts:0 };
-            var at = asaTeams.find(function(x) { return x.team_id === t.asa; });
-            var name = at ? at.team_name : '?';
-            var formArr = (streaks[t.asa] || [])
-              .sort(function(a, b) { return b.date.localeCompare(a.date); })
-              .slice(0, window.innerWidth <= 640 ? 3 : 5)
-              .map(function(g) {
-                if (g.score > g.oppScore) return 'W';
-                if (g.score < g.oppScore) return 'L';
-                return 'D';
-              });
-            return {
-              team: {
-                id: t.espn,
-                displayName: name,
-                logos: [{ href: 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500-dark/' + t.espn + '.png' }]
-              },
-              stats: [
-                { name: 'wins', value: s.w, displayValue: String(s.w) },
-                { name: 'losses', value: s.l, displayValue: String(s.l) },
-                { name: 'ties', value: s.d, displayValue: String(s.d) },
-                { name: 'points', value: s.pts, displayValue: String(s.pts) },
-                { name: 'streak', value: formArr.join('-'), displayValue: formArr.join('-') }
-              ]
-            };
-          });
-          newEntries.sort(function(a, b) {
-            var aPts = a.stats.find(function(x) { return x.name === 'points'; }).value;
-            var bPts = b.stats.find(function(x) { return x.name === 'points'; }).value;
-            return bPts - aPts;
-          });
-          if (mlsResult.children) {
-            var wc = mlsResult.children.find(function(c) { return c.name && c.name.indexOf('Western') !== -1; });
-            if (wc) wc.standings.entries = newEntries;
-          } else if (mlsResult.standings) {
-            mlsResult.standings.entries = newEntries;
-          }
+        var asaData = await Promise.all([asaGamesP, asaTeamsP]);
+        if (applyAsaOverride(mlsResult, asaData[0], asaData[1])) {
+          renderTables(results);
         }
       } catch (e) {}
     }
+  } catch (e) {
+    container.innerHTML = '<div class="error-msg">Failed to load standings.</div>';
+    sub.textContent = 'Error';
+  }
+}
 
+function espnMlsEntries(mlsResult) {
+  if (mlsResult.children) {
+    var wc = mlsResult.children.find(function(c) { return c.name && c.name.indexOf('Western') !== -1; });
+    if (wc && wc.standings) return wc.standings.entries || [];
+  } else if (mlsResult.standings) {
+    return mlsResult.standings.entries || [];
+  }
+  return [];
+}
+
+function applyAsaOverride(mlsResult, asaGames, asaTeams) {
+  if (!asaGames || !asaGames.length || !asaTeams || !asaTeams.length) return false;
+  // ESPN fallback streak per team so a missing ASA form never renders a blank cell.
+  var espnStreakById = {};
+  espnMlsEntries(mlsResult).forEach(function(e) {
+    var s = getStat(e.stats || [], 'streak');
+    if (e.team && e.team.id != null && s) espnStreakById[String(e.team.id)] = s.displayValue || String(s.value);
+  });
+  var std = {};
+  for (var gi = 0; gi < asaGames.length; gi++) {
+    var g = asaGames[gi];
+    if (g.status !== 'FullTime' || g.home_score == null || g.away_score == null) continue;
+    if (!std[g.home_team_id]) std[g.home_team_id] = { w:0, l:0, d:0, pts:0 };
+    if (!std[g.away_team_id]) std[g.away_team_id] = { w:0, l:0, d:0, pts:0 };
+    if (g.home_score > g.away_score) { std[g.home_team_id].w++; std[g.home_team_id].pts += 3; std[g.away_team_id].l++; }
+    else if (g.away_score > g.home_score) { std[g.away_team_id].w++; std[g.away_team_id].pts += 3; std[g.home_team_id].l++; }
+    else { std[g.home_team_id].d++; std[g.away_team_id].d++; std[g.home_team_id].pts++; std[g.away_team_id].pts++; }
+  }
+  var streaks = {};
+  for (var si = 0; si < asaGames.length; si++) {
+    var sg = asaGames[si];
+    if (sg.status !== 'FullTime' || sg.home_score == null || sg.away_score == null) continue;
+    if (!streaks[sg.home_team_id]) streaks[sg.home_team_id] = [];
+    if (!streaks[sg.away_team_id]) streaks[sg.away_team_id] = [];
+    streaks[sg.home_team_id].push({ teamId: sg.home_team_id, score: sg.home_score, oppScore: sg.away_score, date: sg.date_time_utc });
+    streaks[sg.away_team_id].push({ teamId: sg.away_team_id, score: sg.away_score, oppScore: sg.home_score, date: sg.date_time_utc });
+  }
+  var newEntries = ASAWEST.map(function(t) {
+    var s = std[t.asa] || { w:0, l:0, d:0, pts:0 };
+    var at = asaTeams.find(function(x) { return x.team_id === t.asa; });
+    var name = at ? at.team_name : '?';
+    var formArr = (streaks[t.asa] || [])
+      .sort(function(a, b) { return new Date(b.date) - new Date(a.date); })
+      .slice(0, 5)
+      .map(function(g) {
+        if (g.score == null || g.oppScore == null) return null;
+        if (g.score > g.oppScore) return 'W';
+        if (g.score < g.oppScore) return 'L';
+        return 'D';
+      })
+      .filter(function(x) { return x !== null; });
+    var streakVal = formArr.length ? formArr.join('-') : (espnStreakById[t.espn] || '');
+    return {
+      team: {
+        id: t.espn,
+        displayName: name,
+        logos: [{ href: 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500-dark/' + t.espn + '.png' }]
+      },
+      stats: [
+        { name: 'wins', value: s.w, displayValue: String(s.w) },
+        { name: 'losses', value: s.l, displayValue: String(s.l) },
+        { name: 'ties', value: s.d, displayValue: String(s.d) },
+        { name: 'points', value: s.pts, displayValue: String(s.pts) },
+        { name: 'streak', value: streakVal, displayValue: streakVal }
+      ]
+    };
+  });
+  newEntries.sort(function(a, b) {
+    var aPts = a.stats.find(function(x) { return x.name === 'points'; }).value;
+    var bPts = b.stats.find(function(x) { return x.name === 'points'; }).value;
+    return bPts - aPts;
+  });
+  if (mlsResult.children) {
+    var wc = mlsResult.children.find(function(c) { return c.name && c.name.indexOf('Western') !== -1; });
+    if (!wc || !wc.standings) return false;
+    wc.standings.entries = newEntries;
+  } else if (mlsResult.standings) {
+    mlsResult.standings.entries = newEntries;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+function renderTables(results) {
+  var container = document.getElementById('standingsContent');
+  var sub = document.getElementById('feedSub');
+  try {
     var html = '';
     var loaded = 0;
     DIVISIONS.forEach(function(d, i) {
@@ -338,9 +383,11 @@ async function loadStandings() {
                 return '<span class="strk-dot ' + cls + '">' + l + '</span>';
               }).join('');
               html += '<td class="num">' + parts + '</td>';
+            } else if (!val || val === '&mdash;') {
+              html += '<td class="num">&mdash;</td>';
             } else {
-              var cls = val ? (val[0] === 'W' ? 'strk-w' : val[0] === 'L' ? 'strk-l' : 'strk-t') : '';
-              html += '<td class="num ' + cls + '">' + (val || '') + '</td>';
+              var cls = val[0] === 'W' ? 'strk-w' : val[0] === 'L' ? 'strk-l' : 'strk-t';
+              html += '<td class="num ' + cls + '">' + val + '</td>';
             }
           } else {
             var s = getStat(stats, sn);

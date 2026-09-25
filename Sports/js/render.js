@@ -41,6 +41,7 @@ STL.render = {
             '<span class="stat-label">Last Game</span>' +
             '<span class="stat-value" id="lastGame-' + t.cardClass + '">&mdash;</span>' +
           '</div>' +
+          '<div id="boxScore-' + t.cardClass + '"></div>' +
           '<div id="nextGame-' + t.cardClass + '"></div>' +
           '<div class="countdown-timer" id="countdown-' + t.cardClass + '" data-target="" style="display:none"></div>' +
           '<div class="live-banner" id="liveBanner-' + t.cardClass + '" style="display:none">' +
@@ -48,7 +49,6 @@ STL.render = {
             '<span class="live-score" id="liveScore-' + t.cardClass + '"></span>' +
             '<div class="live-info" id="liveInfo-' + t.cardClass + '"></div>' +
           '</div>' +
-          '<div id="boxScore-' + t.cardClass + '"></div>' +
           '<div id="capContainer-' + t.cardClass + '" style="display:none">' +
             '<button class="cap-toggle" onclick="STL.toggle.cap(this,\'' + t.cardClass + '\')">' +
               '<span class="cap-toggle-icon">&#9654;</span> Cap' +
@@ -463,7 +463,7 @@ STL.render = {
         const open = window._boxScoreOpen && window._boxScoreOpen[team.cardClass];
         boxScoreEl.innerHTML =
           '<button class="boxscore-toggle' + (open ? ' open' : '') + '" onclick="STL.toggle.box(this,\'' + team.cardClass + '\')">' +
-            '<span class="boxscore-toggle-icon">&#9654;</span> Box Score' +
+            '<span class="boxscore-toggle-icon">&#9654;</span> Most Recent Box Score' +
           '</button>' +
           '<div class="boxscore-panel' + (open ? ' open' : '') + '">' + bsHtml + '</div>';
       } else {
