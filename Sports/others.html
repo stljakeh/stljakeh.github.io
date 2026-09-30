@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>St. Louis Sports Dashboard</title>
+<title>Other Teams - St. Louis Sports</title>
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/nav.css">
 </head>
@@ -12,12 +12,12 @@
 <nav>
   <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
   <div class="nav-links">
-    <a class="current" href="dashboard.html">Dashboard</a>
+    <a href="dashboard.html">Dashboard</a>
     <a href="news.html">News</a>
     <a href="standings.html">Standings</a>
     <a href="rosters.html">Rosters</a>
     <a href="stats.html">Stats</a>
-    <a href="others.html">Others</a>
+    <a class="current" href="others.html">Others</a>
     <a href="FPR.html">FPR</a>
   </div>
   <div class="site-label">St. Louis Sports</div>
@@ -25,7 +25,7 @@
 
 <header>
   <div class="header-top">
-    <h1>St. Louis Sports</h1>
+    <h1>Other Teams</h1>
     <button class="refresh-btn" id="refreshBtn" onclick="STL.dashboard.refresh()">
       <span class="spinner hidden" id="spinner"></span>
       <span id="btnLabel">Refresh</span>
@@ -40,8 +40,9 @@
 
 <div class="grid" id="cardGrid"></div>
 
-<div class="footer">Data from ESPN, HockeyTech &amp; MLB Stats API &middot; <a href="#" onclick="STL.dashboard.refresh();return false">refresh now</a></div>
+<div class="footer">Data from ESPN, NPB-Result, KBO, HockeyTech &amp; MLB Stats API &middot; <a href="#" onclick="STL.dashboard.refresh();return false">refresh now</a></div>
 
+<script>window._useOtherTeams = true;</script>
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/toggle.js"></script>

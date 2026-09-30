@@ -10,6 +10,11 @@ var countdownTimer = null;
 
 STL.dashboard = {
 
+  teamList: function() {
+    if (window._useOtherTeams && STL.config.OTHER_TEAMS) return STL.config.OTHER_TEAMS;
+    return STL.config.TEAMS;
+  },
+
   init: function() {
     const d = new Date();
     const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -22,7 +27,8 @@ STL.dashboard = {
   refresh: async function() {
     if (isRefreshing) return;
     isRefreshing = true;
-    STL.config.TEAMS.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; t._lineupData = null; t._liveBoxScore = null; });
+    const teams = STL.dashboard.teamList();
+    teams.forEach(t => { t._liveEvent = null; t._liveScoreData = null; t._liveStatus = null; t._lineupData = null; t._liveBoxScore = null; });
     const btn = document.getElementById('refreshBtn');
     const spinner = document.getElementById('spinner');
     const label = document.getElementById('btnLabel');
@@ -34,7 +40,8 @@ STL.dashboard = {
     window._mlsConfTeams = [];
     await STL.api.enrichLiveScores();
     await STL.api.fetchMlsStandings();
-    await Promise.all(STL.config.TEAMS.map(t => STL.api.fetchTeam(t)));
+    await Promise.all(teams.map(t => STL.api.fetchTeam(t)));
+    STL.dashboard.applyHideWhenIdle();
     STL.dashboard.adjustRefreshInterval();
     STL.dashboard.startCountdownTimer();
 
@@ -63,8 +70,38 @@ STL.dashboard = {
 
   adjustRefreshInterval: function() {
     if (refreshTimer) clearInterval(refreshTimer);
-    const hasLive = STL.config.TEAMS.some(t => t._liveEvent);
+    const hasLive = STL.dashboard.teamList().some(t => t._liveEvent);
     refreshTimer = setInterval(STL.dashboard.refresh, hasLive ? 20000 : 60000);
+  },
+
+  applyHideWhenIdle: function() {
+    STL.dashboard.teamList().forEach(t => {
+      if (!t.hideWhenIdle) return;
+      const card = document.getElementById('card-' + t.cardClass);
+      if (!card) return;
+      const badge = card.querySelector('.status-badge');
+      const isOff = badge && badge.className.includes('status-offseason');
+      const hasNext = !!document.getElementById('nextGame-' + t.cardClass)?.textContent?.trim();
+      card.style.display = (isOff && !hasNext) ? 'none' : '';
+    });
+    const hidden = STL.dashboard.teamList().filter(t => {
+      const card = document.getElementById('card-' + t.cardClass);
+      return card && card.style.display === 'none';
+    }).length;
+    const total = STL.dashboard.teamList().length;
+    if (hidden > 0 && hidden < total) {
+      let note = document.getElementById('idleNote');
+      if (!note) {
+        note = document.createElement('div');
+        note.id = 'idleNote';
+        note.className = 'idle-note';
+        document.getElementById('cardGrid').after(note);
+      }
+      note.textContent = hidden + ' idle national-team card' + (hidden > 1 ? 's' : '') + ' hidden (offseason)';
+    } else {
+      const note = document.getElementById('idleNote');
+      if (note) note.remove();
+    }
   },
 
   startCountdownTimer: function() {

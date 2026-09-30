@@ -329,3 +329,65 @@ header h1 {
   border: none;
 }
 .cap-panel.open { display: block; }
+.aff-toggle {
+  background: none; border: none; color: #888; cursor: pointer;
+  font-size: 0.75rem; letter-spacing: 0.5px; padding: 6px 0 2px;
+  display: flex; align-items: center; gap: 4px;
+  transition: color 0.2s; font-family: inherit;
+}
+.aff-toggle:hover { color: #ddd; }
+.aff-toggle-icon {
+  display: inline-block; font-size: 0.6rem; transition: transform 0.2s;
+}
+.aff-toggle.open .aff-toggle-icon { transform: rotate(90deg); }
+.aff-panel {
+  display: none; margin-top: 6px; padding: 8px 10px;
+  background: #050505; border-radius: 6px;
+  border: 1px solid #1a1a1a; font-size: 0.78rem; line-height: 1.7;
+}
+.aff-panel.open { display: block; }
+.aff-row { padding: 6px 0; border-bottom: 1px solid #111; }
+.aff-row:last-child { border-bottom: none; }
+.aff-top { display: flex; align-items: baseline; gap: 8px; }
+.aff-name { color: #ddd; font-weight: 600; }
+.aff-level { color: #666; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; }
+.aff-sub { color: #888; font-size: 0.72rem; margin-top: 1px; }
+.aff-sub a { color: #555; }
+.aff-sub a:hover { color: #fff; }
+.aff-rec { color: #ddd; font-weight: 600; }
+.aff-game { color: #888; font-size: 0.72rem; margin-top: 1px; }
+.prospects { margin-top: 4px; padding-top: 4px; border-top: 1px dashed #222; }
+.prospects-label { color: #666; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+.prospect-row { display: flex; gap: 8px; align-items: baseline; font-size: 0.74rem; }
+.prospect-row .pos { color: #777; min-width: 28px; font-weight: 600; }
+.prospect-row .name { color: #ddd; }
+.prospect-row .pline { color: #888; margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.idle-note { width: 100%; max-width: 960px; text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; letter-spacing: 0.5px; }
+/* Other-teams page accents */
+.steelers .card-head::after { background: #FFB612; }
+.steelers .team-icon { background: #000; color: #FFB612; border: 1px solid #333; }
+.steelers .next-game { background: rgba(255, 182, 18, 0.05); border-left: 3px solid #FFB612; }
+.bayern .card-head::after { background: #DC052D; }
+.bayern .team-icon { background: #DC052D; color: #fff; }
+.bayern .next-game { background: rgba(220, 5, 45, 0.05); border-left: 3px solid #DC052D; }
+.forest .card-head::after { background: #DD0741; }
+.forest .team-icon { background: #DD0741; color: #fff; }
+.forest .next-game { background: rgba(221, 7, 65, 0.05); border-left: 3px solid #DD0741; }
+.grampus .card-head::after { background: #FABB00; }
+.grampus .team-icon { background: #FABB00; color: #000; }
+.grampus .next-game { background: rgba(250, 187, 0, 0.05); border-left: 3px solid #FABB00; }
+.kholood .card-head::after { background: #5A2D82; }
+.kholood .team-icon { background: #5A2D82; color: #fff; }
+.kholood .next-game { background: rgba(90, 45, 130, 0.08); border-left: 3px solid #5A2D82; }
+.usmnt .card-head::after { background: #3C3B6E; }
+.usmnt .team-icon { background: #fff; color: #B22234; }
+.usmnt .next-game { background: rgba(60, 59, 110, 0.08); border-left: 3px solid #3C3B6E; }
+.germany .card-head::after { background: #FFCE00; }
+.germany .team-icon { background: #000; color: #fff; border: 1px solid #333; }
+.germany .next-game { background: rgba(255, 206, 0, 0.05); border-left: 3px solid #FFCE00; }
+.dinos .card-head::after { background: #071D3D; }
+.dinos .team-icon { background: #071D3D; color: #CFA54A; border: 1px solid #333; }
+.dinos .next-game { background: rgba(7, 29, 61, 0.1); border-left: 3px solid #071D3D; }
+.rakuten .card-head::after { background: #BF0000; }
+.rakuten .team-icon { background: #BF0000; color: #fff; }
+.rakuten .next-game { background: rgba(191, 0, 0, 0.05); border-left: 3px solid #BF0000; }

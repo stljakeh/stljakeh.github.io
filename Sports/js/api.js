@@ -5,7 +5,8 @@ STL.api = {
   _liveScoreCache: {},
 
   enrichLiveScores: async function() {
-    const sports = new Set(STL.config.TEAMS.map(t => t.sport + '/' + t.leagueSlug));
+    const teams = STL.dashboard.teamList().filter(t => !t.manual && !t.npbName && !t.kbo);
+    const sports = new Set(teams.map(t => t.sport + '/' + t.leagueSlug));
     if (sports.size === 0) return;
     const now = new Date();
     const dates = [];
@@ -16,7 +17,7 @@ STL.api = {
     }
     const datesParam = dates.join('-');
     await Promise.all([...sports].map(async function(key) {
-      const sportTeams = STL.config.TEAMS.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
+      const sportTeams = teams.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
       for (const t of sportTeams) {
         const cached = STL.api._liveScoreCache[t.cardClass];
@@ -497,6 +498,16 @@ STL.api = {
   },
 
   fetchTeam: async function(team) {
+    if (team.manual) {
+      STL.render.renderManual(team);
+      return;
+    }
+    if (team.kbo) {
+      return STL.api.fetchKboLive(team);
+    }
+    if (team.npbName) {
+      return STL.api.fetchAsiaBaseball(team);
+    }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
     let data;
     try {
@@ -581,5 +592,371 @@ STL.api = {
       }));
     }
     await Promise.all(renders);
+  },
+
+  /* Farm-system affiliates. Lazy-loaded on dropdown open (see STL.toggle.aff).
+     MiLB via MLB Stats API (CORS *). AHL/ECHL render statically until their
+     league APIs are wired — panels never block the parent card. */
+
+  _affCache: {},
+  _affFetching: {},
+
+  fetchAffiliates: async function(cardClass) {
+    if (STL.api._affFetching[cardClass]) return;
+    STL.api._affFetching[cardClass] = true;
+    try {
+      const key = cardClass === 'cardinals' ? 'cardinals' : cardClass === 'blues' ? 'blues' : null;
+      if (!key) return;
+      const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
+      if (key === 'cardinals') {
+        await Promise.all(list.map(a => STL.api.fetchMilbAffiliate(cardClass, a)));
+      } else {
+        await Promise.all(list.map(a => STL.api.fetchHockeyAffiliate(cardClass, a)));
+      }
+      STL.render.refreshAffPanel(cardClass);
+    } finally {
+      STL.api._affFetching[cardClass] = false;
+    }
+  },
+
+  fetchMilbAffiliate: async function(cardClass, aff) {
+    const cacheKey = 'milb_aff_' + aff.name;
+    const ttlMs = 6 * 3600000;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry) {
+        STL.api._affCache[aff.name] = cached.data;
+        return;
+      }
+    } catch (e) {}
+    try {
+      // Resolve team id by name, then pull season record + top performers.
+      const lookup = await fetch('https://statsapi.mlb.com/api/v1/teams?names=' + encodeURIComponent(aff.name) + '&season=2026&hydrate=league');
+      if (!lookup.ok) throw new Error('HTTP ' + lookup.status);
+      const ldata = await lookup.json();
+      const team = (ldata.teams || [])[0];
+      if (!team) throw new Error('team not found');
+      const tid = team.id;
+      const rec = { wins: 0, losses: 0, ties: 0, pct: '', standing: '' };
+      try {
+        const sResp = await fetch('https://statsapi.mlb.com/api/v1/teams/' + tid + '?season=2026&hydrate=league,record');
+        if (sResp.ok) {
+          const sdata = await sResp.json();
+          const t = (sdata.teams || [])[0];
+          const lr = t && t.record && t.record.leagueRecord;
+          if (lr) {
+            rec.wins = lr.wins || 0;
+            rec.losses = lr.losses || 0;
+            rec.ties = lr.ties || 0;
+            rec.pct = lr.pct || '';
+          }
+        }
+      } catch (e) {}
+      const prospects = await STL.api.fetchMilbProspects(tid);
+      const data = { record: rec, prospects: prospects, teamId: tid };
+      STL.api._affCache[aff.name] = data;
+      try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    } catch (e) {
+      if (!STL.api._affCache[aff.name]) {
+        STL.api._affCache[aff.name] = { error: String(e.message || e) };
+      }
+    }
+  },
+
+  fetchMilbProspects: async function(mlbamId) {
+    try {
+      const resp = await fetch('https://statsapi.mlb.com/api/v1/teams/' + mlbamId + '/roster?season=2026&hydrate=person(stats(type=season,season=2026))');
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const roster = data.roster || [];
+      const hitters = [];
+      const pitchers = [];
+      for (const r of roster) {
+        const person = r.person || {};
+        const pos = (r.position || {}).abbreviation || '';
+        const stats = person.stats;
+        const splits = stats && stats[0] && stats[0].splits;
+        const s = splits && splits[0] && splits[0].stat;
+        if (!s) continue;
+        const name = person.fullName || '';
+        if (/^P$|^TWP$/i.test(pos) || (s.era != null && s.inningsPitched != null)) {
+          const ip = parseFloat(s.inningsPitched);
+          if (!isFinite(ip) || ip < 10) continue;
+          pitchers.push({ name: name, pos: 'P', era: s.era, whip: s.whip, so: s.strikeOuts, ip: s.inningsPitched });
+        } else {
+          const pa = s.plateAppearances || 0;
+          if (pa < 50) continue;
+          const ops = parseFloat(s.ops);
+          if (!isFinite(ops)) continue;
+          hitters.push({ name: name, pos: pos, avg: s.avg, hr: s.homeRuns, rbi: s.rbi, ops: s.ops, opsNum: ops });
+        }
+      }
+      hitters.sort((a, b) => b.opsNum - a.opsNum);
+      pitchers.sort((a, b) => parseFloat(a.era) - parseFloat(b.era));
+      const out = hitters.slice(0, 2).map(h => ({ name: h.name, pos: h.pos, line: h.avg + ' AVG / ' + h.hr + ' HR / ' + h.ops + ' OPS' }));
+      if (pitchers.length) {
+        const p = pitchers[0];
+        out.push({ name: p.name, pos: 'P', line: p.era + ' ERA / ' + p.whip + ' WHIP / ' + p.so + ' K' });
+      } else if (hitters[2]) {
+        const h = hitters[2];
+        out.push({ name: h.name, pos: h.pos, line: h.avg + ' AVG / ' + h.hr + ' HR / ' + h.ops + ' OPS' });
+      }
+      return out.slice(0, 3);
+    } catch (e) { return []; }
+  },
+
+  /* Hockey affiliates via HockeyTech LeagueStat (public client keys embedded
+     in the league sites; same feed theahl.com/echl.com use). Season + team id
+     resolved at runtime so no per-season edits are needed. 6h localStorage
+     cache; any failure degrades to the static affiliate row. */
+
+  HT: {
+    base: 'https://lscluster.hockeytech.com/feed/index.php',
+    leagues: {
+      ahl: { code: 'ahl', key: 'ccb91f29d6744675' },
+      echl: { code: 'echl', key: '2c2b89ea7345cae8' }
+    }
+  },
+
+  htUrl: function(league, params) {
+    const lg = STL.api.HT.leagues[league];
+    let url = STL.api.HT.base + '?key=' + lg.key + '&client_code=' + lg.code + '&fmt=json';
+    for (const k in params) url += '&' + k + '=' + encodeURIComponent(params[k]);
+    return url;
+  },
+
+  htFetchJson: async function(cacheKey, url, ttlMs) {
+    ttlMs = ttlMs || 6 * 3600000;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry) return cached.data;
+    } catch (e) {}
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      // statviewfeed schedule comes back as JSONP: ([{...}])
+      const start = text.indexOf('[');
+      const end = text.lastIndexOf(']');
+      if (start < 0 || end < 0) throw e;
+      data = JSON.parse(text.substring(start, end + 1));
+    }
+    try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    return data;
+  },
+
+  htPickSeason: function(seasons) {
+    if (!seasons || !seasons.length) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const isReg = s => /regular/i.test(s.season_name || '');
+    const inRange = seasons.filter(s => s.start_date <= today && today <= s.end_date);
+    const regInRange = inRange.filter(isReg);
+    if (regInRange.length) return regInRange[regInRange.length - 1];
+    if (inRange.length) return inRange[inRange.length - 1];
+    const regs = seasons.filter(s => isReg(s) && String(s.career) === '1');
+    if (regs.length) {
+      regs.sort((a, b) => String(a.season_id).localeCompare(String(b.season_id), undefined, { numeric: true }));
+      return regs[regs.length - 1];
+    }
+    return seasons[seasons.length - 1];
+  },
+
+  fetchHockeyAffiliate: async function(cardClass, aff) {
+    const cacheKey = 'ht_aff_' + aff.name;
+    const ttlMs = 6 * 3600000;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry) {
+        STL.api._affCache[aff.name] = cached.data;
+        return;
+      }
+    } catch (e) {}
+    try {
+      const league = aff.league;
+      const seasonsData = await STL.api.htFetchJson(
+        'ht_seasons_' + league,
+        STL.api.htUrl(league, { feed: 'modulekit', view: 'seasons' }), ttlMs);
+      const season = STL.api.htPickSeason(seasonsData && seasonsData.SiteKit && seasonsData.SiteKit.Seasons);
+      if (!season) throw new Error('no season');
+      const sid = season.season_id;
+      const teamsData = await STL.api.htFetchJson(
+        'ht_teams_' + league + '_' + sid,
+        STL.api.htUrl(league, { feed: 'modulekit', view: 'teamsbyseason', season_id: sid }), ttlMs);
+      const teams = (teamsData && teamsData.SiteKit && teamsData.SiteKit.Teamsbyseason) || [];
+      const us = teams.find(t => String(t.name || '').toLowerCase() === aff.name.toLowerCase());
+      if (!us) throw new Error('team not found');
+      const tid = us.id;
+
+      let record = null;
+      try {
+        const stdData = await STL.api.htFetchJson(
+          'ht_std_' + league + '_' + sid,
+          STL.api.htUrl(league, { feed: 'modulekit', view: 'statviewtype', stat: 'division', type: 'standings', season_id: sid }), ttlMs);
+        const rows = (stdData && stdData.SiteKit && stdData.SiteKit.Statviewtype) || [];
+        const row = rows.find(r => String(r.team_id) === String(tid));
+        if (row) {
+          record = {
+            wins: parseInt(row.wins) || 0,
+            losses: parseInt(row.losses) || 0,
+            otl: parseInt(row.ot_losses) || 0,
+            sol: parseInt(row.shootout_losses) || 0,
+            points: parseInt(row.points) || 0,
+            streak: row.streak || ''
+          };
+        }
+      } catch (e) {}
+
+      let prospects = [];
+      try {
+        const skData = await STL.api.htFetchJson(
+          'ht_sk_' + league + '_' + tid + '_' + sid,
+          STL.api.htUrl(league, { feed: 'modulekit', view: 'statviewtype', type: 'skaters', team_id: tid, season_id: sid, sort: 'points' }), ttlMs);
+        const skaters = ((skData && skData.SiteKit && skData.SiteKit.Statviewtype) || [])
+          .filter(p => p.position !== 'G' && parseInt(p.points) > 0);
+        prospects = skaters.slice(0, 3).map(p => ({
+          name: p.name || (p.first_name + ' ' + p.last_name),
+          pos: p.position || '',
+          line: p.goals + ' G / ' + p.assists + ' A / ' + p.points + ' PTS · ' + p.games_played + ' GP'
+        }));
+      } catch (e) {}
+
+      const games = await STL.api.fetchHockeySchedule(league, tid, sid, ttlMs);
+      const data = {
+        record: record,
+        prospects: prospects,
+        lastGame: games.last,
+        nextGame: games.next,
+        seasonName: season.season_name,
+        seasonStart: season.start_date
+      };
+      STL.api._affCache[aff.name] = data;
+      try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    } catch (e) {
+      if (!STL.api._affCache[aff.name]) {
+        STL.api._affCache[aff.name] = { error: String(e.message || e) };
+      }
+    }
+  },
+
+  fetchHockeySchedule: async function(league, teamId, seasonId, ttlMs) {
+    const out = { last: null, next: null };
+    try {
+      const data = await STL.api.htFetchJson(
+        'ht_sched_' + league + '_' + teamId + '_' + seasonId,
+        STL.api.htUrl(league, { feed: 'statviewfeed', view: 'schedule', team: teamId, season: seasonId, month: -1 }), ttlMs);
+      const rows = [];
+      (data || []).forEach(sec => ((sec && sec.sections) || []).forEach(s => ((s && s.data) || []).forEach(d => {
+        if (d && d.row && d.row.game_status) rows.push({ row: d.row, prop: d.prop || {} });
+      })));
+      if (!rows.length) return out;
+      let nextIdx = rows.findIndex(g => g.row.game_status !== 'Final');
+      if (nextIdx < 0) nextIdx = rows.length;
+      const fmtSide = g => {
+        const home = String((g.prop.home_team_city || {}).teamLink) === String(teamId);
+        const opp = home ? g.row.visiting_team_city : g.row.home_team_city;
+        return { home: home, opp: opp };
+      };
+      if (nextIdx > 0) {
+        const g = rows[nextIdx - 1];
+        const s = fmtSide(g);
+        const ours = parseInt(s.home ? g.row.home_goal_count : g.row.visiting_goal_count);
+        const oppS = parseInt(s.home ? g.row.visiting_goal_count : g.row.home_goal_count);
+        const res = ours > oppS ? 'W' : ours < oppS ? 'L' : 'D';
+        out.last = res + ' ' + ours + '-' + oppS + ' ' + (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + g.row.date_with_day;
+      }
+      if (nextIdx < rows.length) {
+        const g = rows[nextIdx];
+        const s = fmtSide(g);
+        out.next = (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + g.row.date_with_day + ' · ' + g.row.game_status;
+      }
+    } catch (e) {}
+    return out;
+  },
+
+  /* Asia baseball: NPB via the free npb-result worker API; KBO via a live
+     scrape of the official KBO standings HTML. Both degrade gracefully. */
+
+  fetchAsiaBaseball: async function(team) {
+    try {
+      await STL.api.fetchNpb(team);
+    } catch (e) {
+      STL.render.renderManual(team);
+    }
+  },
+
+  fetchNpb: async function(team) {
+    const cacheKey = 'npb_pl_standings';
+    const ttlMs = 6 * 3600000;
+    let rows = null;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry) rows = cached.data;
+    } catch (e) {}
+    if (!rows) {
+      const resp = await fetch('https://npb-result.ant-npb.workers.dev/api/pl');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      rows = await resp.json();
+      try { localStorage.setItem(cacheKey, JSON.stringify({ data: rows, expiry: Date.now() + ttlMs })); } catch (e) {}
+    }
+    const us = (rows || []).find(r => r.name === team.npbName);
+    if (!us) throw new Error('team not found');
+    STL.render.renderAsiaCard(team, {
+      wins: us.win, losses: us.lose, ties: us.draw,
+      pct: us.pct != null ? String(us.pct).replace(/^0/, '') : '',
+      rank: us.rank, leagueName: 'Pacific League',
+      gb: us.gamesBehind, remaining: us.remainingGames
+    });
+  },
+
+  fetchKboLive: async function(team) {
+    const cacheKey = 'kbo_standings_html';
+    const ttlMs = 6 * 3600000;
+    const fallback = function() {
+      if (team.manualFallback) {
+        STL.render.renderAsiaCard(team, team.manualFallback);
+      } else {
+        STL.render.renderManual(team);
+      }
+    };
+    try {
+      let html = null;
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey));
+        if (cached && Date.now() < cached.expiry) html = cached.data;
+      } catch (e) {}
+      if (!html) {
+        const resp = await fetch('https://eng.koreabaseball.com/Standings/TeamStandings.aspx');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        html = await resp.text();
+        try { localStorage.setItem(cacheKey, JSON.stringify({ data: html, expiry: Date.now() + ttlMs })); } catch (e) {}
+      }
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const cells = doc.querySelectorAll('td[title="TEAM"]');
+      let row = null;
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].textContent.trim().toUpperCase() === team.kboName.toUpperCase()) {
+          row = cells[i].parentElement;
+          break;
+        }
+      }
+      if (!row) throw new Error('team row not found');
+      const val = function(title) {
+        const c = row.querySelector('td[title="' + title + '"]');
+        return c ? c.textContent.trim() : null;
+      };
+      const games = parseInt(val('GAMES')) || 0;
+      STL.render.renderAsiaCard(team, {
+        wins: parseInt(val('W')), losses: parseInt(val('L')), ties: parseInt(val('D')) || 0,
+        pct: val('PCT') ? String(val('PCT')).replace(/^0/, '') : '',
+        rank: parseInt(val('RK')), leagueName: 'KBO League',
+        gb: val('GB'), streak: val('STREAK'),
+        remaining: games ? 144 - games : null
+      });
+    } catch (e) {
+      fallback();
+    }
   }
 };

@@ -2,10 +2,11 @@ window.STL = window.STL || {};
 
 STL.render = {
 
-  buildCards: function() {
+  buildCards: function(teams) {
     const grid = document.getElementById('cardGrid');
     grid.innerHTML = '';
-    STL.config.TEAMS.forEach(t => {
+    const list = teams || STL.dashboard.teamList();
+    list.forEach(t => {
       const card = document.createElement('div');
       card.className = 'card ' + t.cardClass;
       card.id = 'card-' + t.cardClass;
@@ -54,6 +55,12 @@ STL.render = {
               '<span class="cap-toggle-icon">&#9654;</span> Cap' +
             '</button>' +
             '<div class="cap-panel" id="capPanel-' + t.cardClass + '"></div>' +
+          '</div>' +
+          '<div id="affContainer-' + t.cardClass + '" style="display:none">' +
+            '<button class="aff-toggle" onclick="STL.toggle.aff(this,\'' + t.cardClass + '\')">' +
+              '<span class="aff-toggle-icon">&#9654;</span> <span id="affLabel-' + t.cardClass + '">Affiliates</span>' +
+            '</button>' +
+            '<div class="aff-panel" id="affPanel-' + t.cardClass + '"></div>' +
           '</div>' +
           '<div class="links" id="links-' + t.cardClass + '"></div>' +
         '</div>';
@@ -260,6 +267,9 @@ STL.render = {
     const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
     if (iconEl && t.logos && t.logos[0]) {
       iconEl.innerHTML = '<img src="' + t.logos[0].href + '" alt="' + t.displayName + '">';
+    }
+    if (iconEl && team.logo) {
+      iconEl.innerHTML = '<img src="' + team.logo + '" alt="' + team.name + '" onerror="this.parentNode.textContent=\'' + team.icon + '\'">';
     }
     const record = t.record && t.record.items ? t.record.items[0] : null;
     const statsArr = record ? (record.stats || []) : [];
@@ -477,10 +487,173 @@ STL.render = {
       capContainer.style.display = 'none';
     }
 
+    STL.render.renderAffShell(team);
+
     if (badge) {
       badge.textContent = statusText;
       badge.className = 'status-badge ' + statusClass;
     }
+  },
+
+  renderManual: function(team) {
+    const body = document.getElementById('body-' + team.cardClass);
+    if (!body) return;
+    const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
+    if (iconEl && !iconEl.querySelector('img')) iconEl.textContent = team.icon;
+    const badge = document.getElementById('badge-' + team.cardClass);
+    if (badge) { badge.textContent = 'Follow'; badge.className = 'status-badge status-active'; }
+    document.getElementById('record-' + team.cardClass).innerHTML = '<span style="color:#666;">live scores coming soon</span>';
+    const lg = document.getElementById('lastGame-' + team.cardClass);
+    if (lg && lg.parentElement) lg.parentElement.style.display = 'none';
+    const ng = document.getElementById('nextGame-' + team.cardClass);
+    if (ng) ng.innerHTML = '';
+    const linksEl = document.getElementById('links-' + team.cardClass);
+    if (linksEl) linksEl.innerHTML = team.links.map(l => '<a href="' + l.href + '" target="_blank" rel="noopener">' + l.text + '</a>').join('');
+  },
+
+  /* NPB/KBO cards: record + standing from their league tables. No ESPN
+     schedule, so no last/next, countdown, or win probability. */
+
+  renderAsiaCard: function(team, st) {
+    const body = document.getElementById('body-' + team.cardClass);
+    if (!body) return;
+    const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
+    if (iconEl) {
+      if (team.logo) {
+        iconEl.innerHTML = '<img src="' + team.logo + '" alt="' + team.name + '" onerror="this.parentNode.textContent=\'' + team.icon + '\'">';
+      } else {
+        iconEl.textContent = team.icon;
+      }
+    }
+    const w = st.wins != null ? st.wins : '?';
+    const l = st.losses != null ? st.losses : '?';
+    const t = st.ties != null ? st.ties : 0;
+    let rec = w + '-' + l + '-' + t;
+    if (st.pct) rec += ' (' + st.pct + ')';
+    document.getElementById('record-' + team.cardClass).textContent = rec;
+    const standingRow = document.getElementById('standingRow-' + team.cardClass);
+    const standingEl = document.getElementById('standing-' + team.cardClass);
+    if (st.rank != null) {
+      standingRow.style.display = '';
+      let s = st.rank + STL.utils.suffix(parseInt(st.rank)) + ' in ' + (st.leagueName || team.league);
+      if (st.gb != null && String(st.gb) !== '-' && String(st.gb) !== '0' && String(st.gb) !== '0.0') {
+        s += ' · ' + st.gb + ' GB';
+      }
+      if (st.note) s += '<br><span style="color:#555;font-weight:400;">' + st.note + '</span>';
+      standingEl.innerHTML = s;
+    } else {
+      standingRow.style.display = 'none';
+    }
+    const streakRow = document.getElementById('streakRow-' + team.cardClass);
+    const streakEl = document.getElementById('streak-' + team.cardClass);
+    if (streakRow && st.streak) {
+      streakRow.style.display = '';
+      streakEl.textContent = st.streak;
+      const ch = String(st.streak).charAt(0).toUpperCase();
+      streakEl.className = 'stat-value ' + (ch === 'W' ? 'win' : ch === 'L' ? 'loss' : 'draw');
+    } else if (streakRow) {
+      streakRow.style.display = 'none';
+    }
+    const lg = document.getElementById('lastGame-' + team.cardClass);
+    if (lg && lg.parentElement) lg.parentElement.style.display = 'none';
+    const ng = document.getElementById('nextGame-' + team.cardClass);
+    if (ng) ng.innerHTML = '';
+    const linksEl = document.getElementById('links-' + team.cardClass);
+    if (linksEl) linksEl.innerHTML = team.links.map(x => '<a href="' + x.href + '" target="_blank" rel="noopener">' + x.text + '</a>').join('');
+    const badge = document.getElementById('badge-' + team.cardClass);
+    if (badge) {
+      const active = st.remaining == null || parseInt(st.remaining) > 0;
+      badge.textContent = active ? 'Active' : 'Offseason';
+      badge.className = 'status-badge ' + (active ? 'status-active' : 'status-offseason');
+    }
+  },
+
+  /* Affiliates dropdown: static rows render with the parent card; live
+     record + prospects fill in when STL.api.fetchAffiliates resolves. */
+
+  renderAffShell: function(team) {
+    const key = team.cardClass === 'cardinals' ? 'cardinals' : team.cardClass === 'blues' ? 'blues' : null;
+    const container = document.getElementById('affContainer-' + team.cardClass);
+    const panel = document.getElementById('affPanel-' + team.cardClass);
+    const label = document.getElementById('affLabel-' + team.cardClass);
+    if (!key || !container || !panel) return;
+    const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
+    if (!list.length) { container.style.display = 'none'; return; }
+    container.style.display = '';
+    if (label) label.textContent = key === 'cardinals' ? 'Farm System' : 'Affiliates';
+    panel.innerHTML = list.map(a => STL.render.affRowHtml(team.cardClass, a)).join('');
+    if (window._affOpen && window._affOpen[team.cardClass]) {
+      const toggle = container.querySelector('.aff-toggle');
+      if (toggle) { toggle.classList.add('open'); panel.classList.add('open'); }
+    }
+  },
+
+  affRowHtml: function(cardClass, aff) {
+    const cached = STL.api._affCache && STL.api._affCache[aff.name];
+    let sub = '<span style="color:#666;">tap to load record + prospects</span>';
+    let gamesHtml = '';
+    if (cached) {
+      if (cached.error) {
+        sub = '<span style="color:#666;">live data unavailable</span>';
+      } else if (cached.record) {
+        const r = cached.record;
+        let rec;
+        if (r.pct !== undefined && r.otl === undefined) {
+          rec = (r.wins || 0) + '-' + (r.losses || 0) + (r.pct ? ' (' + r.pct + ')' : '');
+        } else {
+          rec = (r.wins || 0) + '-' + (r.losses || 0) + '-' + (r.otl || 0) +
+            (r.sol ? '-' + r.sol : '') + ' (' + (r.points || 0) + ' pts)';
+        }
+        sub = '<span class="aff-rec">' + rec + '</span>';
+      } else if (cached.seasonStart) {
+        sub = '<span style="color:#666;">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
+      }
+      if (cached.lastGame) gamesHtml += '<div class="aff-game">Last: ' + cached.lastGame + '</div>';
+      if (cached.nextGame) gamesHtml += '<div class="aff-game">Next: ' + cached.nextGame + '</div>';
+    }
+    let pros = '';
+    if (cached && cached.prospects && cached.prospects.length) {
+      pros = '<div class="prospects">' +
+        '<div class="prospects-label">Rising prospects</div>' +
+        cached.prospects.map(p =>
+          '<div class="prospect-row"><span class="pos">' + p.pos + '</span>' +
+          '<span class="name">' + p.name + '</span>' +
+          '<span class="pline">' + p.line + '</span></div>'
+        ).join('') + '</div>';
+    }
+    return '<div class="aff-row" id="aff-' + cardClass + '-' + aff.name.replace(/[^a-z0-9]/gi, '') + '">' +
+      '<div class="aff-top"><span class="aff-name">' + aff.name + '</span>' +
+      '<span class="aff-level">' + aff.level + '</span></div>' +
+      '<div class="aff-sub">' + sub + ' &middot; <a href="' + aff.site + '" target="_blank" rel="noopener">site</a></div>' +
+      gamesHtml + pros + '</div>';
+  },
+
+  fmtSeasonStart: function(iso) {
+    try {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const parts = String(iso).split('-');
+      return months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[2]);
+    } catch (e) { return String(iso); }
+  },
+
+  refreshAffPanel: function(cardClass) {
+    const key = cardClass === 'cardinals' ? 'cardinals' : cardClass === 'blues' ? 'blues' : null;
+    if (!key) return;
+    const panel = document.getElementById('affPanel-' + cardClass);
+    if (!panel || !panel.classList.contains('open')) {
+      // Still refresh underlying HTML so it is current on next open.
+      const team = STL.dashboard.teamList().find(t => t.cardClass === cardClass) ||
+        STL.config.TEAMS.find(t => t.cardClass === cardClass);
+      if (!team) return;
+      const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
+      panel.innerHTML = list.map(a => STL.render.affRowHtml(cardClass, a)).join('');
+      return;
+    }
+    const team = STL.dashboard.teamList().find(t => t.cardClass === cardClass) ||
+      STL.config.TEAMS.find(t => t.cardClass === cardClass);
+    if (!team) return;
+    const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
+    panel.innerHTML = list.map(a => STL.render.affRowHtml(cardClass, a)).join('');
   },
 
 };
