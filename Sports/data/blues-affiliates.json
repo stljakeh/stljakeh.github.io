@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-09-30T06:29:31.922441+00:00",
+  "affiliates": {
+    "Springfield Thunderbirds": {
+      "record": {
+        "wins": 0,
+        "losses": 1,
+        "otl": 1,
+        "sol": 0,
+        "points": 1,
+        "streak": "0-1-1-0"
+      },
+      "prospects": [
+        {
+          "name": "Chris Wagner",
+          "pos": "RW",
+          "line": "2 G / 0 A / 2 PTS \u00b7 2 GP"
+        },
+        {
+          "name": "Justin Carbonneau",
+          "pos": "F",
+          "line": "1 G / 0 A / 1 PTS \u00b7 2 GP"
+        },
+        {
+          "name": "Matt Demelis",
+          "pos": "C",
+          "line": "1 G / 0 A / 1 PTS \u00b7 2 GP"
+        }
+      ],
+      "lastGame": "L 1-4 @ Providence \u00b7 Sat, Sep 26",
+      "nextGame": null,
+      "seasonName": "2026 Preseason",
+      "seasonStart": "2026-09-21"
+    },
+    "Worcester Railers": {
+      "record": {
+        "wins": 0,
+        "losses": 0,
+        "otl": 0,
+        "sol": 0,
+        "points": 0,
+        "streak": "0-0-0-0"
+      },
+      "prospects": [],
+      "lastGame": null,
+      "nextGame": "@ Maine \u00b7 7:00 pm EDT",
+      "seasonName": "2026 Preseason",
+      "seasonStart": "2026-06-23"
+    }
+  }
+}

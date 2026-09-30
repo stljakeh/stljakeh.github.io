@@ -706,12 +706,23 @@ STL.api = {
   },
 
   /* Hockey affiliates via HockeyTech LeagueStat (public client keys embedded
-     in the league sites; same feed theahl.com/echl.com use). Season + team id
-     resolved at runtime so no per-season edits are needed. 6h localStorage
-     cache; any failure degrades to the static affiliate row. */
+     in the league sites; same feed theahl.com/echl.com use). Served prefetch-first
+     from Sports/data/blues-affiliates.json (same-origin, refreshed every 6h by
+     .github/workflows/affiliates.yml); live HockeyTech fetch via CORS proxy
+     chain (STL.api.HT.proxies) is the fallback, since HockeyTech sends no CORS
+     headers. Season + team id resolved at runtime so no per-season edits are
+     needed. 6h localStorage cache; any failure degrades to the static row. */
 
   HT: {
     base: 'https://lscluster.hockeytech.com/feed/index.php',
+    // Verified 2026-09-30: both forward the body unchanged + Access-Control-Allow-Origin: *.
+    // cors.lol is primary but rate-limits bursts (HTTP 429); allorigins is the
+    // fallback but throws transient 520s. (codetabs 522, corsproxy.io needs an
+    // API key, corsfix/isomorphic-git reject us.)
+    proxies: [
+      'https://api.cors.lol/?url=',
+      'https://api.allorigins.win/raw?url='
+    ],
     leagues: {
       ahl: { code: 'ahl', key: 'ccb91f29d6744675' },
       echl: { code: 'echl', key: '2c2b89ea7345cae8' }
@@ -725,27 +736,74 @@ STL.api = {
     return url;
   },
 
+  _sleep: function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); },
+
+  // Prefetched affiliate panels, fetched once per page load (6h memory cache).
+  _affPrefetch: null,
+
+  fetchAffPrefetch: async function() {
+    const now = Date.now();
+    if (STL.api._affPrefetch && now - STL.api._affPrefetch.at < 6 * 3600000) {
+      return STL.api._affPrefetch.data;
+    }
+    const resp = await fetch('data/blues-affiliates.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    STL.api._affPrefetch = { at: now, data: data };
+    return data;
+  },
+
   htFetchJson: async function(cacheKey, url, ttlMs) {
     ttlMs = ttlMs || 6 * 3600000;
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey));
       if (cached && Date.now() < cached.expiry) return cached.data;
     } catch (e) {}
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      // statviewfeed schedule comes back as JSONP: ([{...}])
-      const start = text.indexOf('[');
-      const end = text.lastIndexOf(']');
-      if (start < 0 || end < 0) throw e;
-      data = JSON.parse(text.substring(start, end + 1));
+    const load = async function(u) {
+      const resp = await fetch(u);
+      if (!resp.ok) {
+        const err = new Error('HTTP ' + resp.status);
+        err.status = resp.status;
+        throw err;
+      }
+      const text = await resp.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        // statviewfeed schedule comes back as JSONP: ([{...}])
+        const start = text.indexOf('[');
+        const end = text.lastIndexOf(']');
+        if (start < 0 || end < 0) throw e;
+        return JSON.parse(text.substring(start, end + 1));
+      }
+    };
+    const store = function(data) {
+      try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    };
+    // Proxied first (works in browsers), direct as fallback (works server-side
+    // and if HockeyTech ever adds CORS headers). Cached body is identical either way.
+    // Proxies are chained: a failure on one falls through to the next, and
+    // HTTP 429 (burst rate-limit) is retried with backoff before moving on.
+    const targets = STL.api.HT.proxies.map(function(p) { return p + encodeURIComponent(url); });
+    targets.push(url);
+    let lastErr = null;
+    for (const t of targets) {
+      const isDirect = (t === url);
+      let attempt = 0;
+      while (true) {
+        try {
+          const data = await load(t);
+          store(data);
+          return data;
+        } catch (e) {
+          lastErr = e;
+          const retryable = !isDirect && e && (e.status === 429 || (e.status >= 500 && e.status <= 599)) && attempt < 2;
+          if (retryable) { attempt++; await STL.api._sleep(1500 * attempt); continue; }
+          break;
+        }
+      }
     }
-    try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
-    return data;
+    throw lastErr || new Error('fetch failed');
   },
 
   htPickSeason: function(seasons) {
@@ -771,6 +829,19 @@ STL.api = {
       const cached = JSON.parse(localStorage.getItem(cacheKey));
       if (cached && Date.now() < cached.expiry) {
         STL.api._affCache[aff.name] = cached.data;
+        return;
+      }
+    } catch (e) {}
+    // Prefetched panels (Sports/data/blues-affiliates.json, refreshed every 6h
+    // by .github/workflows/affiliates.yml). Same-origin, so no CORS involved.
+    // Falls through to the live path when missing, errored, or older than 24h.
+    try {
+      const pre = await STL.api.fetchAffPrefetch();
+      const gen = pre && pre.generated_at ? Date.parse(pre.generated_at) : 0;
+      const entry = pre && pre.affiliates && pre.affiliates[aff.name];
+      if (entry && !entry.error && gen && Date.now() - gen < 24 * 3600000) {
+        STL.api._affCache[aff.name] = entry;
+        try { localStorage.setItem(cacheKey, JSON.stringify({ data: entry, expiry: Date.now() + ttlMs })); } catch (e) {}
         return;
       }
     } catch (e) {}
@@ -852,7 +923,9 @@ STL.api = {
         if (d && d.row && d.row.game_status) rows.push({ row: d.row, prop: d.prop || {} });
       })));
       if (!rows.length) return out;
-      let nextIdx = rows.findIndex(g => g.row.game_status !== 'Final');
+      // Any 'Final*' status (Final, Final OT, Final SO) is a completed game.
+      const isFinal = g => /^final/i.test(g.row.game_status || '');
+      let nextIdx = rows.findIndex(g => !isFinal(g));
       if (nextIdx < 0) nextIdx = rows.length;
       const fmtSide = g => {
         const home = String((g.prop.home_team_city || {}).teamLink) === String(teamId);
@@ -865,12 +938,14 @@ STL.api = {
         const ours = parseInt(s.home ? g.row.home_goal_count : g.row.visiting_goal_count);
         const oppS = parseInt(s.home ? g.row.visiting_goal_count : g.row.home_goal_count);
         const res = ours > oppS ? 'W' : ours < oppS ? 'L' : 'D';
-        out.last = res + ' ' + ours + '-' + oppS + ' ' + (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + g.row.date_with_day;
+        out.last = res + ' ' + ours + '-' + oppS + ' ' + (s.home ? 'vs' : '@') + ' ' + s.opp +
+          (g.row.date_with_day ? ' · ' + g.row.date_with_day : '');
       }
       if (nextIdx < rows.length) {
         const g = rows[nextIdx];
         const s = fmtSide(g);
-        out.next = (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + g.row.date_with_day + ' · ' + g.row.game_status;
+        out.next = [(s.home ? 'vs' : '@') + ' ' + s.opp, g.row.date_with_day, g.row.game_status]
+          .filter(Boolean).join(' · ');
       }
     } catch (e) {}
     return out;

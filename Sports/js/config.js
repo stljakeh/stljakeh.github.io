@@ -91,7 +91,9 @@ STL.config = {
   // Farm-system affiliates shown as dropdowns on the parent card.
   // MiLB live data: MLB Stats API (statsapi.mlb.com), resolved at runtime via
   // Cardinals MLBAM id 138 affiliates endpoint — no hardcoded milb ids.
-  // AHL/ECHL live data: league APIs (in progress) — panels render statically until wired.
+  // AHL/ECHL live data: HockeyTech LeagueStat, prefetched server-side to
+  // Sports/data/blues-affiliates.json (see STL.api.fetchAffPrefetch) with a
+  // CORS-proxy live fallback (see STL.api.HT).
   AFFILIATES: {
     cardinals: [
       { name: 'Memphis Redbirds', level: 'AAA', site: 'https://www.milb.com/memphis' },

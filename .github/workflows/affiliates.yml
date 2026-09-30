@@ -1,0 +1,29 @@
+name: affiliates-data
+
+# Server-side prefetch of Blues affiliate panels (HockeyTech has no CORS
+# headers, so browsers can't fetch it directly). Regenerates
+# Sports/data/blues-affiliates.json, which the dashboard reads same-origin.
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build affiliates JSON
+        run: python3 Sports/tools/build-affiliates.py
+      - name: Commit if changed
+        run: |
+          git config user.name "affiliates-bot"
+          git config user.email "affiliates-bot@users.noreply.github.com"
+          git add Sports/data/blues-affiliates.json
+          git diff --cached --quiet || (git commit -m "chore: refresh Blues affiliates data" && git push)
