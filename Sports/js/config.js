@@ -89,18 +89,20 @@ STL.config = {
   ],
 
   // Farm-system affiliates shown as dropdowns on the parent card.
-  // MiLB live data: MLB Stats API (statsapi.mlb.com), resolved at runtime via
-  // Cardinals MLBAM id 138 affiliates endpoint — no hardcoded milb ids.
+  // MiLB live data: MLB Stats API (statsapi.mlb.com), ids hardcoded
+  // (verified 2026-09-30). hydrate=record goes empty in the offseason, so
+  // the record comes from schedule-last-final with a standings fallback
+  // (see STL.api.fetchMilbAffiliate).
   // AHL/ECHL live data: HockeyTech LeagueStat, prefetched server-side to
   // Sports/data/blues-affiliates.json (see STL.api.fetchAffPrefetch) with a
   // CORS-proxy live fallback (see STL.api.HT).
   AFFILIATES: {
     cardinals: [
-      { name: 'Memphis Redbirds', level: 'AAA', site: 'https://www.milb.com/memphis' },
-      { name: 'Springfield Cardinals', level: 'AA', site: 'https://www.milb.com/springfield' },
-      { name: 'Peoria Chiefs', level: 'High-A', site: 'https://www.milb.com/peoria' },
-      { name: 'Palm Beach Cardinals', level: 'Single-A', site: 'https://www.milb.com/palm-beach' },
-      { name: 'FCL Cardinals', level: 'Rookie', site: 'https://www.milb.com/florida-complex-league' },
+      { name: 'Memphis Redbirds', level: 'AAA', id: 235, leagueId: 117, sportId: 11, site: 'https://www.milb.com/memphis' },
+      { name: 'Springfield Cardinals', level: 'AA', id: 440, leagueId: 109, sportId: 12, site: 'https://www.milb.com/springfield' },
+      { name: 'Peoria Chiefs', level: 'High-A', id: 443, leagueId: 118, sportId: 13, site: 'https://www.milb.com/peoria' },
+      { name: 'Palm Beach Cardinals', level: 'Single-A', id: 279, leagueId: 123, sportId: 14, site: 'https://www.milb.com/palm-beach' },
+      { name: 'FCL Cardinals', level: 'Rookie', id: 1370, leagueId: 124, sportId: 16, site: 'https://www.milb.com/florida-complex-league' },
     ],
     blues: [
       { name: 'Springfield Thunderbirds', level: 'AHL', league: 'ahl', site: 'https://www.springfieldthunderbirds.com' },

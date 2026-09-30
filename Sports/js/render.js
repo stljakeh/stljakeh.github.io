@@ -597,14 +597,26 @@ STL.render = {
         sub = '<span style="color:#666;">live data unavailable</span>';
       } else if (cached.record) {
         const r = cached.record;
-        let rec;
-        if (r.pct !== undefined && r.otl === undefined) {
-          rec = (r.wins || 0) + '-' + (r.losses || 0) + (r.pct ? ' (' + r.pct + ')' : '');
+        const games = (r.wins || 0) + (r.losses || 0);
+        if (games === 0) {
+          sub = '<span style="color:#666;">live data unavailable</span>';
         } else {
-          rec = (r.wins || 0) + '-' + (r.losses || 0) + '-' + (r.otl || 0) +
-            (r.sol ? '-' + r.sol : '') + ' (' + (r.points || 0) + ' pts)';
+          let rec;
+          if (r.pct !== undefined && r.otl === undefined) {
+            rec = (r.wins || 0) + '-' + (r.losses || 0) + (r.pct ? ' (' + r.pct + ')' : '');
+          } else {
+            rec = (r.wins || 0) + '-' + (r.losses || 0) + '-' + (r.otl || 0) +
+              (r.sol ? '-' + r.sol : '') + ' (' + (r.points || 0) + ' pts)';
+          }
+          if (cached.isFinal && (cached.season || cached.seasonName)) {
+            const tag = cached.season || String(cached.seasonName).replace(' Regular Season', '');
+            rec += ' · Final ' + tag;
+          }
+          if (cached.standing) {
+            rec += '<br><span style="color:#555;font-weight:400;">' + cached.standing + '</span>';
+          }
+          sub = '<span class="aff-rec">' + rec + '</span>';
         }
-        sub = '<span class="aff-rec">' + rec + '</span>';
       } else if (cached.seasonStart) {
         sub = '<span style="color:#666;">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
       }
@@ -613,8 +625,15 @@ STL.render = {
     }
     let pros = '';
     if (cached && cached.prospects && cached.prospects.length) {
+      const pSeason = cached.prospectSeason || cached.season;
+      let prosLabel = 'Rising prospects';
+      if (pSeason && (cached.isFinal || pSeason !== STL.api.milbSeasonYear())) {
+        prosLabel = 'Top performers · ' + pSeason;
+      } else if (cached.isFinal && cached.seasonName) {
+        prosLabel = 'Top performers · ' + String(cached.seasonName).replace(' Regular Season', '');
+      }
       pros = '<div class="prospects">' +
-        '<div class="prospects-label">Rising prospects</div>' +
+        '<div class="prospects-label">' + prosLabel + '</div>' +
         cached.prospects.map(p =>
           '<div class="prospect-row"><span class="pos">' + p.pos + '</span>' +
           '<span class="name">' + p.name + '</span>' +

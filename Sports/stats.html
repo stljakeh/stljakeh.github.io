@@ -232,12 +232,23 @@ var UFL_FRANCHISES = [
   {
     name: 'Dallas Renegades', color: '#69b3e7', currentId: '112647',
     coach2026: 'Rick Neuheisel',
+    coach2027: 'Kevin Sumlin',
     history: [
       { year: 2020, coach: 'Bob Stoops', w: 2, l: 3, league: 'XFL', pf: 90, pa: 102 },
       { year: 2023, coach: 'Bob Stoops', w: 4, l: 6, champ: true, league: 'XFL', pf: 146, pa: 194 },
       { year: 2024, coach: 'Bob Stoops', w: 3, l: 7, league: 'UFL', pf: 247, pa: 249 },
       { year: 2025, coach: 'Bob Stoops', w: 5, l: 5, league: 'UFL', pf: 229, pa: 168 }
     ]
+  },
+  {
+    name: 'Rhode Island', color: '#888', logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/ufl.png',
+    coach2027: 'AJ McCarron',
+    history: []
+  },
+  {
+    name: 'Colorado', color: '#888', logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/ufl.png',
+    coach2027: 'Rick Neuheisel',
+    history: []
   },
 ];
 
@@ -426,7 +437,7 @@ async function loadUFLCoaching() {
     var frac = sorted[f];
     html += '<div style="margin-bottom:16px;">' +
       '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:600;color:' + frac.color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a1a1a;">' +
-        (logoMap[frac.currentId] ? '<img src="' + logoMap[frac.currentId] + '" style="width:24px;height:24px;object-fit:contain;">' : '') +
+        ((logoMap[frac.currentId] || frac.logo) ? '<img src="' + (logoMap[frac.currentId] || frac.logo) + '" style="width:24px;height:24px;object-fit:contain;">' : '') +
         escHtml(frac.name) +
       '</div>';
     for (var h = 0; h < frac.history.length; h++) {
@@ -441,13 +452,22 @@ async function loadUFLCoaching() {
       }
     }
     var curW = 0, curL = 0;
+    var cur = null;
     if (frac.coach2026) {
-      var cur = teamMap[frac.currentId];
+      cur = teamMap[frac.currentId];
       curW = cur ? cur.w : 0;
       curL = cur ? cur.l : 0;
       html += '<div class="player-row" style="font-weight:600;">' +
         '<span class="player-name">' + escHtml(frac.coach2026) + ' <span style="color:#666;font-size:0.75rem;">(2026 UFL)' + (frac.champ2026 ? ' \uD83C\uDFC6' : '') + '</span></span>' +
         '<span class="player-val">' + (cur && cur.pf != null ? '<span style="color:#666;font-size:0.75rem;margin-right:12px;">PF ' + cur.pf + ' | PA ' + cur.pa + ' | ' + (cur.diff > 0 ? '+' : '') + cur.diff + '</span> ' : '') + curW + '-' + curL + '</span>' +
+      '</div>';
+    }
+    if (frac.coach2027) {
+      // 2027 hasn't been played: static 0-0 with zero PF/PA. Deliberately not
+      // sourced from teamMap — a currentId would show that team's stale 2026 numbers.
+      html += '<div class="player-row" style="font-weight:600;">' +
+        '<span class="player-name">' + escHtml(frac.coach2027) + ' <span style="color:#666;font-size:0.75rem;">(2027 UFL)</span></span>' +
+        '<span class="player-val"><span style="color:#666;font-size:0.75rem;margin-right:12px;">PF 0 | PA 0 | 0</span> 0-0</span>' +
       '</div>';
     }
     var totW = 0, totL = 0, totPF = 0, totPA = 0;
@@ -456,7 +476,7 @@ async function loadUFLCoaching() {
     totW += curW; totL += curL;
       html += '<div class="player-row" style="border-top:1px solid #2a2a2a;color:#aaa;">' +
         '<span class="player-name" style="color:#aaa;font-size:0.8rem;">Franchise Total</span>' +
-        '<span class="player-val" style="color:#aaa;">' + (totPF ? '<span style="color:#888;font-size:0.75rem;margin-right:12px;">PF ' + totPF + ' | PA ' + totPA + ' | ' + (totPF - totPA > 0 ? '+' : '') + (totPF - totPA) + '</span> ' : '') + totW + '-' + totL + '</span>' +
+        '<span class="player-val" style="color:#aaa;"><span style="color:#888;font-size:0.75rem;margin-right:12px;">PF ' + totPF + ' | PA ' + totPA + ' | ' + (totPF - totPA > 0 ? '+' : '') + (totPF - totPA) + '</span> ' + totW + '-' + totL + '</span>' +
       '</div>';
     html += '</div>';
   }

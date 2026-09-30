@@ -1,51 +1,71 @@
 {
-  "generated_at": "2026-09-30T06:33:34.387984+00:00",
+  "generated_at": "2026-09-30T13:05:36.624801+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
-        "wins": 0,
-        "losses": 1,
-        "otl": 1,
-        "sol": 0,
-        "points": 1,
-        "streak": "0-1-1-0"
+        "wins": 32,
+        "losses": 32,
+        "otl": 6,
+        "sol": 2,
+        "points": 72,
+        "streak": "1-0-0-0"
       },
       "prospects": [
         {
           "name": "Chris Wagner",
-          "pos": "RW",
-          "line": "2 G / 0 A / 2 PTS \u00b7 2 GP"
-        },
-        {
-          "name": "Justin Carbonneau",
-          "pos": "F",
-          "line": "1 G / 0 A / 1 PTS \u00b7 2 GP"
-        },
-        {
-          "name": "Matt Demelis",
           "pos": "C",
-          "line": "1 G / 0 A / 1 PTS \u00b7 2 GP"
+          "line": "24 G / 26 A / 50 PTS \u00b7 67 GP"
+        },
+        {
+          "name": "Aleksanteri Kaskim\u00e4ki",
+          "pos": "F",
+          "line": "20 G / 24 A / 44 PTS \u00b7 64 GP"
+        },
+        {
+          "name": "Matt Luff",
+          "pos": "RW",
+          "line": "14 G / 25 A / 39 PTS \u00b7 42 GP"
         }
       ],
-      "lastGame": "L 1-4 @ Providence \u00b7 Sat, Sep 26",
+      "standing": "6th Atlantic Division",
+      "lastGame": "W 4-3 vs Hartford \u00b7 Sat, Apr 18",
       "nextGame": null,
-      "seasonName": "2026 Preseason",
-      "seasonStart": "2026-09-21"
+      "seasonName": "2025-26 Regular Season",
+      "seasonStart": "2025-10-07",
+      "isFinal": true
     },
     "Worcester Railers": {
       "record": {
-        "wins": 0,
-        "losses": 0,
-        "otl": 0,
-        "sol": 0,
-        "points": 0,
-        "streak": "0-0-0-0"
+        "wins": 35,
+        "losses": 30,
+        "otl": 5,
+        "sol": 2,
+        "points": 77,
+        "streak": "6-0-0-0"
       },
-      "prospects": [],
-      "lastGame": null,
-      "nextGame": "@ Maine \u00b7 7:00 pm EDT",
-      "seasonName": "2026 Preseason",
-      "seasonStart": "2026-06-23"
+      "prospects": [
+        {
+          "name": "Anthony Repaci",
+          "pos": "F",
+          "line": "23 G / 31 A / 54 PTS \u00b7 72 GP"
+        },
+        {
+          "name": "Anthony Callin",
+          "pos": "F",
+          "line": "18 G / 28 A / 46 PTS \u00b7 65 GP"
+        },
+        {
+          "name": "Drew Callin",
+          "pos": "F",
+          "line": "25 G / 18 A / 43 PTS \u00b7 64 GP"
+        }
+      ],
+      "standing": "6th North",
+      "lastGame": "W 4-3 vs Adirondack \u00b7 Apr. 19",
+      "nextGame": "@ Maine \u00b7 Oct. 9 \u00b7 7:00 pm EDT",
+      "seasonName": "2025-26 Regular Season",
+      "seasonStart": "2025-10-15",
+      "isFinal": true
     }
   }
 }

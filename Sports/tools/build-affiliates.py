@@ -68,6 +68,28 @@ def pick_season(seasons, today):
     return seasons[-1]
 
 
+def suffix(n):
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return ""
+    if 11 <= (n % 100) <= 13:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
+def prior_regular(seasons, today):
+    """Most recent completed regular season (playoffs are separate entries)."""
+    regs = [s for s in (seasons or [])
+            if re.search(r"regular", s.get("season_name") or "", re.I)
+            and str(s.get("career")) == "1"
+            and (s.get("end_date") or "") < today]
+    if not regs:
+        return None
+    regs.sort(key=lambda s: int(s["season_id"]))
+    return regs[-1]
+
+
 def to_int(v):
     try:
         return int(v)
@@ -104,24 +126,21 @@ def build_schedule(league, team_id, season_id):
         opp_s = to_int(row["visiting_goal_count"] if home else row["home_goal_count"])
         res = "W" if ours > opp_s else ("L" if ours < opp_s else "D")
         out["last"] = "%s %d-%d %s %s" % (res, ours, opp_s, "vs" if home else "@", opp)
-        if row.get("date_with_day"):
-            out["last"] += " \u00b7 %s" % row["date_with_day"]
+        # ECHL rows carry `date` instead of `date_with_day`.
+        day = row.get("date_with_day") or row.get("date")
+        if day:
+            out["last"] += " \u00b7 %s" % day
     if next_idx < len(rows):
         row, prop = rows[next_idx]
         home, opp = side(row, prop)
         parts = ["%s %s" % ("vs" if home else "@", opp),
-                 row.get("date_with_day"), row.get("game_status")]
+                 row.get("date_with_day") or row.get("date"), row.get("game_status")]
         out["next"] = " \u00b7 ".join(str(p) for p in parts if p)
     return out
 
 
-def build_affiliate(aff, today):
-    league = aff["league"]
-    seasons = (ht(league, {"feed": "modulekit", "view": "seasons"})
-               .get("SiteKit", {}).get("Seasons"))
-    season = pick_season(seasons, today)
-    if not season:
-        raise RuntimeError("no season")
+def build_season_data(league, aff, season):
+    """Mirror STL.api.fetchHockeySeasonData exactly."""
     sid = season["season_id"]
     teams = (ht(league, {"feed": "modulekit", "view": "teamsbyseason", "season_id": sid})
              .get("SiteKit", {}).get("Teamsbyseason")) or []
@@ -132,6 +151,7 @@ def build_affiliate(aff, today):
     tid = us["id"]
 
     record = None
+    standing = None
     try:
         std = (ht(league, {"feed": "modulekit", "view": "statviewtype", "stat": "division",
                            "type": "standings", "season_id": sid})
@@ -141,6 +161,13 @@ def build_affiliate(aff, today):
             record = {"wins": to_int(row.get("wins")), "losses": to_int(row.get("losses")),
                       "otl": to_int(row.get("ot_losses")), "sol": to_int(row.get("shootout_losses")),
                       "points": to_int(row.get("points")), "streak": row.get("streak") or ""}
+            div_name = row.get("divisname") or row.get("division_name") or ""
+            try:
+                rn = int(row.get("rank"))
+                standing = "%d%s%s" % (rn, suffix(rn), (" " + div_name) if div_name else "")
+            except (TypeError, ValueError):
+                if row.get("rank"):
+                    standing = str(row.get("rank"))
     except Exception:
         pass
 
@@ -160,9 +187,39 @@ def build_affiliate(aff, today):
         pass
 
     games = build_schedule(league, tid, sid)
-    return {"record": record, "prospects": prospects,
+    return {"record": record, "prospects": prospects, "standing": standing,
             "lastGame": games["last"], "nextGame": games["next"],
             "seasonName": season.get("season_name"), "seasonStart": season.get("start_date")}
+
+
+def build_affiliate(aff, today):
+    league = aff["league"]
+    seasons = (ht(league, {"feed": "modulekit", "view": "seasons"})
+               .get("SiteKit", {}).get("Seasons"))
+    season = pick_season(seasons, today)
+    if not season:
+        raise RuntimeError("no season")
+    cur = build_season_data(league, aff, season)
+    # Preseason/offseason: most recent completed regular season's final for
+    # record + last game + prospects, keeping the current next game.
+    rec = cur.get("record") or {}
+    cur_games = rec.get("wins", 0) + rec.get("losses", 0) + rec.get("otl", 0) + rec.get("sol", 0)
+    is_preseason = bool(re.search(r"preseason", season.get("season_name") or "", re.I))
+    is_empty = (cur.get("record") is None
+                or (cur_games == 0 and not cur.get("lastGame") and not cur.get("prospects")))
+    if is_preseason or is_empty:
+        prior = prior_regular(seasons, today)
+        if prior and str(prior.get("season_id")) != str(season.get("season_id")):
+            try:
+                prev = build_season_data(league, aff, prior)
+                prev_rec = prev.get("record") or {}
+                if prev_rec.get("wins", 0) + prev_rec.get("losses", 0) > 0:
+                    prev["nextGame"] = cur.get("nextGame")
+                    prev["isFinal"] = True
+                    return prev
+            except Exception:
+                pass
+    return cur
 
 
 def main():
