@@ -92,6 +92,72 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 }
 .error-msg { text-align: center; color: #f44336; padding: 40px; }
 .loading { text-align: center; color: #888; padding: 40px; }
+.chart-wrap {
+  position: relative;
+  margin-top: 16px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  padding: 20px 16px 16px;
+}
+.chart-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+.tooltip {
+  position: absolute;
+  display: none;
+  background: #0d0d0d;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.tooltip .att { color: #5a9eff; font-weight: 700; font-size: 0.95rem; }
+.tooltip .opp { color: #ddd; }
+.tooltip .date { color: #888; font-size: 0.72rem; }
+.legend {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-line {
+  width: 20px; height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.att-stats {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #252525;
+  font-size: 0.8rem;
+}
+.att-data-src {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: #444;
+  text-align: center;
+}
 </style>
 <link rel="stylesheet" href="css/nav.css">
 </head>
@@ -397,6 +463,375 @@ async function loadUFLCoaching() {
   return html;
 }
 
+var ATTENDANCE = [
+  { season: 2020, games: [
+    { opponent: 'New York', date: 'Feb 23, 2020', attendance: 29172 },
+    { opponent: 'Seattle',  date: 'Feb 29, 2020', attendance: 27527 },
+  ]},
+  { season: 2023, games: [
+    { opponent: 'Arlington',  date: 'Mar 12, 2023', attendance: 38310 },
+    { opponent: 'DC',         date: 'Mar 18, 2023', attendance: 35686 },
+    { opponent: 'Vegas',      date: 'Apr 8, 2023',  attendance: 35167 },
+    { opponent: 'Seattle',    date: 'Apr 16, 2023', attendance: 33142 },
+    { opponent: 'Orlando',    date: 'Apr 22, 2023', attendance: 33034 },
+  ]},
+  { season: 2024, games: [
+    { opponent: 'Arlington',  date: 'Apr 6, 2024',  attendance: 40317 },
+    { opponent: 'Memphis',    date: 'Apr 20, 2024', attendance: 31757 },
+    { opponent: 'Houston',    date: 'May 4, 2024',  attendance: 32969 },
+    { opponent: 'DC',         date: 'May 19, 2024', attendance: 32403 },
+    { opponent: 'San Antonio',date: 'Jun 1, 2024',  attendance: 34379 },
+    { opponent: 'San Antonio',date: 'Jun 9, 2024',  attendance: 30237 },
+  ]},
+  { season: 2025, games: [
+    { opponent: 'San Antonio',date: 'Apr 6, 2025',  attendance: 32115 },
+    { opponent: 'DC',         date: 'Apr 13, 2025', attendance: 30014 },
+    { opponent: 'Michigan',   date: 'Apr 26, 2025', attendance: 30406 },
+    { opponent: 'Arlington',  date: 'May 2, 2025',  attendance: 26684 },
+    { opponent: 'Birmingham', date: 'May 17, 2025', attendance: 30114 },
+    { opponent: 'San Antonio',date: 'May 23, 2025', attendance: 27890 },
+    { opponent: 'DC',         date: 'Jun 8, 2025',  attendance: 27589 },
+  ]},
+  { season: 2026, games: [
+    { opponent: 'DC',         date: 'Mar 28, 2026', attendance: 31191 },
+    { opponent: 'Birmingham', date: 'Apr 12, 2026', attendance: 20209 },
+    { opponent: 'Columbus',   date: 'May 8, 2026',  attendance: 18563 },
+    { opponent: 'Houston',    date: 'May 16, 2026', attendance: 21609 },
+    { opponent: 'Dallas',     date: 'May 29, 2026', attendance: 24621 },
+    { opponent: 'Louisville', date: 'Jun 7, 2026',  attendance: 18111 },
+  ]},
+];
+
+function renderAttendanceChart() {
+  var attCanvas = document.getElementById('attChart');
+  var attTooltip = document.getElementById('attTooltip');
+  var attChartWrap = document.getElementById('attChartWrap');
+  var attStatsEl = document.getElementById('attStatsRow');
+  if (!attCanvas || !attChartWrap) return;
+  var ctx = attCanvas.getContext('2d');
+
+  var BLUE = '#00529B';
+  var BLUE_GLOW = 'rgba(0, 82, 155, 0.25)';
+  var GRID_COLOR = '#2a2a2a';
+  var TEXT_COLOR = '#888';
+
+  var DPR = window.devicePixelRatio || 1;
+  var W = 920;
+  var H = 480;
+  attCanvas.width = W * DPR;
+  attCanvas.height = H * DPR;
+  attCanvas.style.width = W + 'px';
+  attCanvas.style.height = H + 'px';
+  ctx.scale(DPR, DPR);
+
+  var PAD = { top: 30, right: 20, bottom: 50, left: 60 };
+  var plotW = W - PAD.left - PAD.right;
+  var plotH = H - PAD.top - PAD.bottom;
+
+  var allGames = ATTENDANCE.flatMap(function(s) { return s.games; });
+  var maxAtt = Math.max.apply(null, allGames.map(function(g) { return g.attendance; }));
+  var minAtt = Math.min.apply(null, allGames.map(function(g) { return g.attendance; }));
+  var avgAtt = Math.round(allGames.reduce(function(s, g) { return s + g.attendance; }, 0) / allGames.length);
+  var yMin = Math.max(0, Math.floor(minAtt / 5000) * 5000 - 5000);
+  var yMax = Math.ceil(maxAtt / 5000) * 5000 + 5000;
+
+  var flatData = [];
+  ATTENDANCE.forEach(function(s, si) {
+    s.games.forEach(function(g, gi) {
+      flatData.push({
+        opponent: g.opponent,
+        date: g.date,
+        attendance: g.attendance,
+        seasonIdx: si,
+        gameInSeason: gi,
+        seasonGames: s.games.length,
+      });
+    });
+  });
+
+  var totalGap = ATTENDANCE.length - 1;
+  var segmentWidth = plotW / (flatData.length + totalGap);
+  var gapWidth = segmentWidth;
+
+  function getX(idx) {
+    var x = PAD.left + idx * segmentWidth;
+    for (var s = 0; s < ATTENDANCE.length - 1; s++) {
+      var gamesBefore = ATTENDANCE.slice(0, s + 1).reduce(function(sum, seas) { return sum + seas.games.length; }, 0);
+      if (idx >= gamesBefore) {
+        x += gapWidth;
+      }
+    }
+    return x;
+  }
+
+  var points = flatData.map(function(g, i) {
+    var x = getX(i);
+    var y = PAD.top + plotH - ((g.attendance - yMin) / (yMax - yMin)) * plotH;
+    return { x: x, y: y, data: g, index: i };
+  });
+
+  function scaleY(val) {
+    return PAD.top + plotH - ((val - yMin) / (yMax - yMin)) * plotH;
+  }
+
+  var seasonLabels = [];
+  var globalIdx = 0;
+  ATTENDANCE.forEach(function(s) {
+    var start = globalIdx;
+    globalIdx += s.games.length;
+    var end = globalIdx;
+    var midIdx = start + (end - start - 1) / 2;
+    seasonLabels.push({ x: getX(midIdx), label: String(s.season) });
+  });
+
+  function formatAtt(n) {
+    return n.toLocaleString();
+  }
+
+  function formatShortDate(dateStr) {
+    var d = new Date(dateStr);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate();
+  }
+
+  // Least-squares trendline over game order (0..n-1 vs attendance)
+  var TREND_COLOR = '#ff9f43';
+  var trendN = flatData.length;
+  var trendSumX = 0, trendSumY = 0, trendSumXY = 0, trendSumX2 = 0;
+  flatData.forEach(function(g, i) {
+    trendSumX += i;
+    trendSumY += g.attendance;
+    trendSumXY += i * g.attendance;
+    trendSumX2 += i * i;
+  });
+  var trendSlope = (trendN * trendSumXY - trendSumX * trendSumY) / (trendN * trendSumX2 - trendSumX * trendSumX);
+  var trendIntercept = (trendSumY - trendSlope * trendSumX) / trendN;
+  function trendAt(i) {
+    return trendIntercept + trendSlope * i;
+  }
+  var trendDir = trendSlope < 0 ? 'downward' : 'upward';
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = GRID_COLOR;
+    ctx.lineWidth = 1;
+    var yStep = 5000;
+    for (var y = yMin; y <= yMax; y += yStep) {
+      var yy = scaleY(y);
+      ctx.beginPath();
+      ctx.moveTo(PAD.left, yy);
+      ctx.lineTo(W - PAD.right, yy);
+      ctx.stroke();
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(formatAtt(y), PAD.left - 8, yy);
+    }
+
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ATTENDANCE.forEach(function(s, si) {
+      if (si === 0) return;
+      var before = ATTENDANCE.slice(0, si).reduce(function(sum, sea) { return sum + sea.games.length; }, 0);
+      var x = getX(before - 1) + segmentWidth / 2 + gapWidth / 2;
+      ctx.beginPath();
+      ctx.moveTo(x, PAD.top);
+      ctx.lineTo(x, PAD.top + plotH);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    var avgY = scaleY(avgAtt);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, avgY);
+    ctx.lineTo(W - PAD.right, avgY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Avg ' + formatAtt(avgAtt), W - PAD.right - 4, avgY - 4);
+
+    // One continuous line across all seasons (through the season gaps)
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = BLUE_GLOW;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    points.forEach(function(p, i) {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+
+    ctx.strokeStyle = BLUE;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    points.forEach(function(p, i) {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+
+    // Trendline (least squares), clipped to the plot area
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(PAD.left, PAD.top, plotW, plotH);
+    ctx.clip();
+    ctx.strokeStyle = TREND_COLOR;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, scaleY(trendAt(0)));
+    ctx.lineTo(points[points.length - 1].x, scaleY(trendAt(trendN - 1)));
+    ctx.stroke();
+    ctx.restore();
+    ctx.setLineDash([]);
+    ctx.fillStyle = TREND_COLOR;
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Trend (' + trendDir + ')', W - PAD.right - 4, scaleY(trendAt(trendN - 1)) - 4);
+
+    points.forEach(function(p) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = BLUE;
+      ctx.fill();
+      ctx.strokeStyle = '#0d0d0d';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    seasonLabels.forEach(function(sl) {
+      ctx.fillStyle = '#666';
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(sl.label, sl.x, PAD.top + plotH + 8);
+    });
+
+    points.forEach(function(p, i) {
+      var label = i % 2 === 0 ? p.data.opponent : formatShortDate(p.data.date);
+      ctx.fillStyle = '#555';
+      ctx.font = '9px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(label, p.x, PAD.top + plotH + 24 + (i % 2 === 0 ? 0 : 12));
+    });
+  }
+
+  function getNearest(e) {
+    var rect = attCanvas.getBoundingClientRect();
+    var scaleX = W / rect.width;
+    var mx = (e.clientX - rect.left) * scaleX;
+    var my = (e.clientY - rect.top) * scaleX;
+
+    var best = null;
+    var bestDist = Infinity;
+    points.forEach(function(p) {
+      var dx = p.x - mx;
+      var dy = p.y - my;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestDist) {
+        bestDist = d;
+        best = p;
+      }
+    });
+
+    if (best && bestDist < 30) return best;
+    return null;
+  }
+
+  function showTooltip(p) {
+    var g = p.data;
+    attTooltip.innerHTML =
+      '<div class="att">' + formatAtt(g.attendance) + '</div>' +
+      '<div class="opp">vs ' + escHtml(g.opponent) + '</div>' +
+      '<div class="date">' + escHtml(g.date) + ' &middot; ' + (g.seasonIdx === 0 ? 'XFL' : 'UFL') + '</div>';
+    attTooltip.style.display = 'block';
+
+    var rect = attChartWrap.getBoundingClientRect();
+    var scaleX = W / attCanvas.getBoundingClientRect().width;
+    var tx = p.x / scaleX;
+    var ty = p.y / scaleX;
+
+    var left = tx + 12;
+    var top = ty - 8;
+
+    if (left + 200 > rect.width) left = tx - 12 - 200;
+    if (top < 0) top = 8;
+
+    attTooltip.style.left = left + 'px';
+    attTooltip.style.top = top + 'px';
+  }
+
+  function hideTooltip() {
+    attTooltip.style.display = 'none';
+  }
+
+  attCanvas.onmousemove = function(e) {
+    var p = getNearest(e);
+    if (p) {
+      showTooltip(p);
+      attCanvas.style.cursor = 'crosshair';
+    } else {
+      hideTooltip();
+      attCanvas.style.cursor = 'default';
+    }
+  };
+
+  attCanvas.onmouseleave = hideTooltip;
+
+  var legendEl = document.createElement('div');
+  legendEl.className = 'legend';
+  legendEl.innerHTML =
+    '<div class="legend-item">' +
+      '<span class="legend-dot" style="background:' + BLUE + ';"></span>' +
+      'Home game attendance' +
+    '</div>' +
+    '<div class="legend-item">' +
+      '<span class="legend-line" style="background:rgba(255,255,255,0.3);border-top:2px dashed rgba(255,255,255,0.3);"></span>' +
+      'Average (' + formatAtt(avgAtt) + ')' +
+    '</div>' +
+    '<div class="legend-item">' +
+      '<span class="legend-line" style="background:' + TREND_COLOR + ';border-top:2px dashed ' + TREND_COLOR + ';"></span>' +
+      'Trendline (' + trendDir + ')' +
+    '</div>';
+  attChartWrap.appendChild(legendEl);
+
+  if (attStatsEl) {
+    var bestAtt = Math.max.apply(null, allGames.map(function(g) { return g.attendance; }));
+    var worstAtt = Math.min.apply(null, allGames.map(function(g) { return g.attendance; }));
+    var bestGame = allGames.filter(function(g) { return g.attendance === bestAtt; })[0];
+    var worstGame = allGames.filter(function(g) { return g.attendance === worstAtt; })[0];
+    attStatsEl.innerHTML =
+      '<div class="stat-item"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + allGames.length + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Home Games</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(avgAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Avg Attendance</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(bestAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Best (vs ' + escHtml(bestGame.opponent) + ', ' + escHtml(bestGame.date) + ')</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(worstAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Worst (vs ' + escHtml(worstGame.opponent) + ', ' + escHtml(worstGame.date) + ')</div></div>';
+  }
+
+  draw();
+
+  function resizeAttCanvas() {
+    var rect = attChartWrap.getBoundingClientRect();
+    var maxW = Math.min(920, rect.width - 32);
+    if (maxW <= 0) return;
+    attCanvas.style.width = maxW + 'px';
+    attCanvas.style.height = (maxW / W * H) + 'px';
+  }
+  resizeAttCanvas();
+  window.addEventListener('resize', resizeAttCanvas);
+}
+
 async function loadStats() {
   var container = document.getElementById('statsContent');
   var sub = document.getElementById('feedSub');
@@ -436,8 +871,21 @@ async function loadStats() {
     }
     var coachingHtml = await loadUFLCoaching();
     if (coachingHtml) html += coachingHtml;
+    html += '<div class="section" id="attendance">' +
+      '<div class="section-header" style="border-bottom-color:#00529B;">' +
+        '<h2 style="color:#00529B;">BattleHawks Home Attendance</h2>' +
+      '</div>' +
+      '<div class="stat-group-title">Every home game since 2020</div>' +
+      '<div class="chart-wrap" id="attChartWrap">' +
+        '<canvas id="attChart" width="920" height="480"></canvas>' +
+        '<div class="tooltip" id="attTooltip"></div>' +
+      '</div>' +
+      '<div class="att-stats" id="attStatsRow"></div>' +
+      '<div class="att-data-src">Data from sports-reference.com and official team releases</div>' +
+    '</div>';
     sub.textContent = loaded + ' team' + (loaded !== 1 ? 's' : '');
     container.innerHTML = html;
+    renderAttendanceChart();
   } catch (e) {
     container.innerHTML = '<div class="error-msg">Failed to load stats.</div>';
     sub.textContent = 'Error';
