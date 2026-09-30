@@ -524,7 +524,7 @@ function renderAttendanceChart() {
   attCanvas.style.height = H + 'px';
   ctx.scale(DPR, DPR);
 
-  var PAD = { top: 30, right: 20, bottom: 50, left: 60 };
+  var PAD = { top: 30, right: 20, bottom: 30, left: 60 };
   var plotW = W - PAD.left - PAD.right;
   var plotH = H - PAD.top - PAD.bottom;
 
@@ -586,12 +586,6 @@ function renderAttendanceChart() {
 
   function formatAtt(n) {
     return n.toLocaleString();
-  }
-
-  function formatShortDate(dateStr) {
-    var d = new Date(dateStr);
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[d.getMonth()] + ' ' + d.getDate();
   }
 
   // Least-squares trendline over game order (0..n-1 vs attendance)
@@ -716,15 +710,6 @@ function renderAttendanceChart() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(sl.label, sl.x, PAD.top + plotH + 8);
-    });
-
-    points.forEach(function(p, i) {
-      var label = i % 2 === 0 ? p.data.opponent : formatShortDate(p.data.date);
-      ctx.fillStyle = '#555';
-      ctx.font = '9px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(label, p.x, PAD.top + plotH + 24 + (i % 2 === 0 ? 0 : 12));
     });
   }
 
