@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-04T21:41:15.222512+00:00",
+  "generated_at": "2026-10-05T05:57:23.941931+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
-        "wins": 1,
+        "wins": 2,
         "losses": 0,
         "otl": 0,
         "sol": 0,
-        "points": 2,
-        "streak": "1-0-0-0"
+        "points": 4,
+        "streak": "2-0-0-0"
       },
       "prospects": [
         {
@@ -27,9 +27,9 @@
           "line": "0 G / 3 A / 3 PTS \u00b7 2 GP"
         }
       ],
-      "standing": "3rd Atlantic Division",
-      "lastGame": "W 3-2 @ Wilkes-Barre/Scranton \u00b7 Sat, Oct 3",
-      "nextGame": "@ Providence \u00b7 Sun, Oct 4 \u00b7 Unofficial Final",
+      "standing": "2nd Atlantic Division",
+      "lastGame": "W 2-0 @ Providence \u00b7 Sun, Oct 4",
+      "nextGame": "vs Laval \u00b7 Sat, Oct 10 \u00b7 6:05 pm EDT",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
