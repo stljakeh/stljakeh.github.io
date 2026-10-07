@@ -7,21 +7,23 @@ STL.render = {
     grid.innerHTML = '';
     const list = teams || STL.dashboard.teamList();
     list.forEach(t => {
-      const card = document.createElement('div');
-      card.className = 'card ' + t.cardClass;
-      card.id = 'card-' + t.cardClass;
-      card.innerHTML =
-        '<div class="card-head">' +
-          '<div class="team-info">' +
-            '<div class="team-icon">' + t.icon + '</div>' +
+      const art = document.createElement('article');
+      art.className = 'teamcard team-' + t.cardClass;
+      art.id = 'card-' + t.cardClass;
+      art.innerHTML =
+        '<div class="spine"></div>' +
+        '<div class="tmain">' +
+          '<div class="trow1">' +
             '<div>' +
-              '<div class="team-name">' + t.name + '</div>' +
-              '<div class="team-league">' + t.league + (t.leagueFull && t.leagueFull !== t.league ? ' &middot; ' + t.leagueFull : '') + '</div>' +
+              '<div class="tname">' + t.name + '</div>' +
+              '<div class="tleague">' + t.league + (t.leagueFull && t.leagueFull !== t.league ? ' &middot; ' + t.leagueFull : '') + '</div>' +
             '</div>' +
+            '<div class="trecord" id="headSub-' + t.cardClass + '">&mdash;</div>' +
           '</div>' +
-          '<span class="status-badge ' + t.statusClass + '" id="badge-' + t.cardClass + '">' + t.statusText + '</span>' +
-        '</div>' +
-        '<div class="card-body" id="body-' + t.cardClass + '">' +
+          '<div class="tsub" id="headNext-' + t.cardClass + '"></div>' +
+          '<span class="tstatus ' + t.statusClass + '" id="badge-' + t.cardClass + '">' + t.statusText + '</span><br>' +
+          '<button class="details-btn" data-card="' + t.cardClass + '">+ details</button>' +
+        '<div class="tbody" id="body-' + t.cardClass + '">' +
           '<div class="stat-row">' +
             '<span class="stat-label">Record</span>' +
             '<span class="stat-value" id="record-' + t.cardClass + '">&mdash;</span>' +
@@ -63,8 +65,15 @@ STL.render = {
             '<div class="aff-panel" id="affPanel-' + t.cardClass + '"></div>' +
           '</div>' +
           '<div class="links" id="links-' + t.cardClass + '"></div>' +
-        '</div>';
-      grid.appendChild(card);
+        '</div></div>';
+      grid.appendChild(art);
+    });
+    grid.querySelectorAll('.details-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const card = btn.closest('.teamcard');
+        card.classList.toggle('open');
+        btn.textContent = card.classList.contains('open') ? '\u2013 close' : '+ details';
+      });
     });
   },
 
@@ -85,13 +94,13 @@ STL.render = {
     if (isLive && st.detail) {
       const dc = comp.status.displayClock;
       const clock = dc && dc !== '0:00' ? ' (' + dc + ')' : '';
-      detailHtml = '<div style="color:#888;font-size:0.75rem;margin-top:2px;">' + st.detail + clock + '</div>';
+      detailHtml = '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + st.detail + clock + '</div>';
     }
     let winHtml = '';
     if (team._winProb !== undefined) {
       const wp = team._winProb;
       const color = wp > 60 ? '#4caf50' : wp > 40 ? '#ff9800' : '#f44336';
-      winHtml = '<div style="font-size:0.75rem;margin-top:3px;color:' + (isLive ? color : '#aaa') + ';">' + (isLive ? 'Live Win' : 'Win') + ': ' + wp + '%</div>';
+      winHtml = '<div style="font-size:0.75rem;margin-top:3px;color:' + (isLive ? color : 'var(--card-mute)') + ';">' + (isLive ? 'Live Win' : 'Win') + ': ' + wp + '%</div>';
     }
     let lineupHtml = '';
     const ld = team._lineupData;
@@ -135,7 +144,7 @@ STL.render = {
         '<div class="next-game-label">' + label + '</div>' +
         '<div class="next-game-detail">' + vs + ' ' + opponent.team.displayName + ' &middot; ' + dateStrFull + ' &middot; ' + timeStr + '</div>' +
         detailHtml +
-        (venue ? '<div style="color:#888;font-size:0.75rem;margin-top:2px;">' + venue + (broadcasts ? ' &middot; ' + broadcasts : '') + '</div>' : '') +
+        (venue ? '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + venue + (broadcasts ? ' &middot; ' + broadcasts : '') + '</div>' : '') +
         winHtml +
         lineupHtml +
       '</div>'
@@ -264,13 +273,7 @@ STL.render = {
     if (!body) return;
 
     const t = data.team;
-    const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
-    if (iconEl && t.logos && t.logos[0]) {
-      iconEl.innerHTML = '<img src="' + t.logos[0].href + '" alt="' + t.displayName + '">';
-    }
-    if (iconEl && team.logo) {
-      iconEl.innerHTML = '<img src="' + team.logo + '" alt="' + team.name + '" onerror="this.parentNode.textContent=\'' + team.icon + '\'">';
-    }
+    const headSub = document.getElementById('headSub-' + team.cardClass);
     const record = t.record && t.record.items ? t.record.items[0] : null;
     const statsArr = record ? (record.stats || []) : [];
     let standingSummary = team.standingOverride || t.standingSummary || '';
@@ -385,6 +388,8 @@ STL.render = {
     }
 
     document.getElementById('record-' + team.cardClass).textContent = recordStr;
+    if (headSub) headSub.textContent = recordStr;
+    const headNext = document.getElementById('headNext-' + team.cardClass);
 
     const pointsRow = document.getElementById('pointsRow-' + team.cardClass);
     const pointsEl = document.getElementById('points-' + team.cardClass);
@@ -416,7 +421,7 @@ STL.render = {
     }
 
     const lastGameEl = document.getElementById('lastGame-' + team.cardClass);
-    lastGameEl.innerHTML = lastGameHtml || '<span style="color:#666;">N/A</span>';
+    lastGameEl.innerHTML = lastGameHtml || '<span style="color:var(--card-mute);">N/A</span>';
 
     const nextGameEl = document.getElementById('nextGame-' + team.cardClass);
     if (nextGameHtml) {
@@ -432,6 +437,19 @@ STL.render = {
       nextGameEl.innerHTML = '';
     } else {
       nextGameEl.innerHTML = '<div class="empty-msg">No upcoming games scheduled</div>';
+    }
+
+    if (headNext) {
+      if (upcomingEvent) {
+        const c = upcomingEvent.competitions?.[0];
+        const opp = c?.competitors?.find(x => String(x.team.id) !== String(team.id));
+        const ha = c?.competitors?.find(x => String(x.team.id) === String(team.id));
+        const vs = ha && ha.homeAway === 'home' ? 'vs' : '@';
+        headNext.textContent = 'Next: ' + vs + ' ' + (opp ? (opp.team.abbreviation || opp.team.displayName) : '') + ' · ' + STL.utils.formatDateStr(upcomingEvent.date);
+      } else if (lastGameEvent) {
+        headNext.textContent = standingSummary || '';
+      } else headNext.textContent = '';
+      team._upcomingEvent = upcomingEvent || null;
     }
 
     const timerEl = document.getElementById('countdown-' + team.cardClass);
@@ -491,7 +509,7 @@ STL.render = {
 
     if (badge) {
       badge.textContent = statusText;
-      badge.className = 'status-badge ' + statusClass;
+      badge.className = 'tstatus ' + statusClass;
     }
   },
 
@@ -501,8 +519,8 @@ STL.render = {
     const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
     if (iconEl && !iconEl.querySelector('img')) iconEl.textContent = team.icon;
     const badge = document.getElementById('badge-' + team.cardClass);
-    if (badge) { badge.textContent = 'Follow'; badge.className = 'status-badge status-active'; }
-    document.getElementById('record-' + team.cardClass).innerHTML = '<span style="color:#666;">live scores coming soon</span>';
+    if (badge) { badge.textContent = 'Follow'; badge.className = 'tstatus status-active'; }
+    document.getElementById('record-' + team.cardClass).innerHTML = '<span style="color:var(--card-mute);">live scores coming soon</span>';
     const lg = document.getElementById('lastGame-' + team.cardClass);
     if (lg && lg.parentElement) lg.parentElement.style.display = 'none';
     const ng = document.getElementById('nextGame-' + team.cardClass);
@@ -539,7 +557,7 @@ STL.render = {
       if (st.gb != null && String(st.gb) !== '-' && String(st.gb) !== '0' && String(st.gb) !== '0.0') {
         s += ' · ' + st.gb + ' GB';
       }
-      if (st.note) s += '<br><span style="color:#555;font-weight:400;">' + st.note + '</span>';
+      if (st.note) s += '<br><span style="color:var(--card-mute);font-weight:400;">' + st.note + '</span>';
       standingEl.innerHTML = s;
     } else {
       standingRow.style.display = 'none';
@@ -564,7 +582,7 @@ STL.render = {
     if (badge) {
       const active = st.remaining == null || parseInt(st.remaining) > 0;
       badge.textContent = active ? 'Active' : 'Offseason';
-      badge.className = 'status-badge ' + (active ? 'status-active' : 'status-offseason');
+      badge.className = 'tstatus ' + (active ? 'status-active' : 'status-offseason');
     }
   },
 
@@ -590,16 +608,16 @@ STL.render = {
 
   affRowHtml: function(cardClass, aff) {
     const cached = STL.api._affCache && STL.api._affCache[aff.name];
-    let sub = '<span style="color:#666;">tap to load record + prospects</span>';
+    let sub = '<span style="color:var(--card-mute);">tap to load record + prospects</span>';
     let gamesHtml = '';
     if (cached) {
       if (cached.error) {
-        sub = '<span style="color:#666;">live data unavailable</span>';
+        sub = '<span style="color:var(--card-mute);">live data unavailable</span>';
       } else if (cached.record) {
         const r = cached.record;
         const games = (r.wins || 0) + (r.losses || 0);
         if (games === 0) {
-          sub = '<span style="color:#666;">live data unavailable</span>';
+          sub = '<span style="color:var(--card-mute);">live data unavailable</span>';
         } else {
           let rec;
           if (r.pct !== undefined && r.otl === undefined) {
@@ -613,12 +631,12 @@ STL.render = {
             rec += ' · Final ' + tag;
           }
           if (cached.standing) {
-            rec += '<br><span style="color:#555;font-weight:400;">' + cached.standing + '</span>';
+            rec += '<br><span style="color:var(--card-mute);font-weight:400;">' + cached.standing + '</span>';
           }
           sub = '<span class="aff-rec">' + rec + '</span>';
         }
       } else if (cached.seasonStart) {
-        sub = '<span style="color:#666;">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
+        sub = '<span style="color:var(--card-mute);">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
       }
       if (cached.lastGame) gamesHtml += '<div class="aff-game">Last: ' + cached.lastGame + '</div>';
       if (cached.nextGame) gamesHtml += '<div class="aff-game">Next: ' + cached.nextGame + '</div>';

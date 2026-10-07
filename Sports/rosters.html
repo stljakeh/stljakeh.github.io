@@ -4,107 +4,96 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rosters - St. Louis Sports</title>
+<link rel="stylesheet" href="css/theme.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #0d0d0d;
-  color: #e0e0e0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px;
+#app { width: 100%; }
+.roster-section {
+  background: var(--card);
+  color: var(--card-ink);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(var(--ink-rgb),0.1);
+  border: 1px solid rgba(var(--ink-rgb),0.07);
 }
-nav {
-  width: 100%;
-  max-width: 960px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 12px 16px;
-  background: #1a1a1a;
-  border-radius: 10px;
-  border: 1px solid #2a2a2a;
-}
-.nav-links { display: flex; gap: 20px; align-items: center; }
-nav a, nav .current {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-nav a { color: #888; transition: color 0.2s; }
-nav a:hover { color: #fff; }
-nav .current { color: #e0e0e0; }
-.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
-#app { width: 100%; max-width: 960px; }
-header { text-align: center; margin-bottom: 32px; }
-header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
-header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
-.roster-section { margin-bottom: 32px; }
+.roster-section .rbody { display: none; margin-top: 4px; }
+.roster-section.open .rbody { display: block; }
+.roster-section .details-btn { margin-top: 0; flex-shrink: 0; }
+/* Blues identity goes gold on dark mode (deep blue turns muddy) — matches the dashboard cards. */
+html[data-theme="dark"] .roster-section[data-team="blues"] .section-header { border-bottom-color: #FCB514 !important; }
+html[data-theme="dark"] .roster-section[data-team="blues"] .section-header h2 { color: #FCB514 !important; }
+html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { color: #FCB514 !important; }
 .section-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid rgba(var(--ink-rgb),.1);
 }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-.section-team { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.section-team { font-size: 0.75rem; color: var(--card-mute); text-transform: uppercase; letter-spacing: 0.5px; }
 .roster-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .table-wrap { overflow-x: auto; }
 .roster-table th {
   text-align: left; padding: 8px 10px; font-size: 0.7rem;
-  color: #666; text-transform: uppercase; letter-spacing: 1px;
-  border-bottom: 1px solid #2a2a2a; font-weight: 600;
+  color: var(--card-mute); text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid rgba(var(--ink-rgb),.1); font-weight: 600;
 }
-.roster-table th.num, .roster-table td.num { text-align: right; }
+.roster-table th.num, .roster-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .roster-table td {
-  padding: 6px 10px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
+  padding: 6px 10px; border-bottom: 1px solid rgba(var(--ink-rgb),.07); white-space: nowrap;
+  color: var(--card-ink);
 }
-.roster-table tr:hover td { background: #1a1a1a; }
-.roster-table tr:hover td.group-row { background: #161616; }
-.roster-table td.group-row {
+.roster-table tr:hover td { background: rgba(var(--ink-rgb),.045); }
+.roster-table tr.group-row:hover td { background: none; }
+.roster-table tr.group-row td {
   font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-  color: #888; padding: 10px 10px 4px; border-bottom: none;
+  color: var(--card-mute); padding: 10px 10px 4px; border-bottom: none;
 }
 .player-name { font-weight: 600; }
-.muted { color: #888; }
-.error-msg { text-align: center; color: #f44336; padding: 40px; }
-.loading { text-align: center; color: #888; padding: 40px; }
+.muted { color: var(--card-mute); }
+.error-msg { text-align: center; color: var(--danger); padding: 40px; }
+.loading { text-align: center; color: var(--card-mute); padding: 40px; }
 @media (max-width: 640px) {
-  body { padding: 16px; }
   .roster-table { font-size: 0.78rem; }
   .roster-table th, .roster-table td { padding: 6px 8px; white-space: normal; }
 }
 </style>
 <link rel="stylesheet" href="css/nav.css">
 </head>
-<body>
+<body class="themed">
+<script src="js/theme.js"></script>
 
-<nav>
-  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
-  <div class="nav-links">
-    <a href="dashboard.html">Dashboard</a>
-    <a href="news.html">News</a>
-    <a href="standings.html">Standings</a>
-    <a class="current" href="rosters.html">Rosters</a>
-    <a href="stats.html">Stats</a>
-    <a href="others.html">Others</a>
-    <a href="FPR.html">FPR</a>
-  </div>
-  <div class="site-label">St. Louis Sports</div>
-</nav>
-
-<div id="app">
-  <header>
-    <h1>Rosters</h1>
+<div class="shell">
+  <header class="masthead">
+    <div class="wordmark">
+      <div class="wm-kicker">ST. LOUIS</div>
+      <div class="wm-title">Sports <em>Ledger</em></div>
+    </div>
+    <button class="menu-btn" aria-label="Menu" onclick="document.getElementById('sitenav').classList.toggle('open')">&#9776;</button>
   </header>
-  <div id="rostersContent"><div class="loading">Loading rosters...</div></div>
+
+  <nav class="stlnav">
+    <div class="nav-links" id="sitenav">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="news.html">News</a>
+      <a href="standings.html">Standings</a>
+      <a class="current" href="rosters.html">Rosters</a>
+      <a href="stats.html">Stats</a>
+      <a href="others.html">Others</a>
+      <a href="FPR.html">FPR</a>
+      <button class="nav-theme-btn" type="button" data-theme-toggle>Dark mode</button>
+    </div>
+  </nav>
+
+  <div id="app">
+    <div class="mini-hero">
+      <h1>Rosters</h1>
+    </div>
+    <div id="rostersContent"><div class="loading">Loading rosters...</div></div>
+  </div>
 </div>
 
 <script>
@@ -301,14 +290,16 @@ async function loadRosters() {
       .then(function(groups) {
         if (!groups.length) throw new Error('empty roster');
         loaded++;
-        sections[idx] = '<div class="roster-section">' +
+        var count = groups.reduce(function(n, g) { return n + g.items.length; }, 0);
+        sections[idx] = '<div class="roster-section" data-team="' + team.id + '">' +
           '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
             '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
-            '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + '</span>' +
-          '</div>' + renderRoster(team, groups) + '</div>';
+            '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + ' &middot; ' + count + ' players</span>' +
+            '<button class="details-btn" type="button" data-roster="' + team.id + '" style="margin-left:auto">+ details</button>' +
+          '</div><div class="rbody">' + renderRoster(team, groups) + '</div></div>';
       })
       .catch(function() {
-        sections[idx] = '<div class="roster-section">' +
+        sections[idx] = '<div class="roster-section" data-team="' + team.id + '">' +
           '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
             '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
           '</div>' +
@@ -321,6 +312,29 @@ async function loadRosters() {
     return;
   }
   container.innerHTML = sections.join('');
+  window._rosterOpen = window._rosterOpen || {};
+  Array.prototype.forEach.call(container.querySelectorAll('.roster-section'), function(sec) {
+    var id = sec.getAttribute('data-team');
+    if (id && window._rosterOpen[id]) {
+      sec.classList.add('open');
+      var btn = sec.querySelector('[data-roster]');
+      if (btn) btn.textContent = '\u2013 close';
+    }
+  });
+}
+
+window._rosterOpen = window._rosterOpen || {};
+if (!window._rosterToggleWired) {
+  window._rosterToggleWired = true;
+  document.getElementById('rostersContent').addEventListener('click', function(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-roster]') : null;
+    if (!btn) return;
+    var card = btn.closest('.roster-section');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    btn.textContent = open ? '\u2013 close' : '+ details';
+    window._rosterOpen[btn.getAttribute('data-roster')] = open;
+  });
 }
 
 loadRosters();

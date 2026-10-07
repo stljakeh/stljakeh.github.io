@@ -18,7 +18,8 @@ STL.dashboard = {
   init: function() {
     const d = new Date();
     const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('liveDate').textContent = d.toLocaleDateString('en-US', opts);
+    const ld = document.getElementById('liveDate');
+    if (ld) ld.textContent = d.toLocaleDateString('en-US', opts);
     STL.render.buildCards();
     STL.dashboard.refresh();
     refreshTimer = setInterval(STL.dashboard.refresh, 60000);
@@ -49,7 +50,7 @@ STL.dashboard = {
     const cards = Array.from(grid.children);
     const live = [], playoffs = [], active = [], offseason = [];
     for (const card of cards) {
-      const badge = card.querySelector('.status-badge');
+      const badge = card.querySelector('.tstatus');
       const cls = badge ? badge.className : '';
       if (cls.includes('status-live')) live.push(card);
       else if (cls.includes('status-playoffs')) playoffs.push(card);
@@ -57,6 +58,7 @@ STL.dashboard = {
       else offseason.push(card);
     }
     [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
+    STL.dashboard.updateHero();
 
     const now = new Date();
     const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -75,11 +77,20 @@ STL.dashboard = {
   },
 
   applyHideWhenIdle: function() {
+    if (STL.dashboard._idleHidden === false) {
+      STL.dashboard.teamList().forEach(t => {
+        const card = document.getElementById('card-' + t.cardClass);
+        if (card) card.style.display = '';
+      });
+      const note = document.getElementById('idleNote');
+      if (note) note.remove();
+      return;
+    }
     STL.dashboard.teamList().forEach(t => {
       if (!t.hideWhenIdle) return;
       const card = document.getElementById('card-' + t.cardClass);
       if (!card) return;
-      const badge = card.querySelector('.status-badge');
+      const badge = card.querySelector('.tstatus');
       const isOff = badge && badge.className.includes('status-offseason');
       const hasNext = !!document.getElementById('nextGame-' + t.cardClass)?.textContent?.trim();
       card.style.display = (isOff && !hasNext) ? 'none' : '';
@@ -101,6 +112,72 @@ STL.dashboard = {
     } else {
       const note = document.getElementById('idleNote');
       if (note) note.remove();
+    }
+  },
+
+  updateHero: function() {
+    const headline = document.getElementById('heroHeadline');
+    const kicker = document.getElementById('heroKicker');
+    const hero = document.querySelector('.hero');
+    if (!headline || !hero) return;
+    const teams = STL.dashboard.teamList();
+    const HEROC = {
+      cardinals: ['#c41e3a', '#8f1227'], blues: ['#003087', '#001f5c'],
+      'city-sc': ['#e80a4d', '#a30636'], battlehawks: ['#00529b', '#003a6e'],
+      cougars: ['#c8102e', '#8f0b20'], 'cougars-soccer': ['#c8102e', '#8f0b20'],
+      steelers: ['#4a4a4a', '#222222'], bayern: ['#dc052d', '#96031e'],
+      forest: ['#dd0741', '#96052c'], grampus: ['#8a6d00', '#5c4a00'],
+      kholood: ['#5a2d82', '#3a1d55'], usmnt: ['#3c3b6e', '#23223f'],
+      germany: ['#4a4a4a', '#222222'], dinos: ['#0a2a5e', '#061a3b'],
+      rakuten: ['#bf0000', '#7d0000']
+    };
+    const VERB = { baseball: 'First pitch', hockey: 'Puck drop', soccer: 'Kickoff', football: 'Kickoff', basketball: 'Tipoff' };
+    const fmtDur = function(ms) {
+      const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+      if (d > 0) return d + (d === 1 ? ' day' : ' days');
+      if (h > 0) return h + 'h ' + m + 'm';
+      return m + 'm';
+    };
+    const liveTeam = teams.find(t => t._liveEvent);
+    let pick = null, pickDate = null, headlineText = '', kickerText = 'ST. LOUIS SPORTS';
+    if (liveTeam) {
+      pick = liveTeam;
+      const comps = liveTeam._liveScoreData || liveTeam._liveEvent.competitions[0].competitors;
+      const ha = comps.find(c => String(c.team.id) === String(liveTeam.id));
+      const opp = comps.find(c => String(c.team.id) !== String(liveTeam.id));
+      const st = liveTeam._liveStatus || liveTeam._liveEvent.competitions[0].status;
+      headlineText = liveTeam.name + ' ' + STL.utils.getScoreDisplay(ha) + ' · Opp ' + STL.utils.getScoreDisplay(opp) + ' — live' + (st.type?.detail ? ' (' + st.type.detail + ')' : '') + '.';
+      kickerText = 'LIVE NOW · ' + liveTeam.league;
+    } else {
+      let soon = null;
+      teams.forEach(t => {
+        if (t._upcomingEvent && t._upcomingEvent.date) {
+          const ms = new Date(t._upcomingEvent.date).getTime() - Date.now();
+          if (ms > 0 && (!soon || ms < soon.ms)) soon = { team: t, ms: ms };
+        }
+      });
+      if (soon) {
+        pick = soon.team; pickDate = soon.ms;
+        const verb = VERB[soon.team.sport] || 'Game time';
+        headlineText = verb + ' for the ' + soon.team.name + ' in ' + fmtDur(soon.ms) + '.';
+        kickerText = 'NEXT UP · ' + soon.team.league;
+      } else {
+        const activeTeam = teams.find(t => {
+          const b = document.getElementById('badge-' + t.cardClass);
+          return b && b.className.includes('status-active');
+        });
+        pick = activeTeam || teams[0];
+        if (pick) {
+          headlineText = 'Following the ' + pick.name + ' all season long.';
+          kickerText = pick.league + ' · ' + pick.name.toUpperCase();
+        }
+      }
+    }
+    headline.textContent = headlineText || 'Checking the schedules…';
+    kicker.textContent = kickerText;
+    if (pick && HEROC[pick.cardClass]) {
+      hero.style.setProperty('--hero', HEROC[pick.cardClass][0]);
+      hero.style.setProperty('--hero-deep', HEROC[pick.cardClass][1]);
     }
   },
 

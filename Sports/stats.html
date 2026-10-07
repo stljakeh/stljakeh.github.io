@@ -5,53 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stats - St. Louis Sports</title>
 <style>
+/* Page chrome (body, masthead, nav, mini-hero) is handled by css/theme.css. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #0d0d0d;
-  color: #e0e0e0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px;
+/* nav handled by css/theme.css (.stlnav) + css/nav.css */
+#app { width: 100%; }
+/* title block uses .mini-hero from css/theme.css */
+.section {
+  background: var(--card);
+  color: var(--card-ink);
+  border: 1px solid rgba(var(--ink-rgb),.1);
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(var(--ink-rgb),0.1);
+  padding: 16px 18px;
+  margin-bottom: 14px;
 }
-nav {
-  width: 100%;
-  max-width: 960px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 12px 16px;
-  background: #1a1a1a;
-  border-radius: 10px;
-  border: 1px solid #2a2a2a;
-}
-.nav-links { display: flex; gap: 20px; align-items: center; }
-nav a, nav .current {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-nav a { color: #888; transition: color 0.2s; }
-nav a:hover { color: #fff; }
-nav .current { color: #e0e0e0; }
-.site-label { font-size: 0.7rem; color: #444; letter-spacing: 1px; text-transform: uppercase; }
-#app { width: 100%; max-width: 960px; }
-header { text-align: center; margin-bottom: 32px; }
-header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
-header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
-.section { margin-bottom: 32px; }
 .section-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid rgba(var(--ink-rgb),.1);
 }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .stat-group { margin-bottom: 20px; }
@@ -62,42 +36,42 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   .stat-group { flex: 1 1 260px; margin-bottom: 0; }
 }
 .stat-group-title {
-  font-size: 0.75rem; font-weight: 600; color: #aaa;
+  font-size: 0.75rem; font-weight: 600; color: var(--card-mute);
   text-transform: uppercase; letter-spacing: 1px;
   margin-bottom: 8px; padding-bottom: 4px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid rgba(var(--ink-rgb),.1);
 }
 .stat-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .stat-table th {
   text-align: left; padding: 6px 10px; font-size: 0.7rem;
-  color: #666; text-transform: uppercase; letter-spacing: 1px;
-  border-bottom: 1px solid #2a2a2a; font-weight: 600;
+  color: var(--card-mute); text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid rgba(var(--ink-rgb),.1); font-weight: 600;
 }
 .stat-table th.num, .stat-table td.num { text-align: right; }
 .stat-table td {
-  padding: 6px 10px; border-bottom: 1px solid #1a1a1a; white-space: nowrap;
+  padding: 6px 10px; border-bottom: 1px solid rgba(var(--ink-rgb),.1); white-space: nowrap;
+  color: var(--card-ink);
 }
-.stat-table tr:hover td { background: #1a1a1a; }
-.stat-label { color: #999; }
-.stat-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-table tr:hover td { background: rgba(var(--ink-rgb),.045); }
+.stat-label { color: var(--card-mute); }
+.stat-val { color: var(--card-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .player-row { display: flex; justify-content: space-between; padding: 4px 10px; font-size: 0.85rem; }
-.player-row:nth-child(even) { background: rgba(255,255,255,0.02); }
-.player-name { color: #e0e0e0; }
-.player-val { color: #e0e0e0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.empty-note { color: #666; font-size: 0.8rem; padding: 8px 10px; font-style: italic; }
+.player-row:nth-child(even) { background: rgba(var(--ink-rgb),.03); }
+.player-name { color: var(--card-ink); }
+.player-val { color: var(--card-ink); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.empty-note { color: var(--card-mute); font-size: 0.8rem; padding: 8px 10px; font-style: italic; }
 @media (max-width: 640px) {
-  body { padding: 16px; }
   .player-row { flex-wrap: wrap; }
   .player-val { margin-left: auto; }
 }
-.error-msg { text-align: center; color: #f44336; padding: 40px; }
-.loading { text-align: center; color: #888; padding: 40px; }
+.error-msg { text-align: center; color: var(--danger); padding: 40px; }
+.loading { text-align: center; color: var(--card-mute); padding: 40px; }
 .chart-wrap {
   position: relative;
   margin-top: 16px;
-  background: #1a1a1a;
+  background: var(--card);
   border-radius: 12px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid rgba(var(--ink-rgb),.1);
   padding: 20px 16px 16px;
 }
 .chart-wrap canvas {
@@ -109,8 +83,8 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .tooltip {
   position: absolute;
   display: none;
-  background: #0d0d0d;
-  border: 1px solid #444;
+  background: #2a151b;
+  border: 1px solid #2a151b;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -119,10 +93,11 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   z-index: 10;
   white-space: nowrap;
   max-width: 260px;
+  color: #f4ecdd;
 }
 .tooltip .att { color: #5a9eff; font-weight: 700; font-size: 0.95rem; }
-.tooltip .opp { color: #ddd; }
-.tooltip .date { color: #888; font-size: 0.72rem; }
+.tooltip .opp { color: #f4ecdd; }
+.tooltip .date { color: #c9a9b0; font-size: 0.72rem; }
 .legend {
   display: flex;
   gap: 24px;
@@ -149,40 +124,51 @@ header .sub { font-size: 0.8rem; color: #888; margin-top: 4px; }
   flex-wrap: wrap;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #252525;
+  border-top: 1px solid rgba(var(--ink-rgb),.1);
   font-size: 0.8rem;
 }
 .att-data-src {
   margin-top: 12px;
   font-size: 0.75rem;
-  color: #444;
+  color: var(--card-mute);
   text-align: center;
 }
 </style>
+<link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/nav.css">
 </head>
-<body>
+<body class="themed">
+<script src="js/theme.js"></script>
 
-<nav>
-  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
-  <div class="nav-links">
+<div class="shell">
+<header class="masthead">
+  <div class="wordmark">
+    <div class="wm-kicker">ST. LOUIS</div>
+    <div class="wm-title">Sports <em>Ledger</em></div>
+  </div>
+  <button class="menu-btn" aria-label="Menu" onclick="document.getElementById('sitenav').classList.toggle('open')">&#9776;</button>
+</header>
+
+<nav class="stlnav">
+  <div class="nav-links" id="sitenav">
     <a href="dashboard.html">Dashboard</a>
     <a href="news.html">News</a>
     <a href="standings.html">Standings</a>
     <a href="rosters.html">Rosters</a>
     <a class="current" href="stats.html">Stats</a>
     <a href="others.html">Others</a>
-    <a href="FPR.html">FPR</a>
+    <a href="FPR.html">FPR</a>
+    <button class="nav-theme-btn" type="button" data-theme-toggle>Dark mode</button>
   </div>
-  <div class="site-label">St. Louis Sports</div>
 </nav>
 
 <div id="app">
-  <header>
+  <div class="mini-hero">
     <h1>Stat Leaders</h1>
     <div class="sub" id="feedSub">Loading...</div>
-  </header>
+  </div>
   <div id="statsContent"><div class="loading">Loading stats...</div></div>
+</div>
 </div>
 
 <script>
@@ -190,7 +176,6 @@ var TEAMS = [
   { id: '24',  name: 'Cardinals',  sport: 'baseball', league: 'mlb',        color: '#C41E3A' },
   { id: '19',  name: 'Blues',      sport: 'hockey',   league: 'nhl',         color: '#003087' },
   { id: '21812', name: 'CITY SC',   sport: 'soccer',   league: 'usa.1',      color: '#E80A4D' },
-  { id: '112651', name: 'BattleHawks', sport: 'football', league: 'ufl',    color: '#00529B' },
 ];
 
 var UFL_FRANCHISES = [
@@ -272,9 +257,33 @@ function findStat(stats, name) {
   return s ? s : null;
 }
 
+// Fail-fast fetch: one hung ESPN endpoint must not hang the page.
+function fetchTimeout(url, ms) {
+  ms = ms || 12000;
+  if (typeof AbortController === 'undefined') return fetch(url);
+  var ctrl = new AbortController();
+  var t = setTimeout(function() { ctrl.abort(); }, ms);
+  return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
+}
+
+// 6h localStorage cache (same TTL convention as the MLS/MiLB code) with
+// stale-while-revalidate: paint cache instantly, refresh behind it.
+var STATS_TTL = 6 * 3600000;
+function statsCacheKey(id) { return 'stats_cache_v1_' + id; }
+function readStatsCache(id) {
+  try {
+    var c = JSON.parse(localStorage.getItem(statsCacheKey(id)));
+    if (c && Date.now() < c.expiry) return c.data;
+  } catch (e) {}
+  return null;
+}
+function writeStatsCache(id, data) {
+  try { localStorage.setItem(statsCacheKey(id), JSON.stringify({ data: data, expiry: Date.now() + STATS_TTL })); } catch (e) {}
+}
+
 async function loadTeamStats(team) {
   if (team.sport === 'baseball') {
-    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
+    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
     if (!resp.ok) return null;
     var data = await resp.json();
     var cats = data?.results?.stats?.categories;
@@ -297,7 +306,7 @@ async function loadTeamStats(team) {
   }
 
   if (team.sport === 'soccer') {
-    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
+    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
     if (!resp.ok) return null;
     var roster = await resp.json();
     var players = [];
@@ -331,7 +340,35 @@ async function loadTeamStats(team) {
   }
 
   if (team.sport === 'hockey') {
-    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id);
+    // In-season path: leaders from the next event's roster. Offseason (or no
+    // next event on ESPN) falls through to the team-totals fallback below so
+    // the Blues section never silently disappears.
+    var lead = await loadHockeyLeaders(team);
+    if (lead) return lead;
+    try {
+      var sresp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id + '/statistics');
+      if (!sresp.ok) return null;
+      var sdata = await sresp.json();
+      var scats = ((sdata && sdata.results && sdata.results.stats && sdata.results.stats.categories) || []).filter(function(c) {
+        return c && (c.name === 'offensive' || c.name === 'defensive');
+      });
+      var sout = [];
+      for (var ci = 0; ci < scats.length && sout.length < 2; ci++) {
+        var sstats = ((scats[ci] || {}).stats || []).filter(function(s) {
+          return s && s.displayValue != null && String(s.displayValue) !== '';
+        }).slice(0, 4);
+        if (!sstats.length) continue;
+        sout.push({ cat: scats[ci].displayName || scats[ci].name || 'Team', items: sstats.map(function(s) {
+          return { name: s.displayName || s.name, val: s.displayValue };
+        }) });
+      }
+      return sout.length ? sout : null;
+    } catch (e) { return null; }
+  }
+
+async function loadHockeyLeaders(team) {
+  try {
+    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id);
     if (!resp.ok) return null;
     var data = await resp.json();
     var ne = data?.team?.nextEvent?.[0];
@@ -377,40 +414,14 @@ async function loadTeamStats(team) {
     if (gs.length) result.push({ cat: 'Goals', items: gs.map(function(p) { return { name: p.name, val: p.goals }; }) });
     result.push({ cat: 'Points', items: byPts.map(function(p) { return { name: p.name, val: p.points }; }) });
     return result;
-  }
-
-  if (team.sport === 'football') {
-    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/ufl/teams/' + team.id + '/statistics');
-    if (!resp.ok) return null;
-    var data = await resp.json();
-    var cats = data?.results?.stats?.categories;
-    if (!cats) return null;
-    var passing = (cats.find(function(c) { return c.name === 'passing'; }) || {}).stats || [];
-    var rushing = (cats.find(function(c) { return c.name === 'rushing'; }) || {}).stats || [];
-    var receiving = (cats.find(function(c) { return c.name === 'receiving'; }) || {}).stats || [];
-    var fv = function(arr, n) { var s = arr.find(function(x) { return x.name === n; }); return s ? s.displayValue : '&mdash;'; };
-    return [
-      { cat: 'Passing', items: [
-        { name: 'YDS', val: fv(passing, 'passingYards') },
-        { name: 'TD',  val: fv(passing, 'touchdowns') },
-        { name: 'INT', val: fv(passing, 'interceptions') },
-      ]},
-      { cat: 'Rushing', items: [
-        { name: 'YDS', val: fv(rushing, 'rushingYards') },
-        { name: 'TD',  val: fv(rushing, 'touchdowns') },
-      ]},
-      { cat: 'Receiving', items: [
-        { name: 'YDS', val: fv(receiving, 'receivingYards') },
-        { name: 'TD',  val: fv(receiving, 'touchdowns') },
-      ]}
-    ];
-  }
+  } catch (e) { return null; }
+}
 
   return null;
 }
 
 async function loadUFLCoaching() {
-  var resp = await fetch('https://site.api.espn.com/apis/v2/sports/football/ufl/standings');
+  var resp = await fetchTimeout('https://site.api.espn.com/apis/v2/sports/football/ufl/standings');
   if (!resp.ok) return null;
   var data = await resp.json();
   var entries = data?.standings?.entries || [];
@@ -538,8 +549,14 @@ function renderAttendanceChart() {
 
   var BLUE = '#00529B';
   var BLUE_GLOW = 'rgba(0, 82, 155, 0.25)';
-  var GRID_COLOR = '#2a2a2a';
-  var TEXT_COLOR = '#888';
+  // Canvas can't resolve var() — snapshot the active theme per draw. The
+  // chart redraws on the global 'stl:theme' event (listener at the bottom).
+  var DARKMODE = document.documentElement.getAttribute('data-theme') === 'dark';
+  var GRID_COLOR = DARKMODE ? 'rgba(244,236,221,.14)' : 'rgba(42,21,27,.15)';
+  var TEXT_COLOR = DARKMODE ? '#c79aa4' : '#8d6f75';
+  var PAPER = DARKMODE ? '#231a20' : '#fffdf8';
+  var FAINT_LINE = DARKMODE ? 'rgba(244,236,221,.35)' : 'rgba(42,21,27,.35)';
+  var SEP_LINE = DARKMODE ? 'rgba(244,236,221,.25)' : 'rgba(42,21,27,.25)';
 
   var DPR = window.devicePixelRatio || 1;
   var W = 920;
@@ -650,7 +667,7 @@ function renderAttendanceChart() {
       ctx.fillText(formatAtt(y), PAD.left - 8, yy);
     }
 
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = SEP_LINE;
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
     ATTENDANCE.forEach(function(s, si) {
@@ -665,7 +682,7 @@ function renderAttendanceChart() {
     ctx.setLineDash([]);
 
     var avgY = scaleY(avgAtt);
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeStyle = FAINT_LINE;
     ctx.lineWidth = 1;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
@@ -673,7 +690,7 @@ function renderAttendanceChart() {
     ctx.lineTo(W - PAD.right, avgY);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillStyle = TEXT_COLOR;
     ctx.font = '10px -apple-system, sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
@@ -725,13 +742,13 @@ function renderAttendanceChart() {
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       ctx.fillStyle = BLUE;
       ctx.fill();
-      ctx.strokeStyle = '#0d0d0d';
+      ctx.strokeStyle = PAPER;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     });
 
     seasonLabels.forEach(function(sl) {
-      ctx.fillStyle = '#666';
+      ctx.fillStyle = TEXT_COLOR;
       ctx.font = '11px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
@@ -801,6 +818,9 @@ function renderAttendanceChart() {
 
   attCanvas.onmouseleave = hideTooltip;
 
+  // Redraw-safe: drop the previous legend so toggles don't stack them.
+  var oldLegend = attChartWrap.querySelector('.legend');
+  if (oldLegend) oldLegend.remove();
   var legendEl = document.createElement('div');
   legendEl.className = 'legend';
   legendEl.innerHTML =
@@ -809,7 +829,7 @@ function renderAttendanceChart() {
       'Home game attendance' +
     '</div>' +
     '<div class="legend-item">' +
-      '<span class="legend-line" style="background:rgba(255,255,255,0.3);border-top:2px dashed rgba(255,255,255,0.3);"></span>' +
+      '<span class="legend-line" style="background:rgba(var(--ink-rgb),.35);border-top:2px dashed rgba(var(--ink-rgb),.35);"></span>' +
       'Average (' + formatAtt(avgAtt) + ')' +
     '</div>' +
     '<div class="legend-item">' +
@@ -824,10 +844,10 @@ function renderAttendanceChart() {
     var bestGame = allGames.filter(function(g) { return g.attendance === bestAtt; })[0];
     var worstGame = allGames.filter(function(g) { return g.attendance === worstAtt; })[0];
     attStatsEl.innerHTML =
-      '<div class="stat-item"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + allGames.length + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Home Games</div></div>' +
-      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(avgAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Avg Attendance</div></div>' +
-      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(bestAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Best (vs ' + escHtml(bestGame.opponent) + ', ' + escHtml(bestGame.date) + ')</div></div>' +
-      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(worstAtt) + '</div><div class="lbl" style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Worst (vs ' + escHtml(worstGame.opponent) + ', ' + escHtml(worstGame.date) + ')</div></div>';
+      '<div class="stat-item"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + allGames.length + '</div><div class="lbl" style="color:var(--card-mute);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Home Games</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(avgAtt) + '</div><div class="lbl" style="color:var(--card-mute);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Avg Attendance</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(bestAtt) + '</div><div class="lbl" style="color:var(--card-mute);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Best (vs ' + escHtml(bestGame.opponent) + ', ' + escHtml(bestGame.date) + ')</div></div>' +
+      '<div class="stat-item" style="text-align:center;"><div class="num" style="color:#5a9eff;font-weight:700;font-size:1rem;">' + formatAtt(worstAtt) + '</div><div class="lbl" style="color:var(--card-mute);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Worst (vs ' + escHtml(worstGame.opponent) + ', ' + escHtml(worstGame.date) + ')</div></div>';
   }
 
   draw();
@@ -840,49 +860,44 @@ function renderAttendanceChart() {
     attCanvas.style.height = (maxW / W * H) + 'px';
   }
   resizeAttCanvas();
-  window.addEventListener('resize', resizeAttCanvas);
+  // The closure reads live DOM, so the first listener stays valid across redraws.
+  if (!window._attResizeWired) {
+    window._attResizeWired = true;
+    window.addEventListener('resize', resizeAttCanvas);
+  }
 }
+
+// Repaint canvas colors when the theme flips (draw snapshots the theme).
+window.addEventListener('stl:theme', function() {
+  try { renderAttendanceChart(); } catch (e) {}
+});
 
 async function loadStats() {
   var container = document.getElementById('statsContent');
   var sub = document.getElementById('feedSub');
-  try {
-    var results = await Promise.all(TEAMS.map(function(t) { return loadTeamStats(t); }));
-    var html = '';
-    var loaded = 0;
-    for (var i = 0; i < TEAMS.length; i++) {
-      var groups = results[i];
-      if (!groups || !groups.length) continue;
-      loaded++;
-      html += '<div class="section">' +
-        '<div class="section-header" style="border-bottom-color:' + TEAMS[i].color + ';">' +
-          '<h2 style="color:' + TEAMS[i].color + ';">' + escHtml(TEAMS[i].name) + '</h2>' +
+  function teamSectionHtml(team, groups) {
+    var html = '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
+      '<h2 style="color:' + team.color + ';">' + escHtml(team.name) + '</h2></div>';
+    if (!groups || !groups.length) return html + '<div class="error-msg">Could not load stats.</div>';
+    var groupHtml = '';
+    for (var g = 0; g < groups.length; g++) {
+      var group = groups[g];
+      groupHtml += '<div class="stat-group">' +
+          '<div class="stat-group-title">' + escHtml(safe(group.cat)) + '</div>';
+      for (var k = 0; k < group.items.length; k++) {
+        var p = group.items[k];
+        groupHtml += '<div class="player-row">' +
+          '<span class="player-name">' + escHtml(safe(p.name)) + '</span>' +
+          '<span class="player-val">' + escHtml(safe(String(p.val))) + '</span>' +
         '</div>';
-      var groupHtml = '';
-      for (var g = 0; g < groups.length; g++) {
-        var group = groups[g];
-        groupHtml += '<div class="stat-group">' +
-            '<div class="stat-group-title">' + escHtml(safe(group.cat)) + '</div>';
-        for (var k = 0; k < group.items.length; k++) {
-          var p = group.items[k];
-          groupHtml += '<div class="player-row">' +
-            '<span class="player-name">' + escHtml(safe(p.name)) + '</span>' +
-            '<span class="player-val">' + escHtml(safe(String(p.val))) + '</span>' +
-          '</div>';
-        }
-        groupHtml += '</div>';
       }
-      html += '<div class="stat-groups">' + groupHtml + '</div>';
-      html += '</div>';
+      groupHtml += '</div>';
     }
-    if (!loaded) {
-      container.innerHTML = '<div class="error-msg">Could not load stats data.</div>';
-      sub.textContent = 'Error';
-      return;
-    }
-    var coachingHtml = await loadUFLCoaching();
-    if (coachingHtml) html += coachingHtml;
-    html += '<div class="section" id="attendance">' +
+    return html + '<div class="stat-groups">' + groupHtml + '</div>';
+  }
+
+  function attendanceHtml() {
+    return '<div class="section" id="attendance">' +
       '<div class="section-header" style="border-bottom-color:#00529B;">' +
         '<h2 style="color:#00529B;">BattleHawks Home Attendance</h2>' +
       '</div>' +
@@ -894,11 +909,81 @@ async function loadStats() {
       '<div class="att-stats" id="attStatsRow"></div>' +
       '<div class="att-data-src">Data from sports-reference.com and official team releases</div>' +
     '</div>';
-    sub.textContent = loaded + ' team' + (loaded !== 1 ? 's' : '');
-    container.innerHTML = html;
-    renderAttendanceChart();
+  }
+
+  function setSection(id, html) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  // Paint skeleton shells immediately (team order preserved) and fill each
+  // section as its fetch resolves. Coaching runs in parallel with the teams;
+  // the attendance chart needs no network so it renders right away.
+  container.innerHTML = TEAMS.map(function(t) {
+    return '<div class="section" id="sec-' + t.id + '">' +
+      '<div class="section-header" style="border-bottom-color:' + t.color + ';">' +
+        '<h2 style="color:' + t.color + ';">' + escHtml(t.name) + '</h2>' +
+      '</div><div class="loading">Loading…</div></div>';
+  }).join('') +
+  '<div class="section" id="sec-coaching"><div class="loading">Loading…</div></div>' +
+  attendanceHtml();
+  renderAttendanceChart();
+  var painted = 0;
+  var failed = 0;
+  function paintCount() {
+    sub.textContent = painted + ' of ' + TEAMS.length + ' teams' + (failed ? ' (' + failed + ' unavailable)' : '');
+  }
+  paintCount();
+
+  async function paintTeam(t) {
+    var cached = readStatsCache(t.id);
+    if (cached && cached.length) {
+      setSection('sec-' + t.id, teamSectionHtml(t, cached));
+      painted++;
+      paintCount();
+    }
+    try {
+      var groups = await loadTeamStats(t);
+      if (groups && groups.length) {
+        writeStatsCache(t.id, groups);
+        setSection('sec-' + t.id, teamSectionHtml(t, groups));
+        if (!cached || !cached.length) painted++;
+      } else if (!cached || !cached.length) {
+        failed++;
+        setSection('sec-' + t.id, teamSectionHtml(t, null));
+      }
+    } catch (e) {
+      if (!cached || !cached.length) {
+        failed++;
+        setSection('sec-' + t.id, teamSectionHtml(t, null));
+      }
+    }
+    paintCount();
+  }
+
+  async function paintCoaching() {
+    var cached = readStatsCache('ufl-coaching');
+    if (cached) setSection('sec-coaching', cached);
+    try {
+      var html = await loadUFLCoaching();
+      if (html) {
+        writeStatsCache('ufl-coaching', html);
+        setSection('sec-coaching', html);
+      } else if (!cached) {
+        setSection('sec-coaching', '<div class="error-msg">Could not load coaching records.</div>');
+      }
+    } catch (e) {
+      if (!cached) setSection('sec-coaching', '<div class="error-msg">Could not load coaching records.</div>');
+    }
+  }
+
+  try {
+    await Promise.all(TEAMS.map(paintTeam).concat([paintCoaching()]));
+    var now = new Date();
+    sub.textContent = painted + ' team' + (painted !== 1 ? 's' : '') +
+      (failed ? ' (' + failed + ' unavailable)' : '') +
+      ' · updated ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   } catch (e) {
-    container.innerHTML = '<div class="error-msg">Failed to load stats.</div>';
     sub.textContent = 'Error';
   }
 }

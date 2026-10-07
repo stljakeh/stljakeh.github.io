@@ -1,4 +1,6 @@
-nav {
+/* nav.css — legacy overrides neutralized; themed nav lives in theme.css
+   (.stlnav). Kept for FPR/older pages linking this file. */
+nav:not(.stlnav) {
   flex-wrap: wrap;
   justify-content: flex-start;
   padding: 0;
@@ -7,7 +9,6 @@ nav {
   border-radius: 0;
 }
 .site-label { display: none; }
-
 .hamburger {
   display: flex;
   align-items: center;
@@ -15,16 +16,15 @@ nav {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  color: #ccc;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
   font-size: 1.3rem;
   cursor: pointer;
   line-height: 1;
   transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
-.hamburger:hover { color: #fff; background: #2a2a2a; }
-
+.hamburger:hover { background: rgba(255, 255, 255, 0.26); }
 nav .nav-links {
   display: none;
   width: 100%;
