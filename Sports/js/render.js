@@ -11,7 +11,6 @@ STL.render = {
       art.className = 'teamcard team-' + t.cardClass;
       art.id = 'card-' + t.cardClass;
       art.innerHTML =
-        '<div class="spine"></div>' +
         '<div class="tmain">' +
           '<div class="trow1">' +
             '<div>' +

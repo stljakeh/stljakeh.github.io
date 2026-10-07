@@ -41,8 +41,8 @@ html[data-theme="dark"] {
   --live-accent: #4caf50;
 }
 
-/* Blues go gold in dark mode (classic #FCB514) — the deep blue spine/tab
-   turns muddy on the dark card. Light mode keeps Blues blue. */
+/* Blues go gold in dark mode (classic #FCB514) — the deep blue tab turns
+   muddy on the dark card. Light mode keeps Blues blue. */
 html[data-theme="dark"] .team-blues {
   --team: #FCB514;
 }
@@ -188,12 +188,11 @@ nav.stlnav { width: 100%; margin-top: 10px; }
   border-radius: 16px; overflow: hidden;
   box-shadow: 0 3px 12px rgba(var(--ink-rgb), 0.1);
   border: 1px solid rgba(var(--ink-rgb), 0.07);
-  display: grid; grid-template-columns: 10px 1fr;
+  /* Team tab as a real border (not a stretched grid child) so it can never
+     outlive the card's content height on any engine. */
+  border-left: 10px solid var(--team, #999);
 }
-.teamcard:nth-child(even) { grid-template-columns: 1fr 10px; }
-.teamcard:nth-child(even) .spine { order: 2; }
-.teamcard:nth-child(even) .tmain { order: 1; }
-.spine { background: var(--team, #999); min-height: 100%; }
+.teamcard:nth-child(even) { border-left: 1px solid rgba(var(--ink-rgb), 0.07); border-right: 10px solid var(--team, #999); }
 .tmain { padding: 14px 16px 14px; min-width: 0; }
 .trow1 { display: flex; align-items: baseline; gap: 10px; }
 .tname { font-family: var(--serif); font-weight: 700; font-size: 1.12rem; }
