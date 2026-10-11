@@ -497,6 +497,103 @@ STL.api = {
     return null;
   },
 
+  // True when a completed game's status indicates it ended in overtime or
+  // a shootout. Schedule events carry e.g. detail 'Final/OT'
+  // (shortDetail 'Final/OT', altDetail 'OT'); shootouts show 'Final/SO'.
+  isOvertimeGame: function(ev) {
+    try {
+      const t = ev.competitions?.[0]?.status?.type || {};
+      const hay = [t.detail, t.shortDetail, t.altDetail].filter(Boolean).join(' ');
+      return /(^|[\/\s])(OT|SO)\b|shootout/i.test(hay);
+    } catch (e) { return false; }
+  },
+
+  // Previous-season final for an MLB club (record + last game) from the MLB
+  // Stats API (CORS *). Used when ESPN's schedule is empty in the
+  // offseason so the card keeps showing the final record (e.g. 2026's
+  // 77-85) until the next season's games appear. Tries the current year
+  // first, then the prior year. 6h localStorage cache.
+  fetchMlbPrevFinal: async function(team) {
+    const mlbamId = team.mlbamId;
+    if (!mlbamId) return;
+    const cacheKey = 'mlb_prevfinal_' + mlbamId;
+    const ttlMs = 6 * 3600000;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry && cached.data) {
+        team._prevFinal = cached.data;
+        return;
+      }
+    } catch (e) {}
+    try {
+      const thisYear = new Date().getFullYear();
+      for (const yr of [thisYear, thisYear - 1]) {
+        const url = 'https://statsapi.mlb.com/api/v1/schedule?sportIds=1&season=' + yr +
+          '&startDate=' + yr + '-09-01&endDate=' + yr + '-10-01&hydrate=team';
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const finals = [];
+        for (const d of (data.dates || [])) {
+          for (const g of (d.games || [])) {
+            if (g.gameType && g.gameType !== 'R') continue;
+            const st = g.status && g.status.detailedState;
+            if (!/^final/i.test(st || '') && !/^completed early/i.test(st || '')) continue;
+            const away = g.teams && g.teams.away;
+            const home = g.teams && g.teams.home;
+            if (!away || !home) continue;
+            if (String(away.team.id) !== String(mlbamId) && String(home.team.id) !== String(mlbamId)) continue;
+            finals.push(g);
+          }
+        }
+        if (!finals.length) continue;
+        finals.sort(function(a, b) { return new Date(a.gameDate) - new Date(b.gameDate); });
+        const g = finals[finals.length - 1];
+        const away = g.teams.away, home = g.teams.home;
+        const ours = String(away.team.id) === String(mlbamId) ? away : home;
+        const opp = ours === away ? home : away;
+        const lr = ours.leagueRecord || {};
+        if (!lr.wins && !lr.losses) continue;
+        const ourScore = ours.score != null ? ours.score : '?';
+        const oppScore = opp.score != null ? opp.score : '?';
+        const res = ourScore > oppScore ? 'W' : ourScore < oppScore ? 'L' : 'D';
+        const oppAbbr = (opp.team && (opp.team.abbreviation || opp.team.teamName)) || 'opp';
+        let dateLabel = '';
+        try {
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const dt = new Date(g.gameDate);
+          dateLabel = months[dt.getMonth()] + ' ' + dt.getDate();
+        } catch (e) {}
+        const pf = {
+          season: yr,
+          record: { wins: lr.wins || 0, losses: lr.losses || 0, ties: 0 },
+          lastGame: {
+            text: res + ' ' + ourScore + '-' + oppScore + ' ' + (ours === home ? 'vs' : '@') + ' ' + oppAbbr +
+              (dateLabel ? ' · ' + dateLabel : ''),
+            cls: res === 'W' ? 'win' : res === 'L' ? 'loss' : 'draw'
+          }
+        };
+        team._prevFinal = pf;
+        try { localStorage.setItem(cacheKey, JSON.stringify({ data: pf, expiry: Date.now() + ttlMs })); } catch (e) {}
+        return;
+      }
+    } catch (e) {}
+  },
+
+  // True when an event is postseason (playoffs). Schedule events carry
+  // event-level seasonType {id:'3', type:3, name:'Postseason'} (the
+  // competitions level may too). Postseason games are excluded from the
+  // computed regular-season record (e.g. BattleHawks show 6-4, not 6-5).
+  isPostseason: function(ev) {
+    try {
+      const sts = [ev.seasonType, ev.competitions?.[0]?.seasonType].filter(Boolean);
+      return sts.some(function(s) {
+        return String(s.id) === '3' || s.type === 3 ||
+          /postseason|playoff|\bpost\b/i.test(String(s.name || '') + ' ' + String(s.abbreviation || ''));
+      });
+    } catch (e) { return false; }
+  },
+
   fetchTeam: async function(team) {
     if (team.manual) {
       STL.render.renderManual(team);
@@ -559,18 +656,35 @@ STL.api = {
     }
     team._computedStreak = streak;
 
-    let compWins = 0, compLosses = 0, compDraws = 0;
+    let compWins = 0, compLosses = 0, compDraws = 0, compOtl = 0;
     for (const ev of completedEvents) {
+      // Regular-season record only — postseason games don't count
+      // (BattleHawks 2026: 6-4, with the semifinal loss excluded).
+      if (STL.api.isPostseason(ev)) continue;
       const ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === String(team.id); });
       const opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== String(team.id); });
       if (!ha || !opp) continue;
       if (ha.winner === true) compWins++;
-      else if (opp.winner === true) compLosses++;
+      else if (opp.winner === true) {
+        // Hockey records are W-L-OTL, but the schedule's winner flags mark
+        // an OT/SO loss as a plain loss. Split those out so the OTL is not
+        // counted again when render appends it (was showing e.g. 2-3-1).
+        if (team.sport === 'hockey' && STL.api.isOvertimeGame(ev)) compOtl++;
+        else compLosses++;
+      }
       else compDraws++;
     }
     const computedRecord = { wins: compWins, losses: compLosses, ties: compDraws };
+    if (team.sport === 'hockey') computedRecord.otLosses = compOtl;
     if (team.sport === 'soccer') computedRecord.points = compWins * 3 + compDraws;
     team._computedRecord = computedRecord;
+
+    // Offseason: ESPN's schedule goes empty, so the computed record would be
+    // 0-0 and clobber the final record. Pin the previous season's final
+    // (record + last game) until the next season's games appear.
+    if (completedEvents.length === 0 && team.sport === 'baseball') {
+      await STL.api.fetchMlbPrevFinal(team);
+    }
 
     team._lastGameEventId = lastEvent ? lastEvent.id : null;
     if (lastEvent && team._boxScoreEventId !== lastEvent.id) {

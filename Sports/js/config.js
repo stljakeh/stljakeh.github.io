@@ -33,6 +33,9 @@ STL.config = {
       leagueSlug: 'mlb',
       cardClass: 'cardinals',
       icon: 'STL',
+      // MLB Stats API team id (ESPN id 24 != MLBAM id). Used to pin the
+      // previous season's final record while ESPN's schedule is empty.
+      mlbamId: 138,
       links: [
         { text: 'Official Site', href: 'https://www.mlb.com/cardinals' },
         { text: 'Schedule', href: 'https://www.mlb.com/cardinals/schedule' },

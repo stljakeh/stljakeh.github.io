@@ -283,12 +283,28 @@ STL.render = {
     const apiTies = STL.utils.findStat(statsArr, 'ties') || 0;
     const apiPts = STL.utils.findStat(statsArr, 'points');
     const rc = team._computedRecord;
-    const wins = rc ? rc.wins : apiWins;
-    const losses = rc ? rc.losses : apiLosses;
-    const ties = rc ? rc.ties : apiTies;
+    const rcGames = rc ? ((rc.wins || 0) + (rc.losses || 0) + (rc.ties || 0) + (rc.otLosses || 0)) : 0;
+    // Offseason: the computed record is empty (no games in ESPN's schedule),
+    // so prefer the pinned previous-season final, else the API record —
+    // otherwise the card would wrongly show 0-0 instead of e.g. 77-85.
+    const prev = (rcGames === 0) ? team._prevFinal : null;
+    const wins = prev ? prev.record.wins : (rcGames > 0 ? rc.wins : apiWins);
+    const losses = prev ? prev.record.losses : (rcGames > 0 ? rc.losses : apiLosses);
+    const ties = prev ? (prev.record.ties || 0) : (rcGames > 0 ? rc.ties : apiTies);
     const otLosses = STL.utils.findStat(statsArr, 'otLosses') || 0;
+    // Hockey is W-L-OTL, but the API 'losses' stat bundles OT losses in,
+    // while the computed record (api.js) already splits detected OT losses
+    // out into rc.otLosses. Back out any OTL still bundled in the loss
+    // count so the OT loss is not counted twice (was showing 2-3-1).
+    let regLosses = losses;
+    let dispOtl = otLosses;
+    if (team.sport === 'hockey') {
+      const detectedOtl = (rc && rc.otLosses) || 0;
+      dispOtl = Math.max(detectedOtl, otLosses);
+      regLosses = Math.max(0, losses - Math.max(0, dispOtl - detectedOtl));
+    }
     const pts = rc && rc.points !== undefined ? rc.points : apiPts;
-    const streakVal = team._computedStreak !== undefined ? team._computedStreak : STL.utils.findStat(statsArr, 'streak');
+    const streakVal = (team._computedStreak !== undefined && rcGames > 0) ? team._computedStreak : STL.utils.findStat(statsArr, 'streak');
 
     if (standingSummary.includes('in MLS') && team.sport === 'soccer') {
       if (rc && window._mlsConfTeams && window._mlsConfTeams.length) {
@@ -303,13 +319,13 @@ STL.render = {
 
     let recordStr;
     if (team.sport === 'hockey') {
-      recordStr = wins + '-' + losses + '-' + otLosses;
+      recordStr = wins + '-' + regLosses + '-' + dispOtl;
     } else if (team.sport === 'soccer') {
       recordStr = wins + '-' + losses + '-' + ties;
     } else {
       recordStr = wins + '-' + losses;
     }
-    const totalDecisions = wins + losses + ties + (team.sport === 'hockey' ? otLosses : 0);
+    const totalDecisions = wins + (team.sport === 'hockey' ? regLosses : losses) + ties + (team.sport === 'hockey' ? dispOtl : 0);
     if (totalDecisions > 0) {
       const winPct = (wins / totalDecisions).toFixed(3).replace(/^0/, '');
       recordStr += ' (' + winPct + ')';
@@ -417,6 +433,10 @@ STL.render = {
       streakEl.className = 'stat-value ' + streakClass;
     } else {
       streakRow.style.display = 'none';
+    }
+
+    if (!lastGameHtml && prev && prev.lastGame) {
+      lastGameHtml = '<span class="stat-value ' + prev.lastGame.cls + '">' + prev.lastGame.text + ' · Final ' + prev.season + '</span>';
     }
 
     const lastGameEl = document.getElementById('lastGame-' + team.cardClass);
