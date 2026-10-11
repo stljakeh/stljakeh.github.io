@@ -1,35 +1,35 @@
 {
-  "generated_at": "2026-10-11T13:09:08.175376+00:00",
+  "generated_at": "2026-10-11T22:09:39.245958+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
         "wins": 2,
         "losses": 1,
         "otl": 0,
-        "sol": 0,
-        "points": 4,
-        "streak": "0-1-0-0"
+        "sol": 1,
+        "points": 5,
+        "streak": "0-1-0-1"
       },
       "prospects": [
         {
           "name": "Aleksanteri Kaskim\u00e4ki",
           "pos": "F",
-          "line": "1 G / 3 A / 4 PTS \u00b7 3 GP"
+          "line": "2 G / 3 A / 5 PTS \u00b7 4 GP"
         },
         {
           "name": "T.J. Tynan",
           "pos": "C",
-          "line": "1 G / 3 A / 4 PTS \u00b7 3 GP"
+          "line": "1 G / 3 A / 4 PTS \u00b7 4 GP"
         },
         {
           "name": "Justin Carbonneau",
           "pos": "F",
-          "line": "2 G / 1 A / 3 PTS \u00b7 3 GP"
+          "line": "2 G / 1 A / 3 PTS \u00b7 4 GP"
         }
       ],
       "standing": "3rd Atlantic Division",
-      "lastGame": "L 2-5 vs Laval \u00b7 Sat, Oct 10",
-      "nextGame": "vs Charlotte \u00b7 Sun, Oct 11 \u00b7 3:05 pm EDT",
+      "lastGame": "L 1-2 vs Charlotte \u00b7 Sun, Oct 11",
+      "nextGame": "vs Lehigh Valley \u00b7 Fri, Oct 16 \u00b7 7:05 pm EDT",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
