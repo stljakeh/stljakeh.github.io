@@ -1,35 +1,35 @@
 {
-  "generated_at": "2026-10-10T21:53:39.248199+00:00",
+  "generated_at": "2026-10-11T04:34:45.927630+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
         "wins": 2,
-        "losses": 0,
+        "losses": 1,
         "otl": 0,
         "sol": 0,
         "points": 4,
-        "streak": "2-0-0-0"
+        "streak": "0-1-0-0"
       },
       "prospects": [
         {
+          "name": "Aleksanteri Kaskim\u00e4ki",
+          "pos": "F",
+          "line": "1 G / 3 A / 4 PTS \u00b7 3 GP"
+        },
+        {
           "name": "T.J. Tynan",
           "pos": "C",
-          "line": "1 G / 3 A / 4 PTS \u00b7 2 GP"
+          "line": "1 G / 3 A / 4 PTS \u00b7 3 GP"
         },
         {
           "name": "Justin Carbonneau",
           "pos": "F",
-          "line": "2 G / 1 A / 3 PTS \u00b7 2 GP"
-        },
-        {
-          "name": "Aleksanteri Kaskim\u00e4ki",
-          "pos": "F",
-          "line": "0 G / 3 A / 3 PTS \u00b7 2 GP"
+          "line": "2 G / 1 A / 3 PTS \u00b7 3 GP"
         }
       ],
-      "standing": "2nd Atlantic Division",
-      "lastGame": "W 2-0 @ Providence \u00b7 Sun, Oct 4",
-      "nextGame": "vs Laval \u00b7 Sat, Oct 10 \u00b7 6:05 pm EDT",
+      "standing": "3rd Atlantic Division",
+      "lastGame": "L 2-5 vs Laval \u00b7 Sat, Oct 10",
+      "nextGame": "vs Charlotte \u00b7 Sun, Oct 11 \u00b7 3:05 pm EDT",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
@@ -61,7 +61,7 @@
       ],
       "standing": "6th North",
       "lastGame": "W 4-3 vs Adirondack \u00b7 Apr. 19",
-      "nextGame": "vs Maine \u00b7 Oct. 10 \u00b7 7:00 pm EDT",
+      "nextGame": null,
       "seasonName": "2025-26 Regular Season",
       "seasonStart": "2025-10-15",
       "isFinal": true

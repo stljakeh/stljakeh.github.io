@@ -990,6 +990,11 @@ STL.api = {
   // Prefetched affiliate panels, fetched once per page load (6h memory cache).
   _affPrefetch: null,
 
+  // Max age of a prefetched affiliate panel before the live path is tried.
+  // Just over the 6h workflow cadence so a missed run can't leave game-day
+  // results stale for a full day.
+  AFF_PREFETCH_MAX_AGE_MS: 7 * 3600000,
+
   fetchAffPrefetch: async function() {
     const now = Date.now();
     if (STL.api._affPrefetch && now - STL.api._affPrefetch.at < 6 * 3600000) {
@@ -1156,15 +1161,22 @@ STL.api = {
     try { localStorage.removeItem('ht_aff_' + aff.name); } catch (e) {}
     // Prefetched panels (Sports/data/blues-affiliates.json, refreshed every 6h
     // by .github/workflows/affiliates.yml). Same-origin, so no CORS involved.
-    // Falls through to the live path when missing, errored, or older than 24h.
+    // Trusted for ~one workflow cycle; older than that, the live path is
+    // tried so game-day results don't lag a full day when a run is missed.
+    // A stale prefetch still beats nothing, so it is kept as the fallback
+    // if the live path fails.
+    let staleEntry = null;
     try {
       const pre = await STL.api.fetchAffPrefetch();
       const gen = pre && pre.generated_at ? Date.parse(pre.generated_at) : 0;
       const entry = pre && pre.affiliates && pre.affiliates[aff.name];
-      if (entry && !entry.error && gen && Date.now() - gen < 24 * 3600000) {
-        STL.api._affCache[aff.name] = entry;
-        try { localStorage.setItem(cacheKey, JSON.stringify({ data: entry, expiry: Date.now() + ttlMs })); } catch (e) {}
-        return;
+      if (entry && !entry.error && gen) {
+        if (Date.now() - gen < STL.api.AFF_PREFETCH_MAX_AGE_MS) {
+          STL.api._affCache[aff.name] = entry;
+          try { localStorage.setItem(cacheKey, JSON.stringify({ data: entry, expiry: Date.now() + ttlMs })); } catch (e) {}
+          return;
+        }
+        staleEntry = entry;
       }
     } catch (e) {}
     try {
@@ -1207,7 +1219,10 @@ STL.api = {
       STL.api._affCache[aff.name] = data;
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
     } catch (e) {
-      if (!STL.api._affCache[aff.name]) {
+      if (staleEntry) {
+        STL.api._affCache[aff.name] = staleEntry;
+        try { localStorage.setItem(cacheKey, JSON.stringify({ data: staleEntry, expiry: Date.now() + ttlMs })); } catch (e2) {}
+      } else if (!STL.api._affCache[aff.name]) {
         STL.api._affCache[aff.name] = { error: String(e.message || e) };
       }
     }
