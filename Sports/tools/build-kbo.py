@@ -19,6 +19,8 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
@@ -42,7 +44,12 @@ CODE_NAMES = {
     "WO": "Kiwoom Heroes",
     "KIA": "Kia Tigers",
 }
-MAX_STEPS_BACK = 9
+MAX_STEPS_BACK = 12
+# Fail-soft window: when the month-API walk finds nothing but the on-disk
+# JSON is this fresh (and has a last game), refresh generated_at + standings
+# and exit 0 instead of paging with a red run every 6h.
+FRESH_DAYS = 7
+RETRY_SLEEPS = (5, 15, 30)
 STANDINGS_URL = "https://eng.koreabaseball.com/Standings/TeamStandings.aspx"
 # Column order of the standings table (verified 2026-10-13):
 # RK, TEAM, GAMES, W, L, D, PCT, GB, STREAK, HOME, AWAY.
@@ -79,14 +86,45 @@ def fetch_standings():
 def post_month(year, month):
     body = json.dumps({"year": "%04d" % year, "month": "%02d" % month,
                        "ncOnly": True}).encode("utf-8")
-    req = urllib.request.Request(API, data=body, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        if resp.status != 200:
-            raise RuntimeError("HTTP %d" % resp.status)
-        data = json.loads(resp.read().decode("utf-8", "ignore"))
-    if data.get("resultCode") != "200":
-        raise RuntimeError("resultCode %r" % (data.get("resultCode"),))
-    return (data.get("data") or {}).get("gameList") or []
+    last_err = None
+    for attempt, sleep_s in [(0, 0)] + [(i + 1, s) for i, s in enumerate(RETRY_SLEEPS)]:
+        if sleep_s:
+            time.sleep(sleep_s)
+        try:
+            req = urllib.request.Request(API, data=body, headers=UA)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                if resp.status != 200:
+                    raise RuntimeError("HTTP %d" % resp.status)
+                data = json.loads(resp.read().decode("utf-8", "ignore"))
+            # resultCode arrives as "200" today; accept int 200 too so a
+            # serialization-side change doesn't red-bar every run.
+            if str(data.get("resultCode")) != "200":
+                raise RuntimeError("resultCode %r" % (data.get("resultCode"),))
+            return (data.get("data") or {}).get("gameList") or []
+        except Exception as e:
+            last_err = e
+            if not _retryable(e) or attempt == len(RETRY_SLEEPS):
+                raise
+            print("month %04d-%02d: attempt %d: %s (retrying)" % (
+                year, month, attempt + 1, e), file=sys.stderr)
+    raise last_err
+
+
+def _retryable(e):
+    # Transient network/edge failures get retries; contract changes
+    # (resultCode, JSON shape) fail fast so logs stay unambiguous.
+    msg = str(e)
+    if msg.startswith("resultCode"):
+        return False
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code == 429 or 500 <= e.code <= 599
+    if isinstance(e, RuntimeError):
+        m = re.match(r"HTTP (\d+)", msg)
+        if m:
+            st = int(m.group(1))
+            return st == 429 or 500 <= st <= 599
+        return False
+    return isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError))
 
 
 def is_final(g):
@@ -110,13 +148,75 @@ def game_key_date(g):
     return None
 
 
+def _log_status_histogram():
+    # Self-describing logs for the next zero-finals mystery: one extra fetch
+    # of the current month showing which gameStatus/gameFlag values exist, so
+    # a schema change reads as data instead of silence. Best-effort, one shot,
+    # no retries.
+    try:
+        now = datetime.now(timezone.utc)
+        body = json.dumps({"year": "%04d" % now.year, "month": "%02d" % now.month,
+                           "ncOnly": True}).encode("utf-8")
+        req = urllib.request.Request(API, data=body, headers=UA)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8", "ignore"))
+        hist = {}
+        for g in ((data.get("data") or {}).get("gameList") or []):
+            key = "%s/%s/%s" % (g.get("gameStatus"), g.get("gameFlag"),
+                                g.get("gameCancelName") or "-")
+            hist[key] = hist.get(key, 0) + 1
+        print("status histogram (current month): %s" % hist, file=sys.stderr)
+    except Exception as e:
+        print("histogram: %s" % e, file=sys.stderr)
+
+
+def _fail_soft(dest, now):
+    # Total walk failure: keep the last-good JSON instead of red-barring every
+    # 6h, but ONLY while it is fresh enough to still be truthful. Refresh
+    # generated_at + standings so the card doesn't go stale-looking; a
+    # missing/ancient file still exits 1 so real breakage pages.
+    try:
+        with open(dest, encoding="utf-8") as f:
+            out = json.load(f)
+    except (OSError, ValueError):
+        return 1
+    if not (out.get("lastGame") or {}).get("text"):
+        return 1
+    try:
+        age_days = (now - datetime.fromisoformat(out["generated_at"])).days
+    except (TypeError, ValueError, KeyError):
+        return 1
+    if age_days > FRESH_DAYS:
+        print("last-good is %d days old (>%d), failing" % (age_days, FRESH_DAYS),
+              file=sys.stderr)
+        return 1
+    try:
+        st = fetch_standings()
+        if st and (st["wins"] + st["losses"] > 0):
+            out["standings"] = st
+    except Exception as e:
+        print("standings: %s" % e, file=sys.stderr)
+    out["generated_at"] = now.isoformat()
+    with open(dest, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    print("WARNING: month-API walk failed; kept last-good (%s)" % (
+        out["lastGame"]["text"]))
+    return 0
+
+
 def main():
+    dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
+                        "kbo-lastgame.json")
     now = datetime.now(timezone.utc)
     year, month = now.year, now.month
     games = []
     for _ in range(MAX_STEPS_BACK):
         try:
-            month_games = [g for g in post_month(year, month) if is_final(g)]
+            raw = post_month(year, month)
+            month_games = [g for g in raw if is_final(g)]
+            print("month %04d-%02d: %d games, %d finals" % (
+                year, month, len(raw), len(month_games)))
         except Exception as e:
             print("month %04d-%02d: %s" % (year, month, e), file=sys.stderr)
             month_games = []
@@ -129,7 +229,8 @@ def main():
             month = 12
     if not games:
         print("no finals found in any month", file=sys.stderr)
-        return 1
+        _log_status_histogram()
+        return _fail_soft(dest, now)
     dated = [(game_key_date(g) or "", g) for g in games]
     dated.sort(key=lambda t: t[0])
     date_iso, g = dated[-1]
@@ -171,8 +272,6 @@ def main():
             out["standings"] = st
     except Exception as e:
         print("standings: %s" % e, file=sys.stderr)
-    dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
-                        "kbo-lastgame.json")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
