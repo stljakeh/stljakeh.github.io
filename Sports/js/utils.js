@@ -7,15 +7,21 @@ STL.utils = {
     return s[(v - 20) % 10] || s[v] || s[0];
   },
 
+  // Invalid/missing input yields '' (never the literal "Invalid Date"),
+  // so bad dates simply don't show up instead of rendering as errors.
   formatDateStr: function(dateStr, showYear) {
+    if (dateStr == null || dateStr === '') return '';
     const d = new Date(dateStr);
+    if (!isFinite(d)) return '';
     const opts = { weekday: 'short', month: 'short', day: 'numeric' };
     if (showYear) opts.year = 'numeric';
     return d.toLocaleDateString('en-US', opts);
   },
 
   formatTimeStr: function(dateStr) {
+    if (dateStr == null || dateStr === '') return '';
     const d = new Date(dateStr);
+    if (!isFinite(d)) return '';
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   },
 

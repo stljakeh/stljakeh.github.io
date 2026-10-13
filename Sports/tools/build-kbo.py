@@ -17,6 +17,7 @@ good data persists.
 """
 import json
 import os
+import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
@@ -42,6 +43,37 @@ CODE_NAMES = {
     "KIA": "Kia Tigers",
 }
 MAX_STEPS_BACK = 9
+STANDINGS_URL = "https://eng.koreabaseball.com/Standings/TeamStandings.aspx"
+# Column order of the standings table (verified 2026-10-13):
+# RK, TEAM, GAMES, W, L, D, PCT, GB, STREAK, HOME, AWAY.
+
+
+def to_int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def fetch_standings():
+    """Current-season NC row from the official standings table."""
+    req = urllib.request.Request(STANDINGS_URL, headers=UA)
+    html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "ignore")
+    for m in re.finditer(r"<tr[^>]*>(.*?)</tr>", html, re.S):
+        cells = [re.sub(r"<.*?>", "", c).strip()
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", m.group(1), re.S)]
+        if len(cells) < 9 or cells[1] != "NC":
+            continue
+        rk, games, w, l, d = (to_int(cells[i]) for i in (0, 2, 3, 4, 5))
+        pct = (cells[6] or "").lstrip("0")
+        return {
+            "wins": w, "losses": l, "ties": d,
+            "pct": pct if pct.startswith(".") or not pct else pct,
+            "rank": rk, "leagueName": "KBO League",
+            "gb": cells[7] or None, "streak": cells[8] or None,
+            "remaining": 144 - games if games else None,
+        }
+    raise RuntimeError("NC row not found")
 
 
 def post_month(year, month):
@@ -133,6 +165,12 @@ def main():
         "season": season,
         "lastGame": {"text": text, "cls": cls},
     }
+    try:
+        st = fetch_standings()
+        if st and (st["wins"] + st["losses"] > 0):
+            out["standings"] = st
+    except Exception as e:
+        print("standings: %s" % e, file=sys.stderr)
     dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
                         "kbo-lastgame.json")
     os.makedirs(os.path.dirname(dest), exist_ok=True)

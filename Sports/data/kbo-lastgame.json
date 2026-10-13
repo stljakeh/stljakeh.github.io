@@ -1,9 +1,20 @@
 {
-  "generated_at": "2026-10-13T06:53:48.465486+00:00",
+  "generated_at": "2026-10-13T07:34:19.120036+00:00",
   "team": "NC Dinos",
   "season": "2026",
   "lastGame": {
     "text": "W 9-8 @ Hanwha Eagles · Oct 10",
     "cls": "win"
+  },
+  "standings": {
+    "wins": 64,
+    "losses": 78,
+    "ties": 2,
+    "pct": ".451",
+    "rank": 8,
+    "leagueName": "KBO League",
+    "gb": "27.5",
+    "streak": "W1",
+    "remaining": 0
   }
 }

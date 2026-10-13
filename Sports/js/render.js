@@ -141,7 +141,7 @@ STL.render = {
     return (
       '<div class="next-game">' +
         '<div class="next-game-label">' + label + '</div>' +
-        '<div class="next-game-detail">' + vs + ' ' + opponent.team.displayName + ' &middot; ' + dateStrFull + ' &middot; ' + timeStr + '</div>' +
+        '<div class="next-game-detail">' + [vs + ' ' + opponent.team.displayName, dateStrFull, timeStr].filter(Boolean).join(' &middot; ') + '</div>' +
         detailHtml +
         (venue ? '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + venue + (broadcasts ? ' &middot; ' + broadcasts : '') + '</div>' : '') +
         winHtml +
@@ -169,7 +169,8 @@ STL.render = {
       const resultChar = won ? 'W' : lost ? 'L' : 'D';
       const resultClass = won ? 'win' : lost ? 'loss' : 'draw';
       const dateLabel = STL.utils.formatDateStr(comp.date);
-      result.lastGameHtml = '<span class="stat-value ' + resultClass + '">' + resultChar + ' ' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + ' &middot; ' + dateLabel + '</span>';
+      const dateBit = dateLabel ? ' &middot; ' + dateLabel : '';
+      result.lastGameHtml = '<span class="stat-value ' + resultClass + '">' + resultChar + ' ' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + dateBit + '</span>';
     } else if (st.state === 'in') {
       const comps = team._liveScoreData || comp.competitors;
       const ha = comps.find(c => String(c.team.id) === String(team.id));
@@ -464,7 +465,8 @@ STL.render = {
         const opp = c?.competitors?.find(x => String(x.team.id) !== String(team.id));
         const ha = c?.competitors?.find(x => String(x.team.id) === String(team.id));
         const vs = ha && ha.homeAway === 'home' ? 'vs' : '@';
-        headNext.textContent = 'Next: ' + vs + ' ' + (opp ? (opp.team.abbreviation || opp.team.displayName) : '') + ' · ' + STL.utils.formatDateStr(upcomingEvent.date);
+        const headDate = STL.utils.formatDateStr(upcomingEvent.date);
+        headNext.textContent = 'Next: ' + vs + ' ' + (opp ? (opp.team.abbreviation || opp.team.displayName) : '') + (headDate ? ' · ' + headDate : '');
       } else if (lastGameEvent) {
         headNext.textContent = standingSummary || '';
       } else headNext.textContent = '';
@@ -473,10 +475,12 @@ STL.render = {
 
     const timerEl = document.getElementById('countdown-' + team.cardClass);
     if (timerEl) {
-      if (upcomingEvent && !(upcomingEvent.competitions?.[0]?.status?.type?.state === 'in')) {
+      const targetOk = upcomingEvent && upcomingEvent.date && isFinite(new Date(upcomingEvent.date));
+      if (targetOk && !(upcomingEvent.competitions?.[0]?.status?.type?.state === 'in')) {
         timerEl.dataset.target = upcomingEvent.date;
         timerEl.style.display = '';
       } else {
+        timerEl.dataset.target = '';
         timerEl.style.display = 'none';
       }
     }

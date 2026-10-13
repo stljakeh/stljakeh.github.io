@@ -192,6 +192,18 @@ def build_season_data(league, aff, season):
             "seasonName": season.get("season_name"), "seasonStart": season.get("start_date")}
 
 
+def next_regular(seasons, today):
+    """Earliest upcoming regular season (career 1, starts after today)."""
+    cands = [s for s in (seasons or [])
+             if re.search(r"regular", s.get("season_name") or "", re.I)
+             and str(s.get("career")) == "1"
+             and (s.get("start_date") or "") > today]
+    if not cands:
+        return None
+    cands.sort(key=lambda s: int(s["season_id"]))
+    return cands[0]
+
+
 def build_affiliate(aff, today):
     league = aff["league"]
     seasons = (ht(league, {"feed": "modulekit", "view": "seasons"})
@@ -207,6 +219,7 @@ def build_affiliate(aff, today):
     is_preseason = bool(re.search(r"preseason", season.get("season_name") or "", re.I))
     is_empty = (cur.get("record") is None
                 or (cur_games == 0 and not cur.get("lastGame") and not cur.get("prospects")))
+    data = cur
     if is_preseason or is_empty:
         prior = prior_regular(seasons, today)
         if prior and str(prior.get("season_id")) != str(season.get("season_id")):
@@ -216,10 +229,32 @@ def build_affiliate(aff, today):
                 if prev_rec.get("wins", 0) + prev_rec.get("losses", 0) > 0:
                     prev["nextGame"] = cur.get("nextGame")
                     prev["isFinal"] = True
-                    return prev
+                    data = prev
             except Exception:
                 pass
-    return cur
+    # Look-ahead: when the current season has no upcoming game left (e.g.
+    # ECHL preseason with the regular season starting within days), show the
+    # next regular season's opener instead of nothing.
+    if not data.get("nextGame"):
+        try:
+            nxt = next_regular(seasons, today)
+            if nxt:
+                start = datetime.strptime(nxt.get("start_date", ""), "%Y-%m-%d").date()
+                end = datetime.strptime(today, "%Y-%m-%d").date()
+                if 0 < (start - end).days <= 14:
+                    sid = nxt["season_id"]
+                    teams = (ht(league, {"feed": "modulekit", "view": "teamsbyseason",
+                                         "season_id": sid})
+                             .get("SiteKit", {}).get("Teamsbyseason")) or []
+                    us = next((t for t in teams
+                               if str(t.get("name") or "").lower() == aff["name"].lower()), None)
+                    if us:
+                        games = build_schedule(league, us["id"], sid)
+                        if games.get("next"):
+                            data["nextGame"] = games["next"]
+        except Exception:
+            pass
+    return data
 
 
 def main():

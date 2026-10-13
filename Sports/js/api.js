@@ -1352,6 +1352,18 @@ STL.api = {
     return regs[regs.length - 1];
   },
 
+  htNextRegular: function(seasons) {
+    // Earliest upcoming regular season: name matches /regular/, career==1,
+    // starting after today.
+    if (!seasons || !seasons.length) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = seasons.filter(s =>
+      /regular/i.test(s.season_name || '') && String(s.career) === '1' && s.start_date > today);
+    if (!upcoming.length) return null;
+    upcoming.sort((a, b) => String(a.season_id).localeCompare(String(b.season_id), undefined, { numeric: true }));
+    return upcoming[0];
+  },
+
   fetchHockeySeasonData: async function(league, aff, season, ttlMs) {
     const sid = season.season_id;
     const teamsData = await STL.api.htFetchJson(
@@ -1480,6 +1492,29 @@ STL.api = {
           } catch (e) {}
         }
       }
+      // Look-ahead: when the current season has no upcoming game left (e.g.
+      // ECHL preseason with the regular season starting within days), show
+      // the next regular season's opener instead of nothing. Record, last
+      // game and prospects stay as computed above.
+      if (!data.nextGame) {
+        try {
+          const nxt = STL.api.htNextRegular(allSeasons);
+          if (nxt) {
+            const startMs = new Date(nxt.start_date).getTime();
+            if (isFinite(startMs) && startMs - Date.now() < 14 * 86400000) {
+              const teamsData = await STL.api.htFetchJson(
+                'ht_teams_' + league + '_' + nxt.season_id,
+                STL.api.htUrl(league, { feed: 'modulekit', view: 'teamsbyseason', season_id: nxt.season_id }), ttlMs);
+              const teams = (teamsData && teamsData.SiteKit && teamsData.SiteKit.Teamsbyseason) || [];
+              const us = teams.find(function(t) { return String(t.name || '').toLowerCase() === aff.name.toLowerCase(); });
+              if (us) {
+                const games = await STL.api.fetchHockeySchedule(league, us.id, nxt.season_id, ttlMs);
+                if (games.next) data.nextGame = games.next;
+              }
+            }
+          }
+        } catch (e) {}
+      }
       STL.api._affCache[aff.name] = data;
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
     } catch (e) {
@@ -1606,11 +1641,28 @@ STL.api = {
   },
 
   fetchKboLive: async function(team) {
+    // Prefetched standings + last game (server-side scrape — the live scrape
+    // below can never succeed in browsers: eng.koreabaseball.com sends no
+    // CORS headers). Preferred whenever it has games; the seed below stays
+    // as the last resort.
+    let pre = null;
+    try {
+      const lg = await STL.api.fetchKboLastGame();
+      if (lg) pre = lg;
+    } catch (e) {}
+    const attachLast = function(st) {
+      if (pre && pre.lastGame && pre.lastGame.text) st.lastGame = pre.lastGame;
+      return st;
+    };
+    if (pre && pre.standings && ((pre.standings.wins || 0) + (pre.standings.losses || 0) > 0)) {
+      STL.render.renderAsiaCard(team, attachLast(Object.assign({}, pre.standings)));
+      return;
+    }
     const cacheKey = 'kbo_standings_html';
     const ttlMs = 6 * 3600000;
     const fallback = function() {
       if (team.manualFallback) {
-        STL.render.renderAsiaCard(team, team.manualFallback);
+        STL.render.renderAsiaCard(team, attachLast(Object.assign({}, team.manualFallback)));
       } else {
         STL.render.renderManual(team);
       }
@@ -1649,11 +1701,7 @@ STL.api = {
         gb: val('GB'), streak: val('STREAK'),
         remaining: games ? 144 - games : null
       };
-      try {
-        const lg = await STL.api.fetchKboLastGame();
-        if (lg && lg.lastGame && lg.lastGame.text) st.lastGame = lg.lastGame;
-      } catch (e) {}
-      STL.render.renderAsiaCard(team, st);
+      STL.render.renderAsiaCard(team, attachLast(st));
     } catch (e) {
       fallback();
     }

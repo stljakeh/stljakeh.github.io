@@ -196,6 +196,7 @@ STL.dashboard = {
     document.querySelectorAll('.countdown-timer').forEach(function(el) {
       const target = new Date(el.dataset.target).getTime();
       const diff = target - now;
+      if (!isFinite(diff)) { el.textContent = ''; el.style.display = 'none'; return; }
       if (diff <= 0) { el.textContent = ''; el.style.display = 'none'; return; }
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
