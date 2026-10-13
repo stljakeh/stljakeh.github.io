@@ -784,6 +784,49 @@ STL.api = {
     } catch (e) {}
   },
 
+  // Prefetched ESPN bundle (Sports/data/espn-prefetch.json, refreshed every
+  // 6h by .github/workflows/espn-prefetch.yml). Same-origin, so no CORS or
+  // proxy involved — first paint is instant and identical on every network.
+  // Entries are handed out once per page load (then deleted): the first
+  // refresh paints from the bundle while later cycles go live.
+  _espnPrefetch: null,
+
+  prefetchBundle: async function() {
+    const now = Date.now();
+    if (STL.api._espnPrefetch && now - STL.api._espnPrefetch.at < 6 * 3600000) {
+      return STL.api._espnPrefetch.data;
+    }
+    // Single in-flight fetch: all teams' parallel fetchTeam calls share it
+    // instead of each downloading the ~350KB bundle separately.
+    if (STL.api._espnPrefetchLoading) return STL.api._espnPrefetchLoading;
+    STL.api._espnPrefetchLoading = (async function() {
+      try {
+        const resp = await fetch('data/espn-prefetch.json');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        STL.api._espnPrefetch = { at: Date.now(), data: data };
+        return data;
+      } finally {
+        STL.api._espnPrefetchLoading = null;
+      }
+    })();
+    return STL.api._espnPrefetchLoading;
+  },
+
+  consumePrefetch: async function(team) {
+    // Fresh (<=6h) bundle entry for this team, or null. Consumed on read so
+    // later refreshes revalidate live.
+    try {
+      const b = await STL.api.prefetchBundle();
+      if (!b || !b.generated_at || !b.teams) return null;
+      if (Date.now() - Date.parse(b.generated_at) > STL.api.ESPN_CACHE_TTL_MS) return null;
+      const entry = b.teams[team.cardClass];
+      if (!entry || !entry.team) return null;
+      delete b.teams[team.cardClass];
+      return entry;
+    } catch (e) { return null; }
+  },
+
   fetchTeam: async function(team) {
     if (team.manual) {
       STL.render.renderManual(team);
@@ -796,35 +839,44 @@ STL.api = {
       return STL.api.fetchAsiaBaseball(team);
     }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
-    let data = null;
+    // First paint prefers the server-prefetched bundle (instant, identical
+    // everywhere); later refreshes go live. Bundle entries are consumed on
+    // read, so each team paints from it at most once per page load.
+    const pre = await STL.api.consumePrefetch(team);
+    let data = pre ? { team: pre.team } : null;
+    let allEvents = pre ? (pre.events || []) : [];
     let loadError = null;
-    try {
-      const resp = await STL.api.fetchWithFallback(baseUrl);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      data = await resp.json();
-      STL.api.writeEspnCache(team, data.team, null);
-    } catch (e) {
-      loadError = e;
-      data = null;
+    if (!pre) {
+      try {
+        const resp = await STL.api.fetchWithFallback(baseUrl);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        data = await resp.json();
+        STL.api.writeEspnCache(team, data.team, null);
+      } catch (e) {
+        loadError = e;
+        data = null;
+      }
     }
 
     let lastEvent = null;
     let nextEvent = null;
-    let allEvents = [];
-    try {
-      const schedResp = await STL.api.fetchWithFallback(baseUrl + '/schedule');
-      if (schedResp.ok) {
-        const schedData = await schedResp.json();
-        allEvents = schedData.events || [];
-        STL.api.writeEspnCache(team, null, allEvents);
-      }
-    } catch (e) {}
+    if (!pre) {
+      try {
+        const schedResp = await STL.api.fetchWithFallback(baseUrl + '/schedule');
+        if (schedResp.ok) {
+          const schedData = await schedResp.json();
+          allEvents = schedData.events || [];
+          STL.api.writeEspnCache(team, null, allEvents);
+        }
+      } catch (e) {}
+    }
 
     // Cache fallback (silent, 6h TTL): once a load has succeeded, later loads
     // paint the same cards even when live fetches fail. Only a total absence
     // — true first visit on a dead network — still errors, and only when the
-    // card never rendered before (a failed refresh keeps last-good).
-    if (!data || !allEvents.length) {
+    // card never rendered before (a failed refresh keeps last-good). Skipped
+    // when painting from the prefetch bundle, which is authoritative for it.
+    if (!pre && (!data || !allEvents.length)) {
       const cached = STL.api.readEspnCache(team);
       if (!data && cached.team) data = { team: cached.team };
       if (!allEvents.length && cached.events) allEvents = cached.events;

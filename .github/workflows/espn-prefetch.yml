@@ -1,0 +1,31 @@
+name: espn-prefetch-data
+
+# Server-side prefetch of ESPN team + schedule payloads (the bare team
+# endpoint sends no CORS headers and public CORS proxies are flaky). The
+# dashboard paints instantly from Sports/data/espn-prefetch.json on first
+# load; live fetches revalidate behind it on the refresh cycle.
+# Staggered off the other refresh schedules.
+on:
+  schedule:
+    - cron: '38 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build ESPN prefetch JSON
+        run: python3 Sports/tools/build-espn.py
+      - name: Commit if changed
+        run: |
+          git config user.name "espn-bot"
+          git config user.email "espn-bot@users.noreply.github.com"
+          git add Sports/data/espn-prefetch.json
+          git diff --cached --quiet || (git commit -m "chore: refresh ESPN prefetch data" && git push)
