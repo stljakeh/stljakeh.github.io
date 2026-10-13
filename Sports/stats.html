@@ -266,8 +266,8 @@ function fetchTimeout(url, ms) {
   return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
 }
 
-// ESPN fetch with CORS-proxy fallback (same shape as STL.api.espnFetch on
-// the dashboard). ESPN's bare team endpoint (.../teams/{id}) currently sends
+// ESPN fetch with CORS-proxy fallback (same shape as STL.api.fetchWithFallback
+// on the dashboard). ESPN's bare team endpoint (.../teams/{id}) currently sends
 // no Access-Control-Allow-Origin, so a direct fetch fails there with a
 // TypeError. Direct is always tried first; only a network-level TypeError
 // falls through to the proxies, never HTTP statuses.

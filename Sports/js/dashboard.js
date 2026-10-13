@@ -37,37 +37,41 @@ STL.dashboard = {
     spinner.classList.remove('hidden');
     label.textContent = 'Updating';
 
-    window._mlsOverall = {};
-    window._mlsConfTeams = [];
-    await STL.api.enrichLiveScores();
-    await STL.api.fetchMlsStandings();
-    await Promise.all(teams.map(t => STL.api.fetchTeam(t)));
-    STL.dashboard.applyHideWhenIdle();
-    STL.dashboard.adjustRefreshInterval();
-    STL.dashboard.startCountdownTimer();
+    // try/finally: a single throwing fetch/render must never wedge the
+    // refresh button, spinner, or auto-refresh loop.
+    try {
+      window._mlsOverall = {};
+      window._mlsConfTeams = [];
+      await STL.api.enrichLiveScores();
+      await STL.api.fetchMlsStandings();
+      await Promise.all(teams.map(t => STL.api.fetchTeam(t)));
+      STL.dashboard.applyHideWhenIdle();
+      STL.dashboard.adjustRefreshInterval();
+      STL.dashboard.startCountdownTimer();
 
-    const grid = document.getElementById('cardGrid');
-    const cards = Array.from(grid.children);
-    const live = [], playoffs = [], active = [], offseason = [];
-    for (const card of cards) {
-      const badge = card.querySelector('.tstatus');
-      const cls = badge ? badge.className : '';
-      if (cls.includes('status-live')) live.push(card);
-      else if (cls.includes('status-playoffs')) playoffs.push(card);
-      else if (cls.includes('status-active')) active.push(card);
-      else offseason.push(card);
+      const grid = document.getElementById('cardGrid');
+      const cards = Array.from(grid.children);
+      const live = [], playoffs = [], active = [], offseason = [];
+      for (const card of cards) {
+        const badge = card.querySelector('.tstatus');
+        const cls = badge ? badge.className : '';
+        if (cls.includes('status-live')) live.push(card);
+        else if (cls.includes('status-playoffs')) playoffs.push(card);
+        else if (cls.includes('status-active')) active.push(card);
+        else offseason.push(card);
+      }
+      [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
+      STL.dashboard.updateHero();
+
+      const now = new Date();
+      const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('updateTime').textContent = 'last updated ' + ts;
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('hidden');
+      label.textContent = 'Refresh';
+      isRefreshing = false;
     }
-    [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
-    STL.dashboard.updateHero();
-
-    const now = new Date();
-    const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    document.getElementById('updateTime').textContent = 'last updated ' + ts;
-
-    btn.disabled = false;
-    spinner.classList.add('hidden');
-    label.textContent = 'Refresh';
-    isRefreshing = false;
   },
 
   adjustRefreshInterval: function() {
