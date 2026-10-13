@@ -15,7 +15,6 @@ STL.api = {
       d.setDate(d.getDate() + i);
       dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
     }
-    const datesParam = dates.join('-');
     await Promise.all([...sports].map(async function(key) {
       const sportTeams = teams.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
@@ -28,10 +27,22 @@ STL.api = {
         }
       }
       try {
-        const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + datesParam);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        for (const ev of (data.events || [])) {
+        // ESPN rejects multi-date scoreboard queries (dates=A-B-C now 400s),
+        // so fetch yesterday/today/tomorrow individually and merge. Same
+        // coverage as the old dash-joined single request.
+        const days = await Promise.all(dates.map(async function(day) {
+          const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return resp.json();
+        }));
+        const seen = {};
+        const events = [];
+        for (const data of days) {
+          for (const ev of (data.events || [])) {
+            if (ev && ev.id != null && !seen[ev.id]) { seen[ev.id] = true; events.push(ev); }
+          }
+        }
+        for (const ev of events) {
           const comps = ev.competitions?.[0]?.competitors;
           if (!comps) continue;
           const status = ev.competitions[0].status;
