@@ -45,23 +45,39 @@ STL.api = {
     });
   },
 
-  // ESPN fetch with CORS-proxy fallback. ESPN's bare team endpoint
-  // (.../teams/{id}) currently sends no Access-Control-Allow-Origin, so an
-  // in-browser direct fetch fails there with a TypeError (direct navigation
-  // still works). Direct is always tried first — schedule/summary/scoreboard
-  // send CORS * — and only a timeout or network-level TypeError falls through
-  // to the proxies, never HTTP statuses. Proxies race in parallel (first OK
-  // wins) with one retry round; every attempt is timed out so a hung proxy
-  // can't stall the refresh. Rethrows the original error when all fail.
+  // Rejects HTML error pages wearing HTTP 200 (proxies serve them, and on
+  // hostile networks middleboxes/bot walls do too). Resolves a reconstructed
+  // Response carrying the validated JSON text; HTTP statuses still throw.
+  ensureJson: async function(resp) {
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    let parsed = null;
+    try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+    if (parsed && typeof parsed === 'object') {
+      return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error('non-JSON body');
+  },
+
+  // Generic fetch with CORS-proxy fallback (used for ESPN, MLS and MLB Stats
+  // endpoints). ESPN's bare team endpoint (.../teams/{id}) currently sends no
+  // Access-Control-Allow-Origin, so an in-browser direct fetch fails there
+  // with a TypeError (direct navigation still works). Direct is always tried
+  // first — schedule/summary/scoreboard send CORS * — and only a timeout, a
+  // network-level TypeError, or a non-JSON body falls through to the proxies,
+  // never HTTP statuses. Proxies race in parallel (first valid JSON wins)
+  // with one retry round; every attempt is timed out so a hung proxy can't
+  // stall the refresh. Rethrows the original error when all fail.
   fetchWithFallback: async function(url, ms) {
     ms = ms || 10000;
     try {
-      return await STL.api.fetchWithTimeout(url, ms);
+      return await STL.api.ensureJson(await STL.api.fetchWithTimeout(url, ms));
     } catch (e) {
       const isAbort = e && e.name === 'AbortError';
       const isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
         (e && e.name === 'TypeError');
-      if (!isAbort && !isTypeError) throw e;
+      const isBadBody = e && e.message === 'non-JSON body';
+      if (!isAbort && !isTypeError && !isBadBody) throw e;
       const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
       const urls = proxies.map(function(p) { return p + encodeURIComponent(url); });
       // Two rounds of parallel race: a slow/flaky proxy no longer blocks the

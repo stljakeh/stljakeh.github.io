@@ -278,7 +278,21 @@ var ESPN_PROXIES = [
 function espnSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 async function espnFetch(url, ms) {
   try {
-    return await fetchTimeout(url, ms);
+    var direct = await fetchTimeout(url, ms);
+    if (!direct.ok) return direct;
+    // HTML error pages wearing HTTP 200 (proxies, middleboxes, bot walls) —
+    // only real JSON is accepted direct; anything else takes the proxy path.
+    var dtext = null, dparsed = null;
+    try {
+      dtext = await direct.text();
+      dparsed = JSON.parse(dtext);
+    } catch (e0) { dparsed = null; }
+    if (dparsed && typeof dparsed === 'object') {
+      return new Response(dtext, { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    var badBody = new Error('non-JSON body');
+    badBody.name = 'TypeError';
+    throw badBody;
   } catch (e) {
     var isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
       (e && e.name === 'TypeError');
