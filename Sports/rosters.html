@@ -148,12 +148,17 @@ function fmtWeight(w) {
   return String(n % 1 === 0 ? n : n.toFixed(1));
 }
 
+// Players whose names are blanked on this page (matched case-insensitively).
+// The row itself still renders — jersey, position, and measurements intact.
+var HIDDEN_PLAYERS = ['dillon dube'];
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function rosterRow(player, jersey, pos, ht, wt, extra, showAge) {
   var name = player.displayName || player.full_name || '';
+  if (HIDDEN_PLAYERS.indexOf(String(name).toLowerCase()) !== -1) name = '';
   return '<tr>' +
     '<td class="num"><span class="muted">' + (jersey ? esc(jersey) : '&mdash;') + '</span></td>' +
     '<td><span class="player-name">' + esc(name) + '</span></td>' +
