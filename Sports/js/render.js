@@ -639,7 +639,7 @@ STL.render = {
      record + prospects fill in when STL.api.fetchAffiliates resolves. */
 
   renderAffShell: function(team) {
-    const key = team.cardClass === 'cardinals' ? 'cardinals' : team.cardClass === 'blues' ? 'blues' : null;
+    const key = STL.utils.affKey(team.cardClass);
     const container = document.getElementById('affContainer-' + team.cardClass);
     const panel = document.getElementById('affPanel-' + team.cardClass);
     const label = document.getElementById('affLabel-' + team.cardClass);
@@ -669,7 +669,9 @@ STL.render = {
           sub = '<span style="color:var(--card-mute);">live data unavailable</span>';
         } else {
           let rec;
-          if (r.pct !== undefined && r.otl === undefined) {
+          if (r.ties != null && r.points != null && r.otl == null && r.pct === undefined) {
+            rec = (r.wins || 0) + '-' + (r.losses || 0) + '-' + (r.ties || 0) + ' (' + (r.points || 0) + ' pts)';
+          } else if (r.pct !== undefined && r.otl === undefined) {
             rec = (r.wins || 0) + '-' + (r.losses || 0) + (r.pct ? ' (' + r.pct + ')' : '');
           } else {
             rec = (r.wins || 0) + '-' + (r.losses || 0) + '-' + (r.otl || 0) +
@@ -682,8 +684,15 @@ STL.render = {
           if (cached.standing) {
             rec += '<br><span style="color:var(--card-mute);font-weight:400;">' + cached.standing + '</span>';
           }
+          if (cached.goals && cached.goals.gf != null && cached.goals.ga != null) {
+            const gd = cached.goals.gf - cached.goals.ga;
+            rec += '<br><span style="color:var(--card-mute);font-weight:400;">' +
+              cached.goals.gf + ' GF &middot; ' + cached.goals.ga + ' GA (' + (gd > 0 ? '+' + gd : String(gd)) + ' GD)</span>';
+          }
           sub = '<span class="aff-rec">' + rec + '</span>';
         }
+      } else if (cached.note) {
+        sub = '<span style="color:var(--card-mute);">' + cached.note + '</span>';
       } else if (cached.seasonStart) {
         sub = '<span style="color:var(--card-mute);">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
       }
@@ -723,7 +732,7 @@ STL.render = {
   },
 
   refreshAffPanel: function(cardClass) {
-    const key = cardClass === 'cardinals' ? 'cardinals' : cardClass === 'blues' ? 'blues' : null;
+    const key = STL.utils.affKey(cardClass);
     if (!key) return;
     const panel = document.getElementById('affPanel-' + cardClass);
     if (!panel || !panel.classList.contains('open')) {
@@ -738,8 +747,7 @@ STL.render = {
     const team = STL.dashboard.teamList().find(t => t.cardClass === cardClass) ||
       STL.config.TEAMS.find(t => t.cardClass === cardClass);
     if (!team) return;
-    const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
+    const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[STL.utils.affKey(cardClass)]) || [];
     panel.innerHTML = list.map(a => STL.render.affRowHtml(cardClass, a)).join('');
   },
-
 };

@@ -99,6 +99,13 @@ STL.config = {
   // AHL/ECHL live data: HockeyTech LeagueStat, prefetched server-side to
   // Sports/data/blues-affiliates.json (see STL.api.fetchAffPrefetch) with a
   // CORS-proxy live fallback (see STL.api.HT).
+  // CITY2 live data: MLS official stats API (stats-api.mlssoccer.com,
+  // CORS *, same feed family as the MLS standings override — see
+  // STL.api.fetchMlsnpAffiliate). Academy records are prefetched server-side
+  // from FootyAccess (see STL.api.fetchAcademyAffiliate); lastGame/nextGame
+  // have no feed, so they stay manual `manual` blocks updated by hand.
+  // (format mirrors the live affiliate cache: record {wins,losses,ties},
+  // lastGame/nextGame strings).
   AFFILIATES: {
     cardinals: [
       { name: 'Memphis Redbirds', level: 'AAA', id: 235, leagueId: 117, sportId: 11, site: 'https://www.milb.com/memphis' },
@@ -110,6 +117,13 @@ STL.config = {
     blues: [
       { name: 'Springfield Thunderbirds', level: 'AHL', league: 'ahl', site: 'https://www.springfieldthunderbirds.com' },
       { name: 'Worcester Railers', level: 'ECHL', league: 'echl', site: 'https://railershc.com' },
+    ],
+    'city-sc': [
+      { name: 'CITY2', level: 'MLSNP', mlsnp: true, site: 'https://www.stlcitysc.com' },
+      { name: 'CITY U14', level: 'MLS NEXT', academy: 'U14', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC', note: 'Awaiting first update', manual: null },
+      { name: 'CITY U16', level: 'MLS NEXT', academy: 'U16', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC', note: 'Awaiting first update', manual: null },
+      { name: 'CITY U17', level: 'MLS NEXT', academy: 'U17', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC', note: 'Awaiting first update', manual: null },
+      { name: 'CITY U19', level: 'MLS NEXT', academy: 'U19', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC', note: 'Awaiting first update', manual: null },
     ]
   },
 

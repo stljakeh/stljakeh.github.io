@@ -7,6 +7,12 @@ STL.utils = {
     return s[(v - 20) % 10] || s[v] || s[0];
   },
 
+  // Maps a card class to its AFFILIATES config key (null = no affiliates).
+  affKey: function(cardClass) {
+    if (cardClass === 'cardinals' || cardClass === 'blues' || cardClass === 'city-sc') return cardClass;
+    return null;
+  },
+
   // Invalid/missing input yields '' (never the literal "Invalid Date"),
   // so bad dates simply don't show up instead of rendering as errors.
   formatDateStr: function(dateStr, showYear) {

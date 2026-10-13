@@ -983,13 +983,19 @@ STL.api = {
     if (STL.api._affFetching[cardClass]) return;
     STL.api._affFetching[cardClass] = true;
     try {
-      const key = cardClass === 'cardinals' ? 'cardinals' : cardClass === 'blues' ? 'blues' : null;
+      const key = STL.utils.affKey(cardClass);
       if (!key) return;
       const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
       if (key === 'cardinals') {
         await Promise.all(list.map(a => STL.api.fetchMilbAffiliate(cardClass, a)));
-      } else {
+      } else if (key === 'blues') {
         await Promise.all(list.map(a => STL.api.fetchHockeyAffiliate(cardClass, a)));
+      } else if (key === 'city-sc') {
+        await Promise.all(list.map(function(a) {
+          if (a.academy) return STL.api.fetchAcademyAffiliate(cardClass, a);
+          if (a.mlsnp) return STL.api.fetchMlsnpAffiliate(cardClass, a);
+          return Promise.resolve();
+        }));
       }
       STL.render.refreshAffPanel(cardClass);
     } finally {
@@ -1564,6 +1570,129 @@ STL.api = {
       }
     } catch (e) {}
     return out;
+  },
+
+  // CITY academy records, prefetched server-side (see Sports/tools/build-academy.py
+  // + .github/workflows/academy.yml — footyaccess.com sends no CORS headers).
+  // Same-origin JSON, memory-cached per page load (all four rows share one
+  // fetch). Manual `manual` blocks still seed lastGame/nextGame, for which no
+  // feed exists; `note` shows only while a row has no record.
+  _academy: null,
+
+  fetchAcademyData: async function() {
+    const now = Date.now();
+    if (STL.api._academy && now - STL.api._academy.at < 6 * 3600000) {
+      return STL.api._academy.data;
+    }
+    const resp = await fetch('data/city-academy.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    STL.api._academy = { at: now, data: data };
+    return data;
+  },
+
+  fetchAcademyAffiliate: async function(cardClass, aff) {
+    const man = aff.manual || {};
+    const seeded = {
+      record: man.record || null,
+      lastGame: man.lastGame || null,
+      nextGame: man.nextGame || null,
+      standing: man.standing || null,
+      note: aff.note || null
+    };
+    try {
+      const data = await STL.api.fetchAcademyData();
+      const t = data && data.teams && aff.academy && data.teams[aff.academy];
+      if (t && t.record && ((t.record.wins || 0) + (t.record.losses || 0) + (t.record.ties || 0) > 0)) {
+        seeded.record = t.record;
+        seeded.note = null;
+      }
+      if (t && t.goalsFor != null && t.goalsAgainst != null) {
+        seeded.goals = { gf: t.goalsFor, ga: t.goalsAgainst };
+      }
+    } catch (e) {}
+    STL.api._affCache[aff.name] = seeded;
+  },
+
+  // St. Louis CITY2 via the MLS official stats API (CORS *, same feed family
+  // as the MLS standings override). Regular season (MLS-COM-000003) feeds the
+  // record; playoffs (MLS-COM-000004) count for last/next so a postseason run
+  // shows. Record stays regular-season only (BattleHawks precedent). Shares
+  // MLS_SEASON_ID with the first team. No prospects (unavailable).
+  fetchMlsnpAffiliate: async function(cardClass, aff) {
+    const cacheKey = 'mlsnp_aff_' + aff.name;
+    const ttlMs = 6 * 3600000;
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if (cached && Date.now() < cached.expiry && cached.data) {
+        STL.api._affCache[aff.name] = cached.data;
+        return;
+      }
+    } catch (e) {}
+    try {
+      const year = new Date().getFullYear();
+      const fetchComp = async function(comp) {
+        const url = 'https://stats-api.mlssoccer.com/matches/seasons/' + STL.config.MLS_SEASON_ID +
+          '?competition_id=' + comp +
+          '&match_date%5Bgte%5D=' + year + '-01-01&match_date%5Blte%5D=' + year + '-12-31' +
+          '&per_page=1000&sort=planned_kickoff_time%3Aasc';
+        const resp = await STL.api.fetchWithFallback(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        return (data && data.schedule) || [];
+      };
+      const reg = await fetchComp('MLS-COM-000003');
+      const po = await fetchComp('MLS-COM-000004');
+      const isFinal = function(m) { return m.match_status === 'finalWhistle'; };
+      const involves = function(m) {
+        return String(m.home_team_three_letter_code) === 'STL' || String(m.away_team_three_letter_code) === 'STL';
+      };
+      const byDate = function(a, b) { return String(a.planned_kickoff_time).localeCompare(String(b.planned_kickoff_time)); };
+      let wins = 0, losses = 0, ties = 0, points = 0;
+      for (const m of reg) {
+        if (!isFinal(m) || !involves(m)) continue;
+        if (m.home_team_goals == null || m.away_team_goals == null) continue;
+        const ours = m.home_team_three_letter_code === 'STL' ? m.home_team_goals : m.away_team_goals;
+        const opps = m.home_team_three_letter_code === 'STL' ? m.away_team_goals : m.home_team_goals;
+        if (ours > opps) { wins++; points += 3; }
+        else if (ours < opps) { losses++; }
+        else { ties++; points += 1; }
+      }
+      const fmtSide = function(m) {
+        const home = m.home_team_three_letter_code === 'STL';
+        return {
+          home: home,
+          opp: home ? m.away_team_three_letter_code : m.home_team_three_letter_code,
+          ours: home ? m.home_team_goals : m.away_team_goals,
+          opps: home ? m.away_team_goals : m.home_team_goals
+        };
+      };
+      const fmtDate = function(m) { return STL.render.fmtSeasonStart(String(m.planned_kickoff_time).slice(0, 10)); };
+      let lastGame = null;
+      const finals = reg.concat(po).filter(function(m) { return involves(m) && isFinal(m); }).sort(byDate);
+      if (finals.length) {
+        const m = finals[finals.length - 1];
+        const s = fmtSide(m);
+        const res = s.ours > s.opps ? 'W' : s.ours < s.opps ? 'L' : 'D';
+        lastGame = res + ' ' + s.ours + '-' + s.opps + ' ' + (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + fmtDate(m);
+      }
+      let nextGame = null;
+      const upcoming = reg.concat(po).filter(function(m) { return involves(m) && !isFinal(m); }).sort(byDate);
+      if (upcoming.length) {
+        const m = upcoming[0];
+        const s = fmtSide(m);
+        nextGame = (s.home ? 'vs' : '@') + ' ' + s.opp + ' · ' + fmtDate(m);
+        const tm = STL.utils.formatTimeStr(m.planned_kickoff_time);
+        if (tm) nextGame += ' · ' + tm;
+      }
+      const data = { record: { wins: wins, losses: losses, ties: ties, points: points }, lastGame: lastGame, nextGame: nextGame };
+      STL.api._affCache[aff.name] = data;
+      try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
+    } catch (e) {
+      if (!STL.api._affCache[aff.name]) {
+        STL.api._affCache[aff.name] = { error: String(e.message || e) };
+      }
+    }
   },
 
   /* Asia baseball: NPB via the free npb-result worker API; KBO via a live
