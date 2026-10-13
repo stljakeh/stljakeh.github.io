@@ -59,15 +59,44 @@ STL.api = {
     throw new Error('non-JSON body');
   },
 
+  // Bounded-parallel map: caps proxy burst size so cors.lol doesn't 429
+  // the whole refresh. Preserves input order. Limit ~4 keeps dashboard
+  // (4 teams) at full speed while others.html (9 teams) stays under limits.
+  mapLimit: async function(list, limit, fn) {
+    limit = limit || 4;
+    const out = new Array(list.length);
+    let i = 0;
+    const workers = [];
+    const n = Math.min(limit, list.length);
+    for (let w = 0; w < n; w++) {
+      workers.push((async function() {
+        while (true) {
+          const idx = i++;
+          if (idx >= list.length) return;
+          out[idx] = await fn(list[idx], idx);
+        }
+      })());
+    }
+    await Promise.all(workers);
+    return out;
+  },
+
+  _jitterSleep: function(baseMs, spreadMs) {
+    const ms = (baseMs || 400) + Math.random() * (spreadMs == null ? 500 : spreadMs);
+    return STL.api._sleep(ms);
+  },
+
   // Generic fetch with CORS-proxy fallback (used for ESPN, MLS and MLB Stats
   // endpoints). ESPN's bare team endpoint (.../teams/{id}) currently sends no
   // Access-Control-Allow-Origin, so an in-browser direct fetch fails there
   // with a TypeError (direct navigation still works). Direct is always tried
-  // first — schedule/summary/scoreboard send CORS * — and only a timeout, a
-  // network-level TypeError, or a non-JSON body falls through to the proxies,
-  // never HTTP statuses. Proxies race in parallel (first valid JSON wins)
-  // with one retry round; every attempt is timed out so a hung proxy can't
-  // stall the refresh. Rethrows the original error when all fail.
+  // first — schedule/summary/scoreboard send CORS * — and a timeout, a
+  // network-level TypeError, a non-JSON body, or an HTTP 429/5xx falls through
+  // to the proxies (other HTTP statuses like 404 still throw — retrying a bad
+  // id through a proxy can't help). Proxies race in parallel (first valid JSON
+  // wins) with one retry round separated by jitter; every attempt is timed out
+  // so a hung proxy can't stall the refresh. Rethrows the original error when
+  // all fail.
   fetchWithFallback: async function(url, ms) {
     ms = ms || 10000;
     try {
@@ -77,13 +106,22 @@ STL.api = {
       const isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
         (e && e.name === 'TypeError');
       const isBadBody = e && e.message === 'non-JSON body';
-      if (!isAbort && !isTypeError && !isBadBody) throw e;
+      let isRetryableStatus = false;
+      if (e && typeof e.message === 'string') {
+        const m = e.message.match(/^HTTP (\d+)/);
+        if (m) {
+          const st = parseInt(m[1], 10);
+          isRetryableStatus = (st === 429 || (st >= 500 && st <= 599));
+        }
+      }
+      if (!isAbort && !isTypeError && !isBadBody && !isRetryableStatus) throw e;
       const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
       const urls = proxies.map(function(p) { return p + encodeURIComponent(url); });
       // Two rounds of parallel race: a slow/flaky proxy no longer blocks the
-      // other, and 429/5xx responses get one more chance.
+      // other, and 429/5xx responses get one more chance (jittered so a
+      // burst of teams doesn't retry in lockstep and re-trigger limits).
       for (let round = 0; round < 2; round++) {
-        if (round > 0) await STL.api._sleep(1500);
+        if (round > 0) await STL.api._jitterSleep(400, 500);
         try {
           return await STL.api.raceUrls(urls, ms);
         } catch (e2) {}
@@ -103,7 +141,9 @@ STL.api = {
       d.setDate(d.getDate() + i);
       dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
     }
-    await Promise.all([...sports].map(async function(key) {
+    // Throttled (limit 4): an unbounded burst across sports x dates is what
+    // trips the proxy rate limits and makes random cards fail per refresh.
+    await STL.api.mapLimit([...sports], 4, async function(key) {
       const sportTeams = teams.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
       for (const t of sportTeams) {
@@ -117,12 +157,14 @@ STL.api = {
       try {
         // ESPN rejects multi-date scoreboard queries (dates=A-B-C now 400s),
         // so fetch yesterday/today/tomorrow individually and merge. Same
-        // coverage as the old dash-joined single request.
-        const days = await Promise.all(dates.map(async function(day) {
+        // coverage as the old dash-joined single request. Sequential per
+        // sport (not parallel) to stay under proxy burst limits.
+        const days = [];
+        for (const day of dates) {
           const resp = await STL.api.fetchWithFallback('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day);
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
-          return resp.json();
-        }));
+          days.push(await resp.json());
+        }
         const seen = {};
         const events = [];
         for (const data of days) {
@@ -163,7 +205,7 @@ STL.api = {
           }
         }
       }
-    }));
+    });
   },
 
   fetchMlsStandings: async function() {
@@ -801,7 +843,10 @@ STL.api = {
     if (STL.api._espnPrefetchLoading) return STL.api._espnPrefetchLoading;
     STL.api._espnPrefetchLoading = (async function() {
       try {
-        const resp = await fetch('data/espn-prefetch.json');
+        // no-store: Pages CDN + browser HTTP cache can otherwise serve a
+        // >6h-old bundle that consumePrefetch then rejects, dropping us to
+        // the flaky live path for no reason.
+        const resp = await fetch('data/espn-prefetch.json', { cache: 'no-store' });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         STL.api._espnPrefetch = { at: Date.now(), data: data };
@@ -815,7 +860,9 @@ STL.api = {
 
   consumePrefetch: async function(team) {
     // Fresh (<=6h) bundle entry for this team, or null. Consumed on read so
-    // later refreshes revalidate live.
+    // later refreshes revalidate live. The consumed entry is written through
+    // to the ESPN localStorage cache by fetchTeam, so a later live failure
+    // still paints the same card (see the cache fallback below).
     try {
       const b = await STL.api.prefetchBundle();
       if (!b || !b.generated_at || !b.teams) return null;
@@ -827,25 +874,48 @@ STL.api = {
     } catch (e) { return null; }
   },
 
+  peekStalePrefetch: async function(team) {
+    // Last-resort fallback: a stale (>6h) bundle entry, used only when live
+    // AND the localStorage cache both miss. Better a slightly old paint than
+    // a random "Failed to load".
+    try {
+      const b = await STL.api.prefetchBundle();
+      if (!b || !b.teams) return null;
+      const entry = b.teams[team.cardClass];
+      if (!entry || !entry.team) return null;
+      return entry;
+    } catch (e) { return null; }
+  },
+
   fetchTeam: async function(team) {
     if (team.manual) {
       STL.render.renderManual(team);
+      team._lastFetchOk = true;
       return;
     }
     if (team.kbo) {
-      return STL.api.fetchKboLive(team);
+      await STL.api.fetchKboLive(team);
+      team._lastFetchOk = true;
+      return;
     }
     if (team.npbName) {
-      return STL.api.fetchAsiaBaseball(team);
+      await STL.api.fetchAsiaBaseball(team);
+      team._lastFetchOk = true;
+      return;
     }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
     // First paint prefers the server-prefetched bundle (instant, identical
     // everywhere); later refreshes go live. Bundle entries are consumed on
-    // read, so each team paints from it at most once per page load.
+    // read, so each team paints from it at most once per page load. The
+    // consumed entry is written through to the ESPN cache so refresh #2+
+    // survives live proxy failures instead of erroring at random.
     const pre = await STL.api.consumePrefetch(team);
     let data = pre ? { team: pre.team } : null;
     let allEvents = pre ? (pre.events || []) : [];
     let loadError = null;
+    if (pre) {
+      STL.api.writeEspnCache(team, pre.team, pre.events || []);
+    }
     if (!pre) {
       try {
         const resp = await STL.api.fetchWithFallback(baseUrl);
@@ -874,14 +944,23 @@ STL.api = {
     // Cache fallback (silent, 6h TTL): once a load has succeeded, later loads
     // paint the same cards even when live fetches fail. Only a total absence
     // — true first visit on a dead network — still errors, and only when the
-    // card never rendered before (a failed refresh keeps last-good). Skipped
-    // when painting from the prefetch bundle, which is authoritative for it.
-    if (!pre && (!data || !allEvents.length)) {
+    // card never rendered before (a failed refresh keeps last-good). Stale
+    // prefetch is the last resort before giving up, so a missed workflow run
+    // or a cold cache still paints instead of flashing "Failed to load".
+    if (!data || !allEvents.length) {
       const cached = STL.api.readEspnCache(team);
       if (!data && cached.team) data = { team: cached.team };
       if (!allEvents.length && cached.events) allEvents = cached.events;
     }
+    if ((!data || !allEvents.length) && !team._renderedOnce) {
+      const stale = await STL.api.peekStalePrefetch(team);
+      if (stale) {
+        if (!data) data = { team: stale.team };
+        if (!allEvents.length) allEvents = stale.events || [];
+      }
+    }
     if (!data) {
+      team._lastFetchOk = false;
       if (!team._renderedOnce) STL.render.renderError(team, 'Failed to load: ' + (loadError ? loadError.message : 'network error'));
       return;
     }
@@ -970,6 +1049,7 @@ STL.api = {
     }
     await Promise.all(renders);
     team._renderedOnce = true;
+    team._lastFetchOk = true;
   },
 
   /* Farm-system affiliates. Lazy-loaded on dropdown open (see STL.toggle.aff).

@@ -44,24 +44,36 @@ STL.dashboard = {
       window._mlsConfTeams = [];
       await STL.api.enrichLiveScores();
       await STL.api.fetchMlsStandings();
-      await Promise.all(teams.map(t => STL.api.fetchTeam(t)));
+      // Throttled (limit 4): unbounded Promise.all bursts all teams at once,
+      // which is what trips the proxy rate limits and makes random cards fail.
+      await STL.api.mapLimit(teams, 4, function(t) { return STL.api.fetchTeam(t); });
       STL.dashboard.applyHideWhenIdle();
       STL.dashboard.adjustRefreshInterval();
       STL.dashboard.startCountdownTimer();
 
-      const grid = document.getElementById('cardGrid');
-      const cards = Array.from(grid.children);
-      const live = [], playoffs = [], active = [], offseason = [];
-      for (const card of cards) {
-        const badge = card.querySelector('.tstatus');
-        const cls = badge ? badge.className : '';
-        if (cls.includes('status-live')) live.push(card);
-        else if (cls.includes('status-playoffs')) playoffs.push(card);
-        else if (cls.includes('status-active')) active.push(card);
-        else offseason.push(card);
+      // Freeze on partial failure: if any team failed this cycle (and this
+      // isn't the very first paint), a re-sort + hero recompute would shuffle
+      // cards and flicker the headline on half-populated _upcomingEvent data.
+      // Failed cards already keep their last-good DOM (fetchTeam only errors
+      // when never rendered), so skip both and just update the timestamp.
+      const failures = teams.filter(function(t) { return t._lastFetchOk === false; }).length;
+      const firstPaint = !STL.dashboard._paintedOnce;
+      if (failures === 0 || firstPaint) {
+        const grid = document.getElementById('cardGrid');
+        const cards = Array.from(grid.children);
+        const live = [], playoffs = [], active = [], offseason = [];
+        for (const card of cards) {
+          const badge = card.querySelector('.tstatus');
+          const cls = badge ? badge.className : '';
+          if (cls.includes('status-live')) live.push(card);
+          else if (cls.includes('status-playoffs')) playoffs.push(card);
+          else if (cls.includes('status-active')) active.push(card);
+          else offseason.push(card);
+        }
+        [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
+        STL.dashboard.updateHero();
+        STL.dashboard._paintedOnce = true;
       }
-      [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
-      STL.dashboard.updateHero();
 
       const now = new Date();
       const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
