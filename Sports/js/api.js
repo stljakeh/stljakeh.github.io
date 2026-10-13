@@ -14,24 +14,33 @@ STL.api = {
     return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
   },
 
-  // First-OK-wins race across URLs. Resolves with the first Response with
-  // .ok; rejects with the last error seen when none succeed.
+  // First-valid-JSON-wins race across proxy URLs. Proxy error pages (e.g.
+  // allorigins "Access Denied") come back HTTP 200 with an HTML body, so a
+  // bare resp.ok check would hand garbage to every downstream resp.json().
+  // Only bodies that parse as JSON objects/arrays win, returned as a
+  // reconstructed Response; anything else counts as a failure.
   raceUrls: function(urls, ms) {
     return new Promise(function(resolve, reject) {
       let pending = urls.length;
       let lastErr = null;
       if (!pending) { reject(new Error('no urls')); return; }
+      const fail = function(e) {
+        lastErr = e;
+        if (--pending === 0) reject(lastErr);
+      };
       urls.forEach(function(u) {
         STL.api.fetchWithTimeout(u, ms).then(function(resp) {
-          if (resp.ok) resolve(resp);
-          else {
-            lastErr = new Error('HTTP ' + resp.status);
-            if (--pending === 0) reject(lastErr);
-          }
-        }, function(e) {
-          lastErr = e;
-          if (--pending === 0) reject(lastErr);
-        });
+          if (!resp.ok) { fail(new Error('HTTP ' + resp.status)); return; }
+          resp.text().then(function(text) {
+            let parsed = null;
+            try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+            if (parsed && typeof parsed === 'object') {
+              resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
+            } else {
+              fail(new Error('non-JSON body'));
+            }
+          }, fail);
+        }, fail);
       });
     });
   },

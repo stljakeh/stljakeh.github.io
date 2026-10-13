@@ -290,7 +290,20 @@ async function espnFetch(url, ms) {
         try {
           resp = await fetchTimeout(ESPN_PROXIES[i] + encodeURIComponent(url), ms);
         } catch (e2) { resp = null; }
-        if (resp && resp.ok) return resp;
+        if (resp && resp.ok) {
+          // Proxy error pages (e.g. allorigins "Access Denied") come back
+          // HTTP 200 with an HTML body — only real JSON is accepted.
+          var text = null, parsed = null;
+          try {
+            text = await resp.text();
+            parsed = JSON.parse(text);
+          } catch (e3) { parsed = null; }
+          if (parsed && typeof parsed === 'object') {
+            return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
+          // Garbage 200: retrying the same proxy won't turn HTML into JSON.
+          break;
+        }
         // Rate-limited (429) or transient 5xx -> retry same proxy;
         // anything else (or proxy unreachable) -> next proxy.
         var st = resp ? resp.status : 0;
