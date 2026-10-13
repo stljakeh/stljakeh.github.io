@@ -53,6 +53,7 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
   color: var(--card-mute); padding: 10px 10px 4px; border-bottom: none;
 }
 .player-name { font-weight: 600; }
+.roster-table tfoot td { font-weight: 700; border-top: 2px solid rgba(var(--ink-rgb),.15); }
 .muted { color: var(--card-mute); }
 .error-msg { text-align: center; color: var(--danger); padding: 40px; }
 .loading { text-align: center; color: var(--card-mute); padding: 40px; }
@@ -120,6 +121,7 @@ var TEAMS = [
   {
     id: 'siue', name: 'SIUE', color: '#C8102E',
     type: 'espn', sport: 'basketball', slug: 'mens-college-basketball', teamId: '2565',
+    showAge: false,
     posLabels: { G: 'Guards', F: 'Forwards', C: 'Centers',
                  'F/G': 'F/G', 'G/F': 'G/F', 'F/C': 'F/C', 'C/F': 'C/F' }
   }
@@ -151,6 +153,50 @@ function fmtWeight(w) {
 // Players whose names are blanked on this page (matched case-insensitively).
 // The row itself still renders — jersey, position, and measurements intact.
 var HIDDEN_PLAYERS = ['dillon dube'];
+
+// Manual fill-ins for players whose feeds lack measurements.
+// Key: 'teamId|lowercase name'. Only used when the feed value is missing;
+// feed values always win. { htIn: inches, wtLb: lbs, age: years }.
+var MANUAL_MEASUREMENTS = {
+  'citysc|tomas totland':      { wtLb: 163 },
+  'citysc|fallou fall':        { wtLb: 176 },
+  'citysc|tahir reid-brown':   { wtLb: 175 },
+  'citysc|brendan mcsorley':   { wtLb: 163 },
+  'citysc|zackory campagnolo': { wtLb: 174 },
+  'citysc|mykhi joyner':       { htIn: 70, wtLb: 150 },
+  'citysc|tyson pearce':       { htIn: 71, wtLb: 165 },
+  'citysc|zach zengue':        { wtLb: 161 },
+  'citysc|caden glover':       { wtLb: 176 }
+};
+
+// Players dropped from display entirely: row removed, excluded from the
+// player count and the averages. Key format matches MANUAL_MEASUREMENTS.
+var REMOVED_PLAYERS = ['citysc|riley lynch'];
+
+function playerKey(teamId, name) {
+  return teamId + '|' + String(name == null ? '' : name).toLowerCase();
+}
+
+function isRemoved(teamId, name) {
+  return REMOVED_PLAYERS.indexOf(playerKey(teamId, name)) !== -1;
+}
+
+function manualFor(teamId, name) {
+  return MANUAL_MEASUREMENTS[playerKey(teamId, name)] || null;
+}
+
+function numOrNull(v) {
+  if (v == null || v === '') return null;
+  var n = parseFloat(v);
+  return isFinite(n) ? n : null;
+}
+
+function fmtHtIn(inches) {
+  var n = numOrNull(inches);
+  if (n == null) return null;
+  var r = Math.round(n);
+  return Math.floor(r / 12) + "' " + (r % 12) + '"';
+}
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -189,7 +235,28 @@ function tableHtml(cols, groups) {
     });
     html += rows.join('');
   });
-  return html + '</tbody></table></div>';
+  html += '</tbody>';
+  var nHt = 0, sumHt = 0, nWt = 0, sumWt = 0, nAge = 0, sumAge = 0;
+  groups.forEach(function(g) {
+    g.items.forEach(function(item) {
+      var hi = numOrNull(item.htIn);
+      if (hi != null) { nHt++; sumHt += hi; }
+      var wl = numOrNull(item.wtLb);
+      if (wl != null) { nWt++; sumWt += wl; }
+      var ag = numOrNull(item.player && item.player.age);
+      if (ag != null) { nAge++; sumAge += ag; }
+    });
+  });
+  html += '<tfoot><tr class="avg-row">' +
+    '<td class="num"></td>' +
+    '<td><span class="player-name">Avg</span></td>' +
+    '<td></td>' +
+    '<td>' + (nHt ? fmtHtIn(sumHt / nHt) : '&mdash;') + '</td>' +
+    '<td>' + (nWt ? String(Math.round(sumWt / nWt)) + ' lbs' : '&mdash;') + '</td>' +
+    (cols.extra ? '<td></td>' : '') +
+    (cols.showAge !== false ? '<td class="num muted">' + (nAge ? (Math.round(sumAge / nAge * 10) / 10).toFixed(1) : '&mdash;') + '</td>' : '') +
+    '</tr></tfoot>';
+  return html + '</table></div>';
 }
 
 function renderRoster(team, groups) {
@@ -201,6 +268,24 @@ function renderRoster(team, groups) {
   return tableHtml(cols, groups);
 }
 
+function espnItem(team, p) {
+  var man = manualFor(team.id, p.displayName);
+  var htIn = numOrNull(p.height);
+  if (htIn == null && man && man.htIn != null) htIn = man.htIn;
+  var wtLb = numOrNull(p.weight);
+  if (wtLb == null && man && man.wtLb != null) wtLb = man.wtLb;
+  if (p.age == null && man && man.age != null) p.age = man.age;
+  return {
+    player: p,
+    jersey: p.jersey,
+    pos: p.position ? p.position.abbreviation : '',
+    ht: htIn != null ? fmtHtIn(htIn) : '&mdash;',
+    wt: wtLb != null ? String(Math.round(wtLb)) + ' lbs' : '&mdash;',
+    htIn: htIn,
+    wtLb: wtLb
+  };
+}
+
 function espnGroups(team, data) {
   var ath = data.athletes || [];
   if (!ath.length) return [];
@@ -208,15 +293,7 @@ function espnGroups(team, data) {
     return ath.map(function(g) {
       return {
         name: g.position,
-        items: g.items.map(function(p) {
-          return {
-            player: p,
-            jersey: p.jersey,
-            pos: p.position ? p.position.abbreviation : '',
-            ht: p.displayHeight || '&mdash;',
-            wt: p.displayWeight || '&mdash;'
-          };
-        })
+        items: g.items.map(function(p) { return espnItem(team, p); })
       };
     });
   }
@@ -226,13 +303,7 @@ function espnGroups(team, data) {
     var ab = p.position ? p.position.abbreviation : '';
     var key = ab || '?';
     if (!byPos[key]) byPos[key] = [];
-    byPos[key].push({
-      player: p,
-      jersey: p.jersey,
-      pos: ab,
-      ht: p.displayHeight || '&mdash;',
-      wt: p.displayWeight || '&mdash;'
-    });
+    byPos[key].push(espnItem(team, p));
   });
   return Object.keys(byPos).sort().map(function(ab) {
     return { name: labels[ab] || ab, items: byPos[ab] };
@@ -268,12 +339,19 @@ async function fetchUfl() {
     var pos = pr.position || p.position || '';
     var g = uflGroup(pos);
     if (!byGroup[g]) byGroup[g] = [];
+    var man = manualFor('battlehawks', p.full_name);
+    var htIn = numOrNull(p.height);
+    if (htIn == null && man && man.htIn != null) htIn = man.htIn;
+    var wtLb = numOrNull(p.weight);
+    if (wtLb == null && man && man.wtLb != null) wtLb = man.wtLb;
     byGroup[g].push({
       player: { displayName: p.full_name, age: null, photo: p.photo ? p.photo.src : null, headshot: null },
       jersey: pr.jersey_number || p.jersey_number,
       pos: pos,
-      ht: fmtHeightInches(p.height),
-      wt: fmtWeight(p.weight),
+      ht: htIn != null ? fmtHeightInches(htIn) : '&mdash;',
+      wt: wtLb != null ? fmtWeight(wtLb) : '&mdash;',
+      htIn: htIn,
+      wtLb: wtLb,
       college: p.college,
       hometown: p.birth_place
     });
@@ -293,6 +371,13 @@ async function loadRosters() {
     return Promise.resolve()
       .then(function() { return team.type === 'ufl' ? fetchUfl() : fetchEspn(team); })
       .then(function(groups) {
+        groups.forEach(function(g) {
+          g.items = g.items.filter(function(item) {
+            var nm = item.player && (item.player.displayName || item.player.full_name);
+            return !isRemoved(team.id, nm);
+          });
+        });
+        groups = groups.filter(function(g) { return g.items.length > 0; });
         if (!groups.length) throw new Error('empty roster');
         loaded++;
         var count = groups.reduce(function(n, g) { return n + g.items.length; }, 0);
