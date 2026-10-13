@@ -4,31 +4,64 @@ STL.api = {
 
   _liveScoreCache: {},
 
+  // Timeout wrapper: one hung endpoint (proxies occasionally hang instead
+  // of failing fast) must not stall the whole refresh.
+  fetchWithTimeout: function(url, ms) {
+    ms = ms || 10000;
+    if (typeof AbortController === 'undefined') return fetch(url);
+    const ctrl = new AbortController();
+    const t = setTimeout(function() { ctrl.abort(); }, ms);
+    return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
+  },
+
+  // First-OK-wins race across URLs. Resolves with the first Response with
+  // .ok; rejects with the last error seen when none succeed.
+  raceUrls: function(urls, ms) {
+    return new Promise(function(resolve, reject) {
+      let pending = urls.length;
+      let lastErr = null;
+      if (!pending) { reject(new Error('no urls')); return; }
+      urls.forEach(function(u) {
+        STL.api.fetchWithTimeout(u, ms).then(function(resp) {
+          if (resp.ok) resolve(resp);
+          else {
+            lastErr = new Error('HTTP ' + resp.status);
+            if (--pending === 0) reject(lastErr);
+          }
+        }, function(e) {
+          lastErr = e;
+          if (--pending === 0) reject(lastErr);
+        });
+      });
+    });
+  },
+
   // ESPN fetch with CORS-proxy fallback. ESPN's bare team endpoint
   // (.../teams/{id}) currently sends no Access-Control-Allow-Origin, so an
   // in-browser direct fetch fails there with a TypeError (direct navigation
   // still works). Direct is always tried first — schedule/summary/scoreboard
-  // send CORS * — and only a network-level TypeError falls through to the
-  // proxy chain, never HTTP statuses. Returns the first OK response, else
-  // rethrows the original error.
-  espnFetch: async function(url) {
+  // send CORS * — and only a timeout or network-level TypeError falls through
+  // to the proxies, never HTTP statuses. Proxies race in parallel (first OK
+  // wins) with one retry round; every attempt is timed out so a hung proxy
+  // can't stall the refresh. Rethrows the original error when all fail.
+  espnFetch: async function(url, ms) {
+    ms = ms || 10000;
     try {
-      return await fetch(url);
+      return await STL.api.fetchWithTimeout(url, ms);
     } catch (e) {
-      if (!(e instanceof TypeError)) throw e;
+      const isAbort = e && e.name === 'AbortError';
+      const isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
+        (e && e.name === 'TypeError');
+      if (!isAbort && !isTypeError) throw e;
       const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
-      for (const p of proxies) {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          if (attempt > 0) await STL.api._sleep(1500 * attempt);
-          let resp = null;
-          try {
-            resp = await fetch(p + encodeURIComponent(url));
-          } catch (e2) { break; } // proxy unreachable -> next proxy
-          if (resp.ok) return resp;
-          // Rate-limited (429) or transient 5xx -> retry same proxy;
-          // anything else is permanent -> next proxy.
-          if (resp.status !== 429 && !(resp.status >= 500 && resp.status <= 599)) break;
-        }
+      const urls = proxies.map(function(p) { return p + encodeURIComponent(url); });
+      // Two rounds of parallel race: a slow/flaky proxy no longer blocks the
+      // other, and 429/5xx responses get one more chance.
+      for (let round = 0; round < 2; round++) {
+        if (round > 0) await STL.api._sleep(1500);
+        try {
+          return await STL.api.raceUrls(urls, ms);
+        } catch (e2) {}
       }
       throw e;
     }
@@ -517,6 +550,26 @@ STL.api = {
   },
 
   findNextGameFromScoreboard: async function(team, startDate) {
+    // Memoized per team (6h TTL): an offseason team would otherwise run up to
+    // 14 sequential fetches on every refresh. A found future event is reused
+    // while still upcoming; a miss is reused for the TTL.
+    var memoKey = 'stl_nextgame_' + team.sport + '_' + team.leagueSlug + '_' + team.id;
+    var nowMs = Date.now();
+    try {
+      var memo = JSON.parse(localStorage.getItem(memoKey));
+      if (memo && nowMs < memo.expiry) {
+        if (memo.event && new Date(memo.event.date).getTime() > nowMs) return memo.event;
+        if (!memo.event) return null;
+      }
+    } catch (e) {}
+    var found = await STL.api.scanNextGameFromScoreboard(team, startDate);
+    try {
+      localStorage.setItem(memoKey, JSON.stringify({ event: found, expiry: nowMs + 6 * 3600000 }));
+    } catch (e) {}
+    return found;
+  },
+
+  scanNextGameFromScoreboard: async function(team, startDate) {
     var d = new Date(startDate || Date.now());
     for (var i = 1; i <= 14; i++) {
       var check = new Date(d);
