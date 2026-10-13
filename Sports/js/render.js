@@ -568,6 +568,21 @@ STL.render = {
     let rec = w + '-' + l + '-' + t;
     if (st.pct) rec += ' (' + st.pct + ')';
     document.getElementById('record-' + team.cardClass).textContent = rec;
+    // Collapsed card header: show the record (and standing) like renderTeam
+    // does — otherwise the header stays "—" with an empty sub-line.
+    const headSub = document.getElementById('headSub-' + team.cardClass);
+    if (headSub) headSub.textContent = rec;
+    const headNext = document.getElementById('headNext-' + team.cardClass);
+    if (headNext) {
+      let hn = '';
+      if (st.rank != null) {
+        hn = st.rank + STL.utils.suffix(parseInt(st.rank)) + ' in ' + (st.leagueName || team.league);
+        if (st.gb != null && String(st.gb) !== '-' && String(st.gb) !== '0' && String(st.gb) !== '0.0') {
+          hn += ' · ' + st.gb + ' GB';
+        }
+      }
+      headNext.textContent = hn;
+    }
     const standingRow = document.getElementById('standingRow-' + team.cardClass);
     const standingEl = document.getElementById('standing-' + team.cardClass);
     if (st.rank != null) {
@@ -592,7 +607,18 @@ STL.render = {
       streakRow.style.display = 'none';
     }
     const lg = document.getElementById('lastGame-' + team.cardClass);
-    if (lg && lg.parentElement) lg.parentElement.style.display = 'none';
+    if (lg && lg.parentElement) {
+      // Last Game row stays hidden unless a source provides one (currently
+      // the NPB prefetch; KBO has none, so its row behaves as before).
+      if (st.lastGame && st.lastGame.text) {
+        lg.parentElement.style.display = '';
+        let html = '<span class="stat-value ' + (st.lastGame.cls || '') + '">' + st.lastGame.text + '</span>';
+        if (st.lastGame.box) html += ' <a href="' + st.lastGame.box + '" target="_blank" rel="noopener">box</a>';
+        lg.innerHTML = html;
+      } else {
+        lg.parentElement.style.display = 'none';
+      }
+    }
     const ng = document.getElementById('nextGame-' + team.cardClass);
     if (ng) ng.innerHTML = '';
     const linksEl = document.getElementById('links-' + team.cardClass);

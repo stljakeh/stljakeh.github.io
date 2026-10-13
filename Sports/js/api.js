@@ -1465,6 +1465,23 @@ STL.api = {
     }
   },
 
+  // Rakuten last game, prefetched server-side (see Sports/tools/build-npb.py
+  // + .github/workflows/npb.yml — npb.jp sends no CORS headers). Same-origin
+  // JSON, memory-cached per page load like the affiliate prefetch.
+  _npbLast: null,
+
+  fetchNpbLastGame: async function() {
+    const now = Date.now();
+    if (STL.api._npbLast && now - STL.api._npbLast.at < 6 * 3600000) {
+      return STL.api._npbLast.data;
+    }
+    const resp = await fetch('data/npb-lastgame.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    STL.api._npbLast = { at: now, data: data };
+    return data;
+  },
+
   fetchNpb: async function(team) {
     const cacheKey = 'npb_pl_standings';
     const ttlMs = 6 * 3600000;
@@ -1481,12 +1498,34 @@ STL.api = {
     }
     const us = (rows || []).find(r => r.name === team.npbName);
     if (!us) throw new Error('team not found');
-    STL.render.renderAsiaCard(team, {
+    const st = {
       wins: us.win, losses: us.lose, ties: us.draw,
       pct: us.pct != null ? String(us.pct).replace(/^0/, '') : '',
       rank: us.rank, leagueName: 'Pacific League',
       gb: us.gamesBehind, remaining: us.remainingGames
-    });
+    };
+    try {
+      const lg = await STL.api.fetchNpbLastGame();
+      if (lg && lg.lastGame && lg.lastGame.text) st.lastGame = lg.lastGame;
+    } catch (e) {}
+    STL.render.renderAsiaCard(team, st);
+  },
+
+  // NC Dinos last game, prefetched server-side (see Sports/tools/build-kbo.py
+  // + .github/workflows/kbo.yml — ncdinos.com sends no CORS headers and the
+  // month API needs a JSON POST). Same-origin JSON, memory-cached per load.
+  _kboLast: null,
+
+  fetchKboLastGame: async function() {
+    const now = Date.now();
+    if (STL.api._kboLast && now - STL.api._kboLast.at < 6 * 3600000) {
+      return STL.api._kboLast.data;
+    }
+    const resp = await fetch('data/kbo-lastgame.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    STL.api._kboLast = { at: now, data: data };
+    return data;
   },
 
   fetchKboLive: async function(team) {
@@ -1526,13 +1565,18 @@ STL.api = {
         return c ? c.textContent.trim() : null;
       };
       const games = parseInt(val('GAMES')) || 0;
-      STL.render.renderAsiaCard(team, {
+      const st = {
         wins: parseInt(val('W')), losses: parseInt(val('L')), ties: parseInt(val('D')) || 0,
         pct: val('PCT') ? String(val('PCT')).replace(/^0/, '') : '',
         rank: parseInt(val('RK')), leagueName: 'KBO League',
         gb: val('GB'), streak: val('STREAK'),
         remaining: games ? 144 - games : null
-      });
+      };
+      try {
+        const lg = await STL.api.fetchKboLastGame();
+        if (lg && lg.lastGame && lg.lastGame.text) st.lastGame = lg.lastGame;
+      } catch (e) {}
+      STL.render.renderAsiaCard(team, st);
     } catch (e) {
       fallback();
     }
