@@ -266,6 +266,41 @@ function fetchTimeout(url, ms) {
   return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
 }
 
+// ESPN fetch with CORS-proxy fallback (same shape as STL.api.espnFetch on
+// the dashboard). ESPN's bare team endpoint (.../teams/{id}) currently sends
+// no Access-Control-Allow-Origin, so a direct fetch fails there with a
+// TypeError. Direct is always tried first; only a network-level TypeError
+// falls through to the proxies, never HTTP statuses.
+var ESPN_PROXIES = [
+  'https://api.cors.lol/?url=',
+  'https://api.allorigins.win/raw?url='
+];
+function espnSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+async function espnFetch(url, ms) {
+  try {
+    return await fetchTimeout(url, ms);
+  } catch (e) {
+    var isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
+      (e && e.name === 'TypeError');
+    if (!isTypeError) throw e;
+    for (var i = 0; i < ESPN_PROXIES.length; i++) {
+      for (var attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await espnSleep(1500 * attempt);
+        var resp = null;
+        try {
+          resp = await fetchTimeout(ESPN_PROXIES[i] + encodeURIComponent(url), ms);
+        } catch (e2) { resp = null; }
+        if (resp && resp.ok) return resp;
+        // Rate-limited (429) or transient 5xx -> retry same proxy;
+        // anything else (or proxy unreachable) -> next proxy.
+        var st = resp ? resp.status : 0;
+        if (st !== 429 && !(st >= 500 && st <= 599)) break;
+      }
+    }
+    throw e;
+  }
+}
+
 // 6h localStorage cache (same TTL convention as the MLS/MiLB code) with
 // stale-while-revalidate: paint cache instantly, refresh behind it.
 var STATS_TTL = 6 * 3600000;
@@ -283,7 +318,7 @@ function writeStatsCache(id, data) {
 
 async function loadTeamStats(team) {
   if (team.sport === 'baseball') {
-    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
+    var resp = await espnFetch('https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/' + team.id + '/statistics');
     if (!resp.ok) return null;
     var data = await resp.json();
     var cats = data?.results?.stats?.categories;
@@ -306,7 +341,7 @@ async function loadTeamStats(team) {
   }
 
   if (team.sport === 'soccer') {
-    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
+    var resp = await espnFetch('https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/' + team.id + '/roster?season=2026');
     if (!resp.ok) return null;
     var roster = await resp.json();
     var players = [];
@@ -346,7 +381,7 @@ async function loadTeamStats(team) {
     var lead = await loadHockeyLeaders(team);
     if (lead) return lead;
     try {
-      var sresp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id + '/statistics');
+      var sresp = await espnFetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id + '/statistics');
       if (!sresp.ok) return null;
       var sdata = await sresp.json();
       var scats = ((sdata && sdata.results && sdata.results.stats && sdata.results.stats.categories) || []).filter(function(c) {
@@ -368,7 +403,7 @@ async function loadTeamStats(team) {
 
 async function loadHockeyLeaders(team) {
   try {
-    var resp = await fetchTimeout('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id);
+    var resp = await espnFetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/' + team.id);
     if (!resp.ok) return null;
     var data = await resp.json();
     var ne = data?.team?.nextEvent?.[0];
@@ -421,7 +456,7 @@ async function loadHockeyLeaders(team) {
 }
 
 async function loadUFLCoaching() {
-  var resp = await fetchTimeout('https://site.api.espn.com/apis/v2/sports/football/ufl/standings');
+  var resp = await espnFetch('https://site.api.espn.com/apis/v2/sports/football/ufl/standings');
   if (!resp.ok) return null;
   var data = await resp.json();
   var entries = data?.standings?.entries || [];

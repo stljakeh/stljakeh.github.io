@@ -4,6 +4,36 @@ STL.api = {
 
   _liveScoreCache: {},
 
+  // ESPN fetch with CORS-proxy fallback. ESPN's bare team endpoint
+  // (.../teams/{id}) currently sends no Access-Control-Allow-Origin, so an
+  // in-browser direct fetch fails there with a TypeError (direct navigation
+  // still works). Direct is always tried first — schedule/summary/scoreboard
+  // send CORS * — and only a network-level TypeError falls through to the
+  // proxy chain, never HTTP statuses. Returns the first OK response, else
+  // rethrows the original error.
+  espnFetch: async function(url) {
+    try {
+      return await fetch(url);
+    } catch (e) {
+      if (!(e instanceof TypeError)) throw e;
+      const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
+      for (const p of proxies) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt > 0) await STL.api._sleep(1500 * attempt);
+          let resp = null;
+          try {
+            resp = await fetch(p + encodeURIComponent(url));
+          } catch (e2) { break; } // proxy unreachable -> next proxy
+          if (resp.ok) return resp;
+          // Rate-limited (429) or transient 5xx -> retry same proxy;
+          // anything else is permanent -> next proxy.
+          if (resp.status !== 429 && !(resp.status >= 500 && resp.status <= 599)) break;
+        }
+      }
+      throw e;
+    }
+  },
+
   enrichLiveScores: async function() {
     const teams = STL.dashboard.teamList().filter(t => !t.manual && !t.npbName && !t.kbo);
     const sports = new Set(teams.map(t => t.sport + '/' + t.leagueSlug));
@@ -31,7 +61,7 @@ STL.api = {
         // so fetch yesterday/today/tomorrow individually and merge. Same
         // coverage as the old dash-joined single request.
         const days = await Promise.all(dates.map(async function(day) {
-          const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day);
+          const resp = await STL.api.espnFetch('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day);
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
           return resp.json();
         }));
@@ -115,7 +145,7 @@ STL.api = {
     if (!comp) return;
     const eventId = event.id;
     try {
-      const resp = await fetch(
+      const resp = await STL.api.espnFetch(
         'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + eventId
       );
       if (!resp.ok) return;
@@ -210,7 +240,7 @@ STL.api = {
   fetchBoxScore: async function(team, event) {
     if (!event) return;
     try {
-      const resp = await fetch(
+      const resp = await STL.api.espnFetch(
         'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + event.id
       );
       if (!resp.ok) return;
@@ -406,7 +436,7 @@ STL.api = {
 
     try {
       if (isLive) {
-        const resp = await fetch(
+        const resp = await STL.api.espnFetch(
           'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + eventId
         );
         if (!resp.ok) return;
@@ -431,7 +461,7 @@ STL.api = {
       } else {
         const d = new Date(event.date);
         const dateStr = d.toISOString().slice(0, 10).replace(/-/g, '');
-        const resp = await fetch(
+        const resp = await STL.api.espnFetch(
           'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=' + dateStr + '&includeOdds=true'
         );
         if (!resp.ok) return;
@@ -493,7 +523,7 @@ STL.api = {
       check.setDate(check.getDate() + i);
       var dateStr = check.toISOString().slice(0, 10).replace(/-/g, '');
       try {
-        var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=' + dateStr);
+        var resp = await STL.api.espnFetch('https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=' + dateStr);
         if (!resp.ok) continue;
         var data = await resp.json();
         for (var j = 0; j < (data.events || []).length; j++) {
@@ -619,7 +649,7 @@ STL.api = {
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
     let data;
     try {
-      const resp = await fetch(baseUrl);
+      const resp = await STL.api.espnFetch(baseUrl);
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       data = await resp.json();
     } catch (e) {
@@ -631,7 +661,7 @@ STL.api = {
     let nextEvent = null;
     let allEvents = [];
     try {
-      const schedResp = await fetch(baseUrl + '/schedule');
+      const schedResp = await STL.api.espnFetch(baseUrl + '/schedule');
       if (schedResp.ok) {
         const schedData = await schedResp.json();
         allEvents = schedData.events || [];
