@@ -1,70 +1,69 @@
 {
-  "generated_at": "2026-10-17T20:45:47.872342+00:00",
+  "generated_at": "2026-10-18T04:48:31.139866+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
         "wins": 2,
         "losses": 2,
-        "otl": 0,
+        "otl": 1,
         "sol": 1,
-        "points": 5,
-        "streak": "0-2-0-1"
+        "points": 6,
+        "streak": "0-2-1-1"
       },
       "prospects": [
         {
           "name": "Aleksanteri Kaskim\u00e4ki",
           "pos": "F",
-          "line": "2 G / 5 A / 7 PTS \u00b7 5 GP"
+          "line": "2 G / 5 A / 7 PTS \u00b7 6 GP"
         },
         {
           "name": "T.J. Tynan",
           "pos": "C",
-          "line": "2 G / 4 A / 6 PTS \u00b7 5 GP"
+          "line": "2 G / 4 A / 6 PTS \u00b7 6 GP"
         },
         {
           "name": "Justin Carbonneau",
           "pos": "F",
-          "line": "3 G / 1 A / 4 PTS \u00b7 5 GP"
+          "line": "3 G / 1 A / 4 PTS \u00b7 6 GP"
         }
       ],
       "standing": "6th Atlantic Division",
-      "lastGame": "L 3-6 vs Lehigh Valley \u00b7 Fri, Oct 16",
-      "nextGame": "vs Lehigh Valley \u00b7 Sat, Oct 17 \u00b7 6:05 pm EDT",
+      "lastGame": "L 2-3 vs Lehigh Valley \u00b7 Sat, Oct 17",
+      "nextGame": "@ Charlotte \u00b7 Fri, Oct 23 \u00b7 7:00 pm EDT",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
     "Worcester Railers": {
       "record": {
-        "wins": 35,
-        "losses": 30,
-        "otl": 5,
-        "sol": 2,
-        "points": 77,
-        "streak": "6-0-0-0"
+        "wins": 1,
+        "losses": 0,
+        "otl": 0,
+        "sol": 0,
+        "points": 2,
+        "streak": "1-0-0-0"
       },
       "prospects": [
         {
-          "name": "Anthony Repaci",
+          "name": "Matt DeMelis",
           "pos": "F",
-          "line": "23 G / 31 A / 54 PTS \u00b7 72 GP"
+          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
         },
         {
-          "name": "Anthony Callin",
+          "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "18 G / 28 A / 46 PTS \u00b7 65 GP"
+          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
         },
         {
-          "name": "Drew Callin",
+          "name": "Declan McDonnell",
           "pos": "F",
-          "line": "25 G / 18 A / 43 PTS \u00b7 64 GP"
+          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
         }
       ],
-      "standing": "6th North",
-      "lastGame": "W 4-3 vs Adirondack \u00b7 Apr. 19",
-      "nextGame": "vs Maine \u00b7 Oct. 17 \u00b7 6:05 pm EDT",
-      "seasonName": "2025-26 Regular Season",
-      "seasonStart": "2025-10-15",
-      "isFinal": true
+      "standing": "4th North",
+      "lastGame": "W 4-2 vs Maine \u00b7 Oct. 17",
+      "nextGame": "vs Trois-Rivi\u00e8res \u00b7 Oct. 18 \u00b7 3:05 pm EDT",
+      "seasonName": "2026-27 Regular Season",
+      "seasonStart": "2026-10-15"
     }
   }
 }
