@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-18T16:00:58.830430+00:00",
+  "generated_at": "2026-10-18T20:55:19.411466+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
@@ -44,24 +44,24 @@
       },
       "prospects": [
         {
-          "name": "Matt DeMelis",
-          "pos": "F",
-          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
-        },
-        {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
+          "line": "1 G / 1 A / 2 PTS \u00b7 2 GP"
         },
         {
           "name": "Declan McDonnell",
+          "pos": "F",
+          "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
+        },
+        {
+          "name": "Sam Stange",
           "pos": "F",
           "line": "1 G / 0 A / 1 PTS \u00b7 1 GP"
         }
       ],
       "standing": "4th North",
       "lastGame": "W 4-2 vs Maine \u00b7 Oct. 17",
-      "nextGame": "vs Trois-Rivi\u00e8res \u00b7 Oct. 18 \u00b7 3:05 pm EDT",
+      "nextGame": "vs Trois-Rivi\u00e8res \u00b7 Oct. 18 \u00b7 00:00 2nd",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
