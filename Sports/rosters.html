@@ -116,7 +116,7 @@ var TEAMS = [
   },
   {
     id: 'battlehawks', name: 'BattleHawks', color: '#00529B',
-    type: 'ufl', teamId: '1', showAge: false
+    type: 'ufl', teamId: '1', showAge: true
   },
   {
     id: 'siue', name: 'SIUE', color: '#C8102E',
@@ -156,7 +156,7 @@ var HIDDEN_PLAYERS = ['dillon dube'];
 
 // Manual fill-ins for players whose feeds lack measurements.
 // Key: 'teamId|lowercase name'. Only used when the feed value is missing;
-// feed values always win. { htIn: inches, wtLb: lbs, age: years }.
+// feed values always win. { htIn: inches, wtLb: lbs, birthDate: 'YYYY-MM-DD' }.
 var MANUAL_MEASUREMENTS = {
   'citysc|tomas totland':      { wtLb: 163 },
   'citysc|fallou fall':        { wtLb: 176 },
@@ -166,7 +166,8 @@ var MANUAL_MEASUREMENTS = {
   'citysc|mykhi joyner':       { htIn: 70, wtLb: 150 },
   'citysc|tyson pearce':       { htIn: 71, wtLb: 165 },
   'citysc|zach zengue':        { wtLb: 161 },
-  'citysc|caden glover':       { wtLb: 176 }
+  'citysc|caden glover':       { wtLb: 176 },
+  'battlehawks|que mcbroom':   { birthDate: '2002-12-21' }
 };
 
 // Players dropped from display entirely: row removed, excluded from the
@@ -189,6 +190,18 @@ function numOrNull(v) {
   if (v == null || v === '') return null;
   var n = parseFloat(v);
   return isFinite(n) ? n : null;
+}
+
+function ageFromBirthDate(value) {
+  var m = String(value == null ? '' : value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  var y = +m[1], mo = +m[2], day = +m[3];
+  if (!y || !mo || !day) return null;
+  var now = new Date();
+  var age = now.getFullYear() - y;
+  var cm = now.getMonth() + 1;
+  if (cm < mo || (cm === mo && now.getDate() < day)) age--;
+  return age;
 }
 
 function fmtHtIn(inches) {
@@ -274,7 +287,11 @@ function espnItem(team, p) {
   if (htIn == null && man && man.htIn != null) htIn = man.htIn;
   var wtLb = numOrNull(p.weight);
   if (wtLb == null && man && man.wtLb != null) wtLb = man.wtLb;
-  if (p.age == null && man && man.age != null) p.age = man.age;
+  if (p.age == null && man) {
+    var manAge = ageFromBirthDate(man.birthDate);
+    if (manAge == null && man.age != null) manAge = man.age;
+    if (manAge != null) p.age = manAge;
+  }
   return {
     player: p,
     jersey: p.jersey,
@@ -344,8 +361,10 @@ async function fetchUfl() {
     if (htIn == null && man && man.htIn != null) htIn = man.htIn;
     var wtLb = numOrNull(p.weight);
     if (wtLb == null && man && man.wtLb != null) wtLb = man.wtLb;
+    var age = ageFromBirthDate(p.birth_date || (man && man.birthDate));
+    if (age == null && man && man.age != null) age = man.age;
     byGroup[g].push({
-      player: { displayName: p.full_name, age: null, photo: p.photo ? p.photo.src : null, headshot: null },
+      player: { displayName: p.full_name, age: age, photo: p.photo ? p.photo.src : null, headshot: null },
       jersey: pr.jersey_number || p.jersey_number,
       pos: pos,
       ht: htIn != null ? fmtHeightInches(htIn) : '&mdash;',
