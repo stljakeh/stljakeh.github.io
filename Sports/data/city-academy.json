@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-19T05:21:41.731155+00:00",
+  "generated_at": "2026-10-19T13:59:02.039512+00:00",
   "team": "St. Louis CITY SC Academy",
   "teams": {
     "U14": {
@@ -16,35 +16,35 @@
     "U16": {
       "record": {
         "wins": 2,
-        "losses": 4,
+        "losses": 5,
         "ties": 1,
         "points": 7
       },
       "goalsFor": 8,
-      "goalsAgainst": 19,
-      "played": 7
+      "goalsAgainst": 21,
+      "played": 8
     },
     "U17": {
       "record": {
-        "wins": 6,
+        "wins": 7,
         "losses": 0,
         "ties": 1,
-        "points": 19
+        "points": 22
       },
-      "goalsFor": 27,
-      "goalsAgainst": 9,
-      "played": 7
+      "goalsFor": 31,
+      "goalsAgainst": 10,
+      "played": 8
     },
     "U19": {
       "record": {
-        "wins": 3,
+        "wins": 4,
         "losses": 3,
         "ties": 1,
-        "points": 10
+        "points": 13
       },
-      "goalsFor": 18,
-      "goalsAgainst": 18,
-      "played": 7
+      "goalsFor": 24,
+      "goalsAgainst": 20,
+      "played": 8
     }
   }
 }
