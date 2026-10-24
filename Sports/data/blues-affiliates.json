@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T16:06:36.405080+00:00",
+  "generated_at": "2026-10-24T21:00:09.211288+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
@@ -36,32 +36,32 @@
     "Worcester Railers": {
       "record": {
         "wins": 1,
-        "losses": 1,
+        "losses": 2,
         "otl": 0,
         "sol": 0,
         "points": 2,
-        "streak": "0-1-0-0"
+        "streak": "0-2-0-0"
       },
       "prospects": [
         {
           "name": "MacAuley Carson",
           "pos": "F",
-          "line": "1 G / 1 A / 2 PTS \u00b7 2 GP"
+          "line": "1 G / 1 A / 2 PTS \u00b7 3 GP"
         },
         {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "1 G / 1 A / 2 PTS \u00b7 2 GP"
+          "line": "1 G / 1 A / 2 PTS \u00b7 3 GP"
         },
         {
           "name": "Lincoln Hatten",
           "pos": "F",
-          "line": "0 G / 2 A / 2 PTS \u00b7 2 GP"
+          "line": "0 G / 2 A / 2 PTS \u00b7 3 GP"
         }
       ],
-      "standing": "5th North",
-      "lastGame": "L 2-5 vs Trois-Rivi\u00e8res \u00b7 Oct. 18",
-      "nextGame": "@ Maine \u00b7 Oct. 24 \u00b7 1:00 pm EDT",
+      "standing": "6th North",
+      "lastGame": "L 0-3 @ Maine \u00b7 Oct. 24",
+      "nextGame": "@ Maine \u00b7 Oct. 25 \u00b7 3:00 pm EDT",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
