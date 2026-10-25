@@ -133,6 +133,8 @@
   color: var(--card-mute);
   text-align: center;
 }
+[data-frac="colorado"] { --frac-color: #B45309; }
+html[data-theme="dark"] [data-frac="colorado"] { --frac-color: #E08B4C; }
 </style>
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/nav.css">
@@ -236,7 +238,8 @@ var UFL_FRANCHISES = [
     history: []
   },
   {
-    name: 'Colorado', color: '#888', logo: 'https://a.espncdn.com/i/teamlogos/leagues/500/ufl.png',
+    name: 'Colorado Stampede', slug: 'colorado', color: '#B45309',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/0/03/Colorado_Stampede_Logo.webp/250px-Colorado_Stampede_Logo.webp',
     coach2027: 'Rick Neuheisel',
     history: []
   },
@@ -514,7 +517,7 @@ async function loadUFLCoaching() {
   for (var f = 0; f < sorted.length; f++) {
     var frac = sorted[f];
     html += '<div style="margin-bottom:16px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:600;color:' + frac.color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a1a1a;">' +
+      '<div data-frac="' + (frac.slug || '') + '" style="display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:600;color:var(--frac-color,' + frac.color + ');text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a1a1a;">' +
         ((logoMap[frac.currentId] || frac.logo) ? '<img src="' + (logoMap[frac.currentId] || frac.logo) + '" style="width:24px;height:24px;object-fit:contain;">' : '') +
         escHtml(frac.name) +
       '</div>';
