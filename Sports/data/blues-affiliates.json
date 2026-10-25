@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-25T16:37:22.237979+00:00",
+  "generated_at": "2026-10-25T20:59:42.859216+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
@@ -44,24 +44,24 @@
       },
       "prospects": [
         {
+          "name": "Matt DeMelis",
+          "pos": "F",
+          "line": "2 G / 0 A / 2 PTS \u00b7 4 GP"
+        },
+        {
           "name": "MacAuley Carson",
           "pos": "F",
-          "line": "1 G / 1 A / 2 PTS \u00b7 3 GP"
+          "line": "1 G / 1 A / 2 PTS \u00b7 4 GP"
         },
         {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "1 G / 1 A / 2 PTS \u00b7 3 GP"
-        },
-        {
-          "name": "Lincoln Hatten",
-          "pos": "F",
-          "line": "0 G / 2 A / 2 PTS \u00b7 3 GP"
+          "line": "1 G / 1 A / 2 PTS \u00b7 4 GP"
         }
       ],
       "standing": "7th North",
       "lastGame": "L 0-3 @ Maine \u00b7 Oct. 24",
-      "nextGame": "@ Maine \u00b7 Oct. 25 \u00b7 3:00 pm EDT",
+      "nextGame": "@ Maine \u00b7 Oct. 25 \u00b7 00:00 2nd",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
