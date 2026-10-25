@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-25T05:21:16.720188+00:00",
+  "generated_at": "2026-10-25T12:01:36.955302+00:00",
   "team": "St. Louis CITY SC Academy",
   "teams": {
     "U14": {
@@ -26,14 +26,14 @@
     },
     "U17": {
       "record": {
-        "wins": 7,
+        "wins": 8,
         "losses": 0,
         "ties": 1,
-        "points": 22
+        "points": 25
       },
-      "goalsFor": 31,
+      "goalsFor": 32,
       "goalsAgainst": 10,
-      "played": 8
+      "played": 9
     },
     "U19": {
       "record": {
