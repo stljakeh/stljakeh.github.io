@@ -1,36 +1,36 @@
 {
-  "generated_at": "2026-11-01T18:08:02.297257+00:00",
+  "generated_at": "2026-11-01T22:27:00.197183+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "career totals",
   "teams": {
     "U14": {
       "record": {
-        "wins": 4,
+        "wins": 5,
         "losses": 0,
         "ties": 2,
-        "points": 14
+        "points": 17
       },
-      "goalsFor": 18,
-      "goalsAgainst": 2,
-      "played": 6,
-      "lastGame": "D 1-1 @ Michigan Wolves · Oct 31",
-      "nextGame": "@ AC Grand Rapids · Nov 1",
+      "goalsFor": 22,
+      "goalsAgainst": 3,
+      "played": 7,
+      "lastGame": "W 4-1 @ AC Grand Rapids · Nov 1",
+      "nextGame": "@ St. Louis Scott Gallagher · Nov 7",
       "prospects": [
-        {
-          "pos": "DM",
-          "name": "Paxton Dolan",
-          "line": "3 G · 5 apps"
-        },
         {
           "pos": "CM",
           "name": "Abhi Nakarmi",
-          "line": "2 G · 6 apps"
+          "line": "3 G · 7 apps"
         },
         {
           "pos": "WF",
           "name": "Beckett Roseman",
-          "line": "2 G · 6 apps"
+          "line": "3 G · 7 apps"
+        },
+        {
+          "pos": "CB",
+          "name": "Chase James",
+          "line": "3 G · 6 apps"
         }
       ]
     },
