@@ -1652,11 +1652,12 @@ STL.api = {
     return out;
   },
 
-  // CITY academy records, prefetched server-side (see Sports/tools/build-academy.py
-  // + .github/workflows/academy.yml — footyaccess.com sends no CORS headers).
-  // Same-origin JSON, memory-cached per page load (all four rows share one
-  // fetch). Manual `manual` blocks still seed lastGame/nextGame, for which no
-  // feed exists; `note` shows only while a row has no record.
+  // CITY academy records + fixtures + career scoring leaders, prefetched
+  // server-side (see Sports/tools/build-academy.py + .github/workflows/
+  // academy.yml — footyaccess.com sends no CORS headers). Records and the
+  // last/next game per age group come from the team page's flight data;
+  // prospects come from FootyAccess's JSON API. Same-origin JSON,
+  // memory-cached per page load (all four rows share one fetch).
   _academy: null,
 
   fetchAcademyData: async function() {
@@ -1689,6 +1690,12 @@ STL.api = {
       }
       if (t && t.goalsFor != null && t.goalsAgainst != null) {
         seeded.goals = { gf: t.goalsFor, ga: t.goalsAgainst };
+      }
+      if (t && t.lastGame) seeded.lastGame = t.lastGame;
+      if (t && t.nextGame) seeded.nextGame = t.nextGame;
+      if (t && t.prospects && t.prospects.length) {
+        seeded.prospects = t.prospects;
+        seeded.prospectLabel = 'Academy leaders · career';
       }
     } catch (e) {}
     STL.api._affCache[aff.name] = seeded;

@@ -702,10 +702,10 @@ STL.render = {
     let pros = '';
     if (cached && cached.prospects && cached.prospects.length) {
       const pSeason = cached.prospectSeason || cached.season;
-      let prosLabel = 'Rising prospects';
-      if (pSeason && (cached.isFinal || pSeason !== STL.api.milbSeasonYear())) {
+      let prosLabel = cached.prospectLabel || 'Rising prospects';
+      if (!cached.prospectLabel && pSeason && (cached.isFinal || pSeason !== STL.api.milbSeasonYear())) {
         prosLabel = 'Top performers · ' + pSeason;
-      } else if (cached.isFinal && cached.seasonName) {
+      } else if (!cached.prospectLabel && cached.isFinal && cached.seasonName) {
         prosLabel = 'Top performers · ' + String(cached.seasonName).replace(' Regular Season', '');
       }
       pros = '<div class="prospects">' +

@@ -1,17 +1,38 @@
 {
-  "generated_at": "2026-10-31T21:52:51.372237+00:00",
+  "generated_at": "2026-11-01T05:13:11.713032+00:00",
   "team": "St. Louis CITY SC Academy",
+  "season": "2026–27",
+  "prospectsNote": "career totals",
   "teams": {
     "U14": {
       "record": {
         "wins": 4,
         "losses": 0,
-        "ties": 1,
-        "points": 13
+        "ties": 2,
+        "points": 14
       },
-      "goalsFor": 17,
-      "goalsAgainst": 1,
-      "played": 5
+      "goalsFor": 18,
+      "goalsAgainst": 2,
+      "played": 6,
+      "lastGame": "D 1-1 @ Michigan Wolves · Oct 31",
+      "nextGame": "@ AC Grand Rapids · Nov 1",
+      "prospects": [
+        {
+          "pos": "DM",
+          "name": "Paxton Dolan",
+          "line": "3 G · 5 apps"
+        },
+        {
+          "pos": "CM",
+          "name": "Abhi Nakarmi",
+          "line": "2 G · 6 apps"
+        },
+        {
+          "pos": "WF",
+          "name": "Beckett Roseman",
+          "line": "2 G · 6 apps"
+        }
+      ]
     },
     "U16": {
       "record": {
@@ -22,7 +43,26 @@
       },
       "goalsFor": 10,
       "goalsAgainst": 23,
-      "played": 9
+      "played": 9,
+      "lastGame": "D 2-2 vs FC Cincinnati · Oct 24",
+      "nextGame": "@ Minnesota United FC · Nov 7",
+      "prospects": [
+        {
+          "pos": "WF",
+          "name": "Kayden Shaw",
+          "line": "7 G · 33 apps"
+        },
+        {
+          "pos": "Oth",
+          "name": "William Uzzell",
+          "line": "4 G · 11 apps"
+        },
+        {
+          "pos": "RW",
+          "name": "Hudson Burrows",
+          "line": "3 G · 13 apps"
+        }
+      ]
     },
     "U17": {
       "record": {
@@ -33,7 +73,26 @@
       },
       "goalsFor": 32,
       "goalsAgainst": 10,
-      "played": 9
+      "played": 9,
+      "lastGame": "W 1-0 vs FC Cincinnati · Oct 24",
+      "nextGame": "@ Minnesota United FC · Nov 7",
+      "prospects": [
+        {
+          "pos": "CM",
+          "name": "Moxley Strange",
+          "line": "20 G · 44 apps"
+        },
+        {
+          "pos": "CM",
+          "name": "Thomas DiMaria",
+          "line": "12 G · 43 apps"
+        },
+        {
+          "pos": "Oth",
+          "name": "Miroslav Levkovsky",
+          "line": "12 G · 42 apps"
+        }
+      ]
     },
     "U19": {
       "record": {
@@ -44,7 +103,26 @@
       },
       "goalsFor": 26,
       "goalsAgainst": 22,
-      "played": 9
+      "played": 9,
+      "lastGame": "D 2-2 vs FC Cincinnati · Oct 24",
+      "nextGame": "@ Minnesota United FC · Nov 7",
+      "prospects": [
+        {
+          "pos": "CF",
+          "name": "Kane Kraus",
+          "line": "29 G · 39 apps"
+        },
+        {
+          "pos": "CM",
+          "name": "Drew Dowling",
+          "line": "16 G · 46 apps"
+        },
+        {
+          "pos": "CF",
+          "name": "Chidube Nwankwo",
+          "line": "16 G · 30 apps"
+        }
+      ]
     }
   }
 }
