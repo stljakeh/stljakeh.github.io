@@ -153,6 +153,8 @@ def fetch_prospects():
             "pos": p.get("position") or "",
             "name": p.get("name") or "",
             "line": "%d G · %d apps" % (p["goals"], p.get("appearances") or 0),
+            "yellow": int(p.get("yellowCards") or 0),
+            "red": int(p.get("redCards") or 0),
             "_goals": p["goals"],
             "_apps": p.get("appearances") or 0
         })

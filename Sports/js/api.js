@@ -1701,18 +1701,54 @@ STL.api = {
     STL.api._affCache[aff.name] = seeded;
   },
 
+  // CITY2 career scoring leaders, prefetched server-side (see
+  // Sports/tools/build-city2.py + .github/workflows/city2.yml — the MLS stats
+  // API is cursor-paginated and ~900 KB per league-wide page, so this stays
+  // out of the browser). Same-origin JSON, memory-cached per page load.
+  _city2: null,
+
+  fetchCity2Leaders: async function() {
+    const now = Date.now();
+    if (STL.api._city2 && now - STL.api._city2.at < 6 * 3600000) {
+      return STL.api._city2.data;
+    }
+    const resp = await fetch('data/city2-leaders.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    STL.api._city2 = { at: now, data: data };
+    return data;
+  },
+
+  attachCity2Leaders: async function(data) {
+    if (!data || (data.prospects && data.prospects.length)) return data;
+    try {
+      const lead = await STL.api.fetchCity2Leaders();
+      if (lead && lead.players && lead.players.length) {
+        data.prospects = lead.players;
+        data.prospectLabel = 'CITY2 leaders · career';
+      }
+    } catch (e) {}
+    return data;
+  },
+
   // St. Louis CITY2 via the MLS official stats API (CORS *, same feed family
   // as the MLS standings override). Regular season (MLS-COM-000003) feeds the
   // record; playoffs (MLS-COM-000004) count for last/next so a postseason run
   // shows. Record stays regular-season only (BattleHawks precedent). Shares
-  // MLS_SEASON_ID with the first team. No prospects (unavailable).
+  // MLS_SEASON_ID with the first team. Leaders come from the prefetched
+  // city2-leaders.json (see attachCity2Leaders).
   fetchMlsnpAffiliate: async function(cardClass, aff) {
     const cacheKey = 'mlsnp_aff_' + aff.name;
     const ttlMs = 6 * 3600000;
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey));
       if (cached && Date.now() < cached.expiry && cached.data) {
-        STL.api._affCache[aff.name] = cached.data;
+        const had = cached.data.prospects && cached.data.prospects.length;
+        const data = await STL.api.attachCity2Leaders(cached.data);
+        if (!had && data.prospects) {
+          try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: cached.expiry })); } catch (e) {}
+        }
+        STL.api._affCache[aff.name] = data;
         return;
       }
     } catch (e) {}
@@ -1773,6 +1809,7 @@ STL.api = {
         if (tm) nextGame += ' · ' + tm;
       }
       const data = { record: { wins: wins, losses: losses, ties: ties, points: points }, lastGame: lastGame, nextGame: nextGame };
+      await STL.api.attachCity2Leaders(data);
       STL.api._affCache[aff.name] = data;
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
     } catch (e) {

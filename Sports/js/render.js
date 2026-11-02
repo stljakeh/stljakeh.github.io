@@ -708,12 +708,27 @@ STL.render = {
       } else if (!cached.prospectLabel && cached.isFinal && cached.seasonName) {
         prosLabel = 'Top performers · ' + String(cached.seasonName).replace(' Regular Season', '');
       }
+      const cardsHtml = function(p) {
+        const y = p.yellow || 0;
+        const r = p.red || 0;
+        if (!y && !r) return '';
+        const sq = function(kind, n) {
+          if (n > 4) {
+            return '<i class="card-sq ' + kind + '"></i>' +
+              '<span class="card-n">&times;' + n + '</span>';
+          }
+          return new Array(n + 1).join('<i class="card-sq ' + kind + '"></i>');
+        };
+        const label = y + ' yellow, ' + r + ' red';
+        return '<span class="card-marks" role="img" aria-label="' + label + '" title="' + label + '">' +
+          (y ? sq('y', y) : '') + (r ? sq('r', r) : '') + '</span>';
+      };
       pros = '<div class="prospects">' +
         '<div class="prospects-label">' + prosLabel + '</div>' +
         cached.prospects.map(p =>
-          '<div class="prospect-row"><span class="pos">' + p.pos + '</span>' +
+          '<div class="prospect-row">' + (p.pos ? '<span class="pos">' + p.pos + '</span>' : '') +
           '<span class="name">' + p.name + '</span>' +
-          '<span class="pline">' + p.line + '</span></div>'
+          '<span class="pline">' + p.line + cardsHtml(p) + '</span></div>'
         ).join('') + '</div>';
     }
     return '<div class="aff-row" id="aff-' + cardClass + '-' + aff.name.replace(/[^a-z0-9]/gi, '') + '">' +

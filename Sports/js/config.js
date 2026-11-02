@@ -120,10 +120,10 @@ STL.config = {
     ],
     'city-sc': [
       { name: 'CITY2', level: 'MLSNP', mlsnp: true, site: 'https://www.stlcitysc.com' },
-      { name: 'CITY U14', level: 'MLS NEXT', academy: 'U14', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
-      { name: 'CITY U16', level: 'MLS NEXT', academy: 'U16', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
-      { name: 'CITY U17', level: 'MLS NEXT', academy: 'U17', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
       { name: 'CITY U19', level: 'MLS NEXT', academy: 'U19', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
+      { name: 'CITY U17', level: 'MLS NEXT', academy: 'U17', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
+      { name: 'CITY U16', level: 'MLS NEXT', academy: 'U16', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
+      { name: 'CITY U14', level: 'MLS NEXT', academy: 'U14', site: 'https://www.footyaccess.com/leagues/mls-next/teams/St.%20Louis%20City%20SC' },
     ]
   },
 

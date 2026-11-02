@@ -18,6 +18,8 @@
   --danger: #b3122e;
   --ink-rgb: 42, 21, 27;
   --live-accent: #7ee2a0;
+  --card-yellow: #d8a92b;
+  --card-red: #c41e3a;
   --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -39,6 +41,8 @@ html[data-theme="dark"] {
   --danger: #ef6a7f;
   --ink-rgb: 244, 236, 221;
   --live-accent: #4caf50;
+  --card-yellow: #e8c14a;
+  --card-red: #ff6b81;
 }
 
 /* Blues go gold in dark mode (classic #FCB514) — the deep blue tab turns
@@ -353,3 +357,8 @@ nav.stlnav { width: 100%; margin-top: 10px; }
 .tbody .prospect-row .pos { color: var(--card-mute); min-width: 28px; font-weight: 600; }
 .tbody .prospect-row .name { color: var(--card-ink); }
 .tbody .prospect-row .pline { color: var(--card-mute); margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+.tbody .prospect-row .card-marks { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; vertical-align: middle; }
+.tbody .prospect-row .card-sq { display: inline-block; width: 7px; height: 9px; border-radius: 1.5px; }
+.tbody .prospect-row .card-sq.y { background: var(--card-yellow); }
+.tbody .prospect-row .card-sq.r { background: var(--card-red); }
+.tbody .prospect-row .card-n { font-size: 0.62rem; line-height: 1; margin-left: 1px; }

@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-11-02T08:56:37.865241+00:00",
+  "team": "St. Louis CITY2",
+  "team_id": "MLS-CLU-00001G",
+  "competition": "MLS NEXT Pro - Regular Season",
+  "seasons": "2023-2026",
+  "prospectsNote": "career totals",
+  "players": [
+    {
+      "pos": "",
+      "name": "Mykhi Joyner",
+      "line": "36 G · 61 apps",
+      "yellow": 13,
+      "red": 0,
+      "minutes": 3447,
+      "assists": 7
+    },
+    {
+      "pos": "",
+      "name": "Johnny Klein",
+      "line": "19 G · 48 apps",
+      "yellow": 4,
+      "red": 0,
+      "minutes": 3714,
+      "assists": 10
+    },
+    {
+      "pos": "",
+      "name": "Brendan McSorley",
+      "line": "18 G · 54 apps",
+      "yellow": 12,
+      "red": 0,
+      "minutes": 4082,
+      "assists": 9
+    }
+  ]
+}
