@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T06:52:50.828039+00:00",
+  "generated_at": "2026-11-02T09:05:27.216858+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "career totals",
@@ -20,17 +20,23 @@
         {
           "pos": "CM",
           "name": "Abhi Nakarmi",
-          "line": "3 G · 7 apps"
+          "line": "3 G · 7 apps",
+          "yellow": 0,
+          "red": 0
         },
         {
           "pos": "WF",
           "name": "Beckett Roseman",
-          "line": "3 G · 7 apps"
+          "line": "3 G · 7 apps",
+          "yellow": 0,
+          "red": 0
         },
         {
           "pos": "CB",
           "name": "Chase James",
-          "line": "3 G · 6 apps"
+          "line": "3 G · 6 apps",
+          "yellow": 0,
+          "red": 0
         }
       ]
     },
@@ -50,17 +56,23 @@
         {
           "pos": "WF",
           "name": "Kayden Shaw",
-          "line": "7 G · 33 apps"
+          "line": "7 G · 33 apps",
+          "yellow": 1,
+          "red": 0
         },
         {
           "pos": "Oth",
           "name": "William Uzzell",
-          "line": "4 G · 11 apps"
+          "line": "4 G · 11 apps",
+          "yellow": 0,
+          "red": 0
         },
         {
           "pos": "RW",
           "name": "Hudson Burrows",
-          "line": "3 G · 13 apps"
+          "line": "3 G · 13 apps",
+          "yellow": 0,
+          "red": 0
         }
       ]
     },
@@ -80,17 +92,23 @@
         {
           "pos": "CM",
           "name": "Moxley Strange",
-          "line": "20 G · 44 apps"
+          "line": "20 G · 44 apps",
+          "yellow": 2,
+          "red": 0
         },
         {
           "pos": "CM",
           "name": "Thomas DiMaria",
-          "line": "12 G · 43 apps"
+          "line": "12 G · 43 apps",
+          "yellow": 0,
+          "red": 0
         },
         {
           "pos": "Oth",
           "name": "Miroslav Levkovsky",
-          "line": "12 G · 42 apps"
+          "line": "12 G · 42 apps",
+          "yellow": 8,
+          "red": 0
         }
       ]
     },
@@ -110,17 +128,23 @@
         {
           "pos": "CF",
           "name": "Kane Kraus",
-          "line": "29 G · 39 apps"
+          "line": "29 G · 39 apps",
+          "yellow": 1,
+          "red": 0
         },
         {
           "pos": "CM",
           "name": "Drew Dowling",
-          "line": "16 G · 46 apps"
+          "line": "16 G · 46 apps",
+          "yellow": 1,
+          "red": 0
         },
         {
           "pos": "CF",
           "name": "Chidube Nwankwo",
-          "line": "16 G · 30 apps"
+          "line": "16 G · 30 apps",
+          "yellow": 2,
+          "red": 0
         }
       ]
     }
