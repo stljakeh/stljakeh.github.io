@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T07:26:33.702649+00:00",
+  "generated_at": "2026-11-05T20:18:03.773571+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "career totals",
@@ -54,23 +54,23 @@
       "nextGame": "@ Minnesota United FC · Nov 7",
       "prospects": [
         {
-          "pos": "WF",
-          "name": "Kayden Shaw",
-          "line": "7 G · 33 apps",
+          "pos": "CM",
+          "name": "Moxley Strange",
+          "line": "20 G · 44 apps",
+          "yellow": 2,
+          "red": 0
+        },
+        {
+          "pos": "CF",
+          "name": "Charles Thomson",
+          "line": "11 G · 44 apps",
           "yellow": 1,
           "red": 0
         },
         {
-          "pos": "Oth",
-          "name": "William Uzzell",
-          "line": "4 G · 11 apps",
-          "yellow": 0,
-          "red": 0
-        },
-        {
-          "pos": "RW",
-          "name": "Hudson Burrows",
-          "line": "3 G · 13 apps",
+          "pos": "CF",
+          "name": "Vedad Kovac",
+          "line": "10 G · 42 apps",
           "yellow": 0,
           "red": 0
         }
@@ -90,24 +90,24 @@
       "nextGame": "@ Minnesota United FC · Nov 7",
       "prospects": [
         {
+          "pos": "CF",
+          "name": "Kane Kraus",
+          "line": "29 G · 39 apps",
+          "yellow": 1,
+          "red": 0
+        },
+        {
           "pos": "CM",
-          "name": "Moxley Strange",
-          "line": "20 G · 44 apps",
+          "name": "Drew Dowling",
+          "line": "16 G · 46 apps",
+          "yellow": 1,
+          "red": 0
+        },
+        {
+          "pos": "DM",
+          "name": "Blake Wilson",
+          "line": "13 G · 26 apps",
           "yellow": 2,
-          "red": 0
-        },
-        {
-          "pos": "CM",
-          "name": "Thomas DiMaria",
-          "line": "12 G · 43 apps",
-          "yellow": 0,
-          "red": 0
-        },
-        {
-          "pos": "Oth",
-          "name": "Miroslav Levkovsky",
-          "line": "12 G · 42 apps",
-          "yellow": 8,
           "red": 0
         }
       ]
@@ -127,23 +127,23 @@
       "prospects": [
         {
           "pos": "CF",
-          "name": "Kane Kraus",
-          "line": "29 G · 39 apps",
-          "yellow": 1,
-          "red": 0
-        },
-        {
-          "pos": "CM",
-          "name": "Drew Dowling",
-          "line": "16 G · 46 apps",
-          "yellow": 1,
+          "name": "Chidube Nwankwo",
+          "line": "16 G · 30 apps",
+          "yellow": 2,
           "red": 0
         },
         {
           "pos": "CF",
-          "name": "Chidube Nwankwo",
-          "line": "16 G · 30 apps",
-          "yellow": 2,
+          "name": "Joseph (Jojo) Adamitis",
+          "line": "11 G · 30 apps",
+          "yellow": 4,
+          "red": 0
+        },
+        {
+          "pos": "Oth",
+          "name": "Alexander Jundt",
+          "line": "10 G · 30 apps",
+          "yellow": 9,
           "red": 0
         }
       ]
