@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T13:35:12.313348+00:00",
+  "generated_at": "2026-11-07T22:19:21.812708+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "career totals",
@@ -8,33 +8,33 @@
       "record": {
         "wins": 5,
         "losses": 0,
-        "ties": 2,
-        "points": 17
+        "ties": 3,
+        "points": 18
       },
-      "goalsFor": 22,
-      "goalsAgainst": 3,
-      "played": 7,
-      "lastGame": "W 4-1 @ AC Grand Rapids · Nov 1",
-      "nextGame": "@ St. Louis Scott Gallagher · Nov 7",
+      "goalsFor": 23,
+      "goalsAgainst": 4,
+      "played": 8,
+      "lastGame": "D 1-1 @ St. Louis Scott Gallagher · Nov 7",
+      "nextGame": "vs St. Louis Scott Gallagher · Nov 22",
       "prospects": [
         {
           "pos": "CM",
           "name": "Abhi Nakarmi",
-          "line": "3 G · 7 apps",
+          "line": "4 G · 8 apps",
           "yellow": 0,
           "red": 0
         },
         {
           "pos": "WF",
           "name": "Beckett Roseman",
-          "line": "3 G · 7 apps",
+          "line": "3 G · 8 apps",
           "yellow": 0,
           "red": 0
         },
         {
           "pos": "CB",
           "name": "Chase James",
-          "line": "3 G · 6 apps",
+          "line": "3 G · 7 apps",
           "yellow": 0,
           "red": 0
         }
