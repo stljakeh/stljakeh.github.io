@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T22:19:21.812708+00:00",
+  "generated_at": "2026-11-08T06:43:30.252359+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "career totals",
@@ -44,33 +44,33 @@
       "record": {
         "wins": 2,
         "losses": 5,
-        "ties": 2,
-        "points": 8
+        "ties": 3,
+        "points": 9
       },
-      "goalsFor": 10,
-      "goalsAgainst": 23,
-      "played": 9,
-      "lastGame": "D 2-2 vs FC Cincinnati · Oct 24",
-      "nextGame": "@ Minnesota United FC · Nov 7",
+      "goalsFor": 11,
+      "goalsAgainst": 24,
+      "played": 10,
+      "lastGame": "D 1-1 @ Minnesota United FC · Nov 7",
+      "nextGame": "vs Shattuck-St. Mary's · Nov 14",
       "prospects": [
         {
           "pos": "CM",
           "name": "Moxley Strange",
-          "line": "20 G · 44 apps",
+          "line": "20 G · 45 apps",
           "yellow": 2,
           "red": 0
         },
         {
           "pos": "CF",
           "name": "Charles Thomson",
-          "line": "11 G · 44 apps",
+          "line": "11 G · 45 apps",
           "yellow": 1,
           "red": 0
         },
         {
           "pos": "CF",
           "name": "Vedad Kovac",
-          "line": "10 G · 42 apps",
+          "line": "11 G · 43 apps",
           "yellow": 0,
           "red": 0
         }
@@ -78,52 +78,52 @@
     },
     "U17": {
       "record": {
-        "wins": 8,
+        "wins": 9,
         "losses": 0,
         "ties": 1,
-        "points": 25
+        "points": 28
       },
-      "goalsFor": 32,
-      "goalsAgainst": 10,
-      "played": 9,
-      "lastGame": "W 1-0 vs FC Cincinnati · Oct 24",
-      "nextGame": "@ Minnesota United FC · Nov 7",
+      "goalsFor": 35,
+      "goalsAgainst": 11,
+      "played": 10,
+      "lastGame": "W 3-1 @ Minnesota United FC · Nov 7",
+      "nextGame": "vs Shattuck-St. Mary's · Nov 14",
       "prospects": [
         {
           "pos": "CF",
           "name": "Kane Kraus",
-          "line": "29 G · 39 apps",
+          "line": "30 G · 40 apps",
           "yellow": 1,
           "red": 0
         },
         {
           "pos": "CM",
           "name": "Drew Dowling",
-          "line": "16 G · 46 apps",
+          "line": "16 G · 47 apps",
           "yellow": 1,
           "red": 0
         },
         {
-          "pos": "DM",
-          "name": "Blake Wilson",
-          "line": "13 G · 26 apps",
-          "yellow": 2,
+          "pos": "Oth",
+          "name": "Miroslav Levkovsky",
+          "line": "13 G · 43 apps",
+          "yellow": 8,
           "red": 0
         }
       ]
     },
     "U19": {
       "record": {
-        "wins": 4,
+        "wins": 5,
         "losses": 3,
         "ties": 2,
-        "points": 14
+        "points": 17
       },
-      "goalsFor": 26,
+      "goalsFor": 27,
       "goalsAgainst": 22,
-      "played": 9,
-      "lastGame": "D 2-2 vs FC Cincinnati · Oct 24",
-      "nextGame": "@ Minnesota United FC · Nov 7",
+      "played": 10,
+      "lastGame": "W 1-0 @ Minnesota United FC · Nov 7",
+      "nextGame": "vs Shattuck-St. Mary's · Nov 14",
       "prospects": [
         {
           "pos": "CF",
@@ -142,7 +142,7 @@
         {
           "pos": "Oth",
           "name": "Alexander Jundt",
-          "line": "10 G · 30 apps",
+          "line": "10 G · 31 apps",
           "yellow": 9,
           "red": 0
         }
