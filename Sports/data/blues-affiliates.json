@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-12T20:10:42.607543+00:00",
+  "generated_at": "2026-11-13T06:58:33.912176+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
@@ -35,33 +35,33 @@
     },
     "Worcester Railers": {
       "record": {
-        "wins": 2,
+        "wins": 3,
         "losses": 6,
         "otl": 0,
         "sol": 0,
-        "points": 4,
-        "streak": "0-2-0-0"
+        "points": 6,
+        "streak": "1-0-0-0"
       },
       "prospects": [
         {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "3 G / 2 A / 5 PTS \u00b7 8 GP"
+          "line": "4 G / 3 A / 7 PTS \u00b7 9 GP"
+        },
+        {
+          "name": "Sam Stange",
+          "pos": "F",
+          "line": "2 G / 3 A / 5 PTS \u00b7 7 GP"
         },
         {
           "name": "Matt DeMelis",
           "pos": "F",
-          "line": "3 G / 1 A / 4 PTS \u00b7 8 GP"
-        },
-        {
-          "name": "Stevie Moses",
-          "pos": "F",
-          "line": "2 G / 2 A / 4 PTS \u00b7 8 GP"
+          "line": "3 G / 1 A / 4 PTS \u00b7 9 GP"
         }
       ],
       "standing": "8th North",
-      "lastGame": "L 3-5 vs Wheeling \u00b7 Nov. 8",
-      "nextGame": "@ Greensboro \u00b7 Nov. 12 \u00b7 7:00 pm EST",
+      "lastGame": "W 3-2 @ Greensboro \u00b7 Nov. 12",
+      "nextGame": "@ Greensboro \u00b7 Nov. 14 \u00b7 7:00 pm EST",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
