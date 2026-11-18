@@ -1652,12 +1652,13 @@ STL.api = {
     return out;
   },
 
-  // CITY academy records + fixtures + career scoring leaders, prefetched
+  // CITY academy records + fixtures + season scoring leaders, prefetched
   // server-side (see Sports/tools/build-academy.py + .github/workflows/
   // academy.yml — footyaccess.com sends no CORS headers). Records and the
   // last/next game per age group come from the team page's flight data;
-  // prospects come from FootyAccess's JSON API. Same-origin JSON,
-  // memory-cached per page load (all four rows share one fetch).
+  // prospects come from FootyAccess's season-scoped MLS NEXT goals feed.
+  // Same-origin JSON, memory-cached per page load (all four rows share one
+  // fetch).
   _academy: null,
 
   fetchAcademyData: async function() {
@@ -1695,7 +1696,7 @@ STL.api = {
       if (t && t.nextGame) seeded.nextGame = t.nextGame;
       if (t && t.prospects && t.prospects.length) {
         seeded.prospects = t.prospects;
-        seeded.prospectLabel = 'Academy leaders · career';
+        seeded.prospectLabel = 'Academy leaders · ' + (data.season || 'season');
       }
     } catch (e) {}
     STL.api._affCache[aff.name] = seeded;

@@ -101,7 +101,7 @@ STL.config = {
   // CORS-proxy live fallback (see STL.api.HT).
   // CITY2 live data: MLS official stats API (stats-api.mlssoccer.com,
   // CORS *, same feed family as the MLS standings override — see
-  // STL.api.fetchMlsnpAffiliate). Academy records, last/next game and career
+  // STL.api.fetchMlsnpAffiliate). Academy records, last/next game and season
   // scoring leaders are prefetched server-side from FootyAccess (see
   // STL.api.fetchAcademyAffiliate) — no manual blocks needed.
   // (format mirrors the live affiliate cache: record {wins,losses,ties},

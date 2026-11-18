@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-17T21:21:21.024391+00:00",
+  "generated_at": "2026-11-18T05:24:51.628296+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
-  "prospectsNote": "career totals",
+  "prospectsNote": "season totals",
   "teams": {
     "U14": {
       "record": {
@@ -54,23 +54,23 @@
       "nextGame": "vs Shattuck-St. Mary's · Nov 14",
       "prospects": [
         {
+          "pos": "Oth",
+          "name": "William Uzzell",
+          "line": "5 G · 10 apps",
+          "yellow": 0,
+          "red": 0
+        },
+        {
           "pos": "CM",
-          "name": "Moxley Strange",
-          "line": "20 G · 45 apps",
-          "yellow": 2,
+          "name": "Brecken Steffan",
+          "line": "3 G · 10 apps",
+          "yellow": 0,
           "red": 0
         },
         {
-          "pos": "CF",
-          "name": "Charles Thomson",
-          "line": "11 G · 45 apps",
-          "yellow": 1,
-          "red": 0
-        },
-        {
-          "pos": "CF",
-          "name": "Vedad Kovac",
-          "line": "11 G · 43 apps",
+          "pos": "AM",
+          "name": "Hector Boirie",
+          "line": "2 G · 10 apps",
           "yellow": 0,
           "red": 0
         }
@@ -90,24 +90,24 @@
       "nextGame": "vs Shattuck-St. Mary's · Nov 14",
       "prospects": [
         {
-          "pos": "CF",
-          "name": "Kane Kraus",
-          "line": "30 G · 40 apps",
+          "pos": "CM",
+          "name": "Moxley Strange",
+          "line": "11 G · 10 apps",
           "yellow": 1,
           "red": 0
         },
         {
-          "pos": "CM",
-          "name": "Drew Dowling",
-          "line": "16 G · 47 apps",
-          "yellow": 1,
+          "pos": "CF",
+          "name": "Vedad Kovac",
+          "line": "6 G · 9 apps",
+          "yellow": 0,
           "red": 0
         },
         {
           "pos": "Oth",
           "name": "Miroslav Levkovsky",
-          "line": "13 G · 43 apps",
-          "yellow": 8,
+          "line": "6 G · 7 apps",
+          "yellow": 1,
           "red": 0
         }
       ]
@@ -127,23 +127,23 @@
       "prospects": [
         {
           "pos": "CF",
-          "name": "Chidube Nwankwo",
-          "line": "16 G · 30 apps",
-          "yellow": 2,
-          "red": 0
-        },
-        {
-          "pos": "CF",
-          "name": "Joseph (Jojo) Adamitis",
-          "line": "11 G · 30 apps",
-          "yellow": 4,
+          "name": "Kane Kraus",
+          "line": "6 G · 8 apps",
+          "yellow": 0,
           "red": 0
         },
         {
           "pos": "Oth",
-          "name": "Alexander Jundt",
-          "line": "10 G · 31 apps",
-          "yellow": 9,
+          "name": "Graham Urban",
+          "line": "4 G · 9 apps",
+          "yellow": 0,
+          "red": 0
+        },
+        {
+          "pos": "Oth",
+          "name": "Koehn Lee",
+          "line": "4 G · 9 apps",
+          "yellow": 0,
           "red": 0
         }
       ]

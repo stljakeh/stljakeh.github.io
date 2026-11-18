@@ -5,9 +5,9 @@ FootyAccess (footyaccess.com) server-renders the team page with the current
 season's per-age-group aggregates AND every fixture, but sends no CORS
 headers — so browsers can't read it directly. This parses initialTeam
 (records) and initialMatches (last/next game per age group) out of the
-Next.js flight data, then pulls career player totals from FootyAccess's own
-JSON API (footy-access-dev.onrender.com/api) for the prospects rows.
-Writes Sports/data/city-academy.json, which the dashboard reads same-origin.
+Next.js flight data, then pulls current-season player totals from
+FootyAccess's MLS NEXT goals feed for the prospects rows. Writes
+Sports/data/city-academy.json, which the dashboard reads same-origin.
 
 Page parse failure -> writes NOTHING and exits nonzero, so the last good
 data persists. API failure -> still writes records + fixtures, without
@@ -19,7 +19,6 @@ import json
 import os
 import sys
 import time
-import urllib.parse
 import urllib.request
 
 PAGE = ("https://www.footyaccess.com/leagues/mls-next/teams/"
@@ -123,43 +122,50 @@ def last_next(matches, age):
     return out
 
 
-def fetch_prospects():
-    """Career totals per age group from FootyAccess's JSON API.
+def fetch_season_leaders(season):
+    """Per-age-group season totals from FootyAccess's MLS NEXT goals feed.
 
-    The API's `team` filter is unreliable (it pads the list with other
-    clubs), so fetch a wide window and filter on the exact team name.
+    The older /insights/player-stats-from-events feed is career totals and
+    silently ignores season params. This feed backs footyaccess.com's own
+    stats page and is scoped to one season. It has no working team filter, so
+    fetch a wide slice and filter on the exact team name.
     """
-    url = API + "/insights/player-stats-from-events?team=" + \
-        urllib.parse.quote(TEAM) + "&limit=2000"
-    last = None
-    for attempt in range(2):
-        try:
-            payload = json.loads(get(url, timeout=90))
-            break
-        except Exception as e:
-            last = e
-            if attempt == 0:
-                time.sleep(3)
-    else:
-        raise RuntimeError("prospects API: %s" % last)
-    players = ((payload or {}).get("data") or {}).get("players") or []
-    by_age = {}
-    for p in players:
-        if p.get("team") != TEAM or p.get("ageGroup") not in AGES:
-            continue
-        if not p.get("goals"):
-            continue
-        by_age.setdefault(p["ageGroup"], []).append({
-            "pos": p.get("position") or "",
-            "name": p.get("name") or "",
-            "line": "%d G · %d apps" % (p["goals"], p.get("appearances") or 0),
-            "yellow": int(p.get("yellowCards") or 0),
-            "red": int(p.get("redCards") or 0),
-            "_goals": p["goals"],
-            "_apps": p.get("appearances") or 0
-        })
     out = {}
-    for age, rows in by_age.items():
+    for age in AGES:
+        url = API + "/mls-next/stats/players/goals?ageGroup=" + age + \
+            "&season=" + str(season) + "&limit=10000"
+        payload = None
+        last = None
+        for attempt in range(2):
+            try:
+                payload = json.loads(get(url, timeout=90))
+                break
+            except Exception as e:
+                last = e
+                if attempt == 0:
+                    time.sleep(3)
+        if payload is None:
+            print("%s leaders unavailable: %s" % (age, last), file=sys.stderr)
+            continue
+        players = ((payload or {}).get("data") or {}).get("scorers") or []
+        rows = []
+        for p in players:
+            if p.get("team") != TEAM:
+                continue
+            st = p.get("stats") or {}
+            goals = st.get("goals") or 0
+            if not goals:
+                continue
+            apps = st.get("matchdaySelections") or 0
+            rows.append({
+                "pos": p.get("position") or "",
+                "name": p.get("name") or "",
+                "line": "%d G · %d apps" % (goals, apps),
+                "yellow": int(st.get("yellowCards") or 0),
+                "red": int(st.get("redCards") or 0),
+                "_goals": goals,
+                "_apps": apps
+            })
         rows.sort(key=lambda r: (-r["_goals"], -r["_apps"], r["name"]))
         out[age] = [{k: v for k, v in r.items() if not k.startswith("_")}
                     for r in rows[:3]]
@@ -195,8 +201,9 @@ def main():
         print("no age groups parsed", file=sys.stderr)
         return 1
 
+    season = (initial.get("filters") or {}).get("season")
     try:
-        prospects = fetch_prospects()
+        prospects = fetch_season_leaders(season) if season else {}
     except Exception as e:
         print("prospects unavailable: %s" % e, file=sys.stderr)
         prospects = {}
@@ -211,7 +218,7 @@ def main():
     out = {"generated_at": datetime.now(timezone.utc).isoformat(),
            "team": "St. Louis CITY SC Academy",
            "season": filters.get("seasonLabel"),
-           "prospectsNote": "career totals",
+           "prospectsNote": "season totals",
            "teams": teams}
     dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data",
                         "city-academy.json")

@@ -647,7 +647,7 @@ STL.render = {
     const list = (STL.config.AFFILIATES && STL.config.AFFILIATES[key]) || [];
     if (!list.length) { container.style.display = 'none'; return; }
     container.style.display = '';
-    if (label) label.textContent = key === 'cardinals' ? 'Farm System' : 'Affiliates';
+    if (label) label.textContent = key === 'cardinals' ? 'Farm System' : key === 'city-sc' ? 'CITY2/Academy' : 'Affiliates';
     panel.innerHTML = list.map(a => STL.render.affRowHtml(team.cardClass, a)).join('');
     if (window._affOpen && window._affOpen[team.cardClass]) {
       const toggle = container.querySelector('.aff-toggle');

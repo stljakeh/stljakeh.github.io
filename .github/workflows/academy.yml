@@ -1,9 +1,10 @@
 name: academy-data
 
-# Server-side prefetch of St. Louis CITY academy records (footyaccess.com
-# serves per-age-group MLS NEXT aggregates server-rendered but sends no CORS
-# headers). Regenerates Sports/data/city-academy.json, which the dashboard
-# reads same-origin. Staggered off the other refresh schedules.
+# Server-side prefetch of St. Louis CITY academy records, fixtures and season
+# scoring leaders (footyaccess.com serves per-age-group MLS NEXT aggregates
+# server-rendered but sends no CORS headers). Regenerates
+# Sports/data/city-academy.json, which the dashboard reads same-origin.
+# Staggered off the other refresh schedules.
 on:
   schedule:
     - cron: '48 */6 * * *'
