@@ -170,9 +170,34 @@ var MANUAL_MEASUREMENTS = {
   'battlehawks|que mcbroom':   { birthDate: '2002-12-21' }
 };
 
+// Players missing from a team's live feed but still worth showing.
+// Key: team id. { name, pos, jersey, htIn, wtLb, college, hometown, birthDate }.
+var MANUAL_PLAYERS = {
+  battlehawks: [
+    { name: 'John Sullivan', pos: 'DT', jersey: null, htIn: 73, wtLb: 292,
+      college: 'North Central College', hometown: '', birthDate: '2004-06-14' }
+  ]
+};
+
 // Players dropped from display entirely: row removed, excluded from the
 // player count and the averages. Key format matches MANUAL_MEASUREMENTS.
-var REMOVED_PLAYERS = ['citysc|riley lynch'];
+// BattleHawks: feed still carries 2026 names; official 2027 pre-draft
+// graphic (Nov 12, 2026) protects 35 and these are not among them.
+var REMOVED_PLAYERS = [
+  'citysc|riley lynch',
+  'battlehawks|a.j. thomas',
+  'battlehawks|abdul beecham',
+  'battlehawks|abraham beauplan',
+  'battlehawks|brandon silvers',
+  'battlehawks|daniel isom',
+  'battlehawks|jahcour pearson',
+  'battlehawks|kameron kelly',
+  'battlehawks|luis perez',
+  'battlehawks|luq barcoo',
+  'battlehawks|michael ojemudia',
+  'battlehawks|pita taumoepenu',
+  'battlehawks|que mcbroom'
+];
 
 function playerKey(teamId, name) {
   return teamId + '|' + String(name == null ? '' : name).toLowerCase();
@@ -351,8 +376,10 @@ async function fetchUfl() {
   var prs = detail.data && detail.data.visible_player_rosters;
   if (!prs || !prs.length) throw new Error('empty roster');
   var byGroup = {};
+  var seen = {};
   prs.forEach(function(pr) {
     var p = pr.player || {};
+    seen[String(p.full_name || '').toLowerCase()] = true;
     var pos = pr.position || p.position || '';
     var g = uflGroup(pos);
     if (!byGroup[g]) byGroup[g] = [];
@@ -373,6 +400,22 @@ async function fetchUfl() {
       wtLb: wtLb,
       college: p.college,
       hometown: p.birth_place
+    });
+  });
+  (MANUAL_PLAYERS.battlehawks || []).forEach(function(m) {
+    if (seen[String(m.name).toLowerCase()]) return;
+    var g = uflGroup(m.pos);
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push({
+      player: { displayName: m.name, age: ageFromBirthDate(m.birthDate), photo: null, headshot: null },
+      jersey: m.jersey,
+      pos: m.pos,
+      ht: m.htIn != null ? fmtHeightInches(m.htIn) : '&mdash;',
+      wt: m.wtLb != null ? fmtWeight(m.wtLb) : '&mdash;',
+      htIn: m.htIn,
+      wtLb: m.wtLb,
+      college: m.college,
+      hometown: m.hometown
     });
   });
   var order = ['Offense', 'Defense', 'Special Teams'];
