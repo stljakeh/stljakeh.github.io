@@ -1,25 +1,25 @@
 {
-  "generated_at": "2026-11-22T19:52:30.038970+00:00",
+  "generated_at": "2026-11-23T07:55:27.843153+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
-        "wins": 4,
+        "wins": 5,
         "losses": 7,
         "otl": 2,
         "sol": 3,
-        "points": 13,
-        "streak": "0-3-0-2"
+        "points": 15,
+        "streak": "1-0-0-0"
       },
       "prospects": [
         {
           "name": "T.J. Tynan",
           "pos": "C",
-          "line": "3 G / 10 A / 13 PTS \u00b7 16 GP"
+          "line": "3 G / 10 A / 13 PTS \u00b7 17 GP"
         },
         {
           "name": "Justin Carbonneau",
           "pos": "F",
-          "line": "4 G / 5 A / 9 PTS \u00b7 16 GP"
+          "line": "5 G / 5 A / 10 PTS \u00b7 17 GP"
         },
         {
           "name": "Aleksanteri Kaskim\u00e4ki",
@@ -27,41 +27,41 @@
           "line": "2 G / 5 A / 7 PTS \u00b7 6 GP"
         }
       ],
-      "standing": "7th Atlantic Division",
-      "lastGame": "L 2-5 vs Charlotte \u00b7 Fri, Nov 20",
-      "nextGame": "@ Hartford \u00b7 Sun, Nov 22 \u00b7 3:00 pm EST",
+      "standing": "6th Atlantic Division",
+      "lastGame": "W 2-1 @ Hartford \u00b7 Sun, Nov 22",
+      "nextGame": "@ Hartford \u00b7 Fri, Nov 27 \u00b7 5:00 pm EST",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
     "Worcester Railers": {
       "record": {
-        "wins": 5,
+        "wins": 6,
         "losses": 6,
         "otl": 0,
         "sol": 0,
-        "points": 10,
-        "streak": "3-0-0-0"
+        "points": 12,
+        "streak": "4-0-0-0"
       },
       "prospects": [
         {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "4 G / 4 A / 8 PTS \u00b7 11 GP"
+          "line": "4 G / 4 A / 8 PTS \u00b7 12 GP"
         },
         {
-          "name": "Matt DeMelis",
+          "name": "Sam Stange",
           "pos": "F",
-          "line": "3 G / 2 A / 5 PTS \u00b7 11 GP"
+          "line": "2 G / 5 A / 7 PTS \u00b7 10 GP"
         },
         {
-          "name": "Stevie Moses",
+          "name": "Declan McDonnell",
           "pos": "F",
-          "line": "3 G / 2 A / 5 PTS \u00b7 11 GP"
+          "line": "4 G / 1 A / 5 PTS \u00b7 12 GP"
         }
       ],
-      "standing": "8th North",
-      "lastGame": "W 2-1 @ Greensboro \u00b7 Nov. 15",
-      "nextGame": "vs Reading \u00b7 Nov. 22 \u00b7 20:00 1st",
+      "standing": "7th North",
+      "lastGame": "W 3-0 vs Reading \u00b7 Nov. 22",
+      "nextGame": "@ Maine \u00b7 Nov. 25 \u00b7 6:00 pm EST",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
