@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-24T10:26:34.123532+00:00",
+  "generated_at": "2026-11-24T22:46:45.868653+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "season totals",
@@ -78,35 +78,35 @@
     },
     "U17": {
       "record": {
-        "wins": 11,
+        "wins": 12,
         "losses": 0,
         "ties": 1,
-        "points": 34
+        "points": 37
       },
-      "goalsFor": 41,
-      "goalsAgainst": 15,
-      "played": 12,
+      "goalsFor": 44,
+      "goalsAgainst": 17,
+      "played": 13,
       "lastGame": "W 3-2 vs St. Louis Scott Gallagher · Nov 22",
       "nextGame": "vs Bavarian United SC · Nov 15",
       "prospects": [
         {
           "pos": "CM",
           "name": "Moxley Strange",
-          "line": "12 G · 12 apps",
+          "line": "12 G · 13 apps",
           "yellow": 1,
           "red": 0
         },
         {
           "pos": "CF",
           "name": "Charles Thomson",
-          "line": "6 G · 12 apps",
+          "line": "6 G · 13 apps",
           "yellow": 0,
           "red": 0
         },
         {
           "pos": "CF",
           "name": "Vedad Kovac",
-          "line": "6 G · 11 apps",
+          "line": "6 G · 12 apps",
           "yellow": 0,
           "red": 0
         }
@@ -123,7 +123,7 @@
       "goalsAgainst": 24,
       "played": 13,
       "lastGame": "W 2-1 vs St. Louis Scott Gallagher · Nov 22",
-      "nextGame": "vs Bavarian United SC · Nov 15",
+      "nextGame": null,
       "prospects": [
         {
           "pos": "CF",
