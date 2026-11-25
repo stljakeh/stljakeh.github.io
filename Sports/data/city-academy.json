@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-24T22:46:45.868653+00:00",
+  "generated_at": "2026-11-25T09:12:38.581053+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "season totals",
@@ -42,14 +42,14 @@
     },
     "U16": {
       "record": {
-        "wins": 2,
+        "wins": 3,
         "losses": 6,
         "ties": 4,
-        "points": 10
+        "points": 13
       },
-      "goalsFor": 12,
+      "goalsFor": 16,
       "goalsAgainst": 26,
-      "played": 12,
+      "played": 13,
       "lastGame": "L 0-1 vs St. Louis Scott Gallagher · Nov 22",
       "nextGame": "vs Bavarian United SC · Nov 15",
       "prospects": [
@@ -87,7 +87,7 @@
       "goalsAgainst": 17,
       "played": 13,
       "lastGame": "W 3-2 vs St. Louis Scott Gallagher · Nov 22",
-      "nextGame": "vs Bavarian United SC · Nov 15",
+      "nextGame": null,
       "prospects": [
         {
           "pos": "CM",
