@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25T21:59:31.105467+00:00",
+  "generated_at": "2026-11-26T08:54:59.660403+00:00",
   "team": "St. Louis CITY SC Academy",
   "season": "2026–27",
   "prospectsNote": "season totals",
@@ -87,7 +87,7 @@
       "goalsAgainst": 17,
       "played": 13,
       "lastGame": "W 3-2 vs St. Louis Scott Gallagher · Nov 22",
-      "nextGame": "vs Bavarian United SC · Nov 15",
+      "nextGame": null,
       "prospects": [
         {
           "pos": "CM",
@@ -116,26 +116,26 @@
       "record": {
         "wins": 7,
         "losses": 3,
-        "ties": 2,
-        "points": 23
+        "ties": 3,
+        "points": 24
       },
-      "goalsFor": 30,
-      "goalsAgainst": 22,
-      "played": 12,
+      "goalsFor": 31,
+      "goalsAgainst": 23,
+      "played": 13,
       "lastGame": "W 2-1 vs St. Louis Scott Gallagher · Nov 22",
       "nextGame": null,
       "prospects": [
         {
           "pos": "CF",
           "name": "Kane Kraus",
-          "line": "8 G · 10 apps",
+          "line": "8 G · 11 apps",
           "yellow": 0,
           "red": 0
         },
         {
           "pos": "Oth",
           "name": "Koehn Lee",
-          "line": "4 G · 11 apps",
+          "line": "4 G · 12 apps",
           "yellow": 0,
           "red": 0
         },
