@@ -72,9 +72,15 @@ body.themed {
   gap: 12px; padding: 2px 2px 0;
 }
 .wordmark { line-height: 1; }
-a.wordmark {
-  display: block; color: inherit; text-decoration: none;
+a.wordmark,
+a.wordmark:link,
+a.wordmark:visited,
+a.wordmark:hover,
+a.wordmark:active {
+  display: block; color: inherit;
+  text-decoration: none; -webkit-text-decoration: none;
 }
+a.wordmark * { text-decoration: none; -webkit-text-decoration: none; }
 a.wordmark:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px;
 }
