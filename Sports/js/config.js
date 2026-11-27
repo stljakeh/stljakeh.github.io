@@ -26,7 +26,8 @@ STL.config = {
   TEAMS: [
     {
       id: '24',
-      name: 'Cardinals',
+      name: 'St. Louis Cardinals',
+      heroName: 'Cardinals',
       league: 'MLB',
       leagueFull: 'National League Central',
       sport: 'baseball',
@@ -44,7 +45,8 @@ STL.config = {
     },
     {
       id: '19',
-      name: 'Blues',
+      name: 'St. Louis Blues',
+      heroName: 'Blues',
       league: 'NHL',
       leagueFull: 'Central Division',
       sport: 'hockey',
@@ -60,6 +62,7 @@ STL.config = {
     {
       id: '21812',
       name: 'St. Louis CITY sc',
+      heroName: 'CITY SC',
       noThe: true,
       league: 'MLS',
       leagueFull: 'Western Conference',
@@ -76,7 +79,8 @@ STL.config = {
     },
     {
       id: '112651',
-      name: 'BattleHawks',
+      name: 'St. Louis Battlehawks',
+      heroName: 'Battlehawks',
       league: 'UFL',
       leagueFull: 'UFL',
       sport: 'football',
@@ -135,7 +139,8 @@ STL.config = {
   OTHER_TEAMS: [
     {
       id: '23',
-      name: 'Steelers',
+      name: 'Pittsburgh Steelers',
+      heroName: 'Steelers',
       league: 'NFL',
       leagueFull: 'AFC North',
       sport: 'football',

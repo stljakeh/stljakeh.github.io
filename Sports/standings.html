@@ -147,13 +147,13 @@ function fetchMlsMatches() {
 
 var DIVISIONS = [
   {
-    id: 'cardinals', name: 'NL Central', team: 'Cardinals', teamId: '24', color: '#C41E3A',
+    id: 'cardinals', name: 'NL Central', team: 'St. Louis Cardinals', teamId: '24', color: '#C41E3A',
     url: 'https://site.web.api.espn.com/apis/v2/sports/baseball/mlb/standings?group=8', childId: '5',
     cols: ['W','L','PCT','GB','STRK'], statNames: ['wins','losses','winPercent','gamesBehind','streak'],
     fmt: { winPercent:'pct', gamesBehind:'gb' }
   },
   {
-    id: 'blues', name: 'Central Division', team: 'Blues', teamId: '19', color: '#003087',
+    id: 'blues', name: 'Central Division', team: 'St. Louis Blues', teamId: '19', color: '#003087',
     url: 'https://site.web.api.espn.com/apis/v2/sports/hockey/nhl/standings?group=8', childId: '31',
     cols: ['W','L','OTL','PTS','STRK'], statNames: ['wins','losses','overtimeLosses','points','streak'],
     fmt: {}
@@ -165,7 +165,7 @@ var DIVISIONS = [
     fmt: {}
   },
   {
-    id: 'battlehawks', name: 'UFL', team: 'BattleHawks', teamId: '112651', color: '#00529B',
+    id: 'battlehawks', name: 'UFL', team: 'St. Louis Battlehawks', teamId: '112651', color: '#00529B',
     url: 'https://site.web.api.espn.com/apis/v2/sports/football/ufl/standings', childId: null,
     cols: ['W','L','PCT','STRK'], statNames: ['wins','losses','winPercent','streak'],
     fmt: { winPercent:'pct' }

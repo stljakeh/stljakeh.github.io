@@ -8,8 +8,12 @@ var refreshTimer = null;
 var isRefreshing = false;
 var countdownTimer = null;
 
+function heroName(team) {
+  return team.heroName || team.name;
+}
+
 function teamPhrase(team) {
-  return (team.noThe ? '' : 'the ') + team.name;
+  return (team.noThe ? '' : 'the ') + heroName(team);
 }
 
 STL.dashboard = {
@@ -169,7 +173,7 @@ STL.dashboard = {
       const ha = comps.find(c => String(c.team.id) === String(liveTeam.id));
       const opp = comps.find(c => String(c.team.id) !== String(liveTeam.id));
       const st = liveTeam._liveStatus || liveTeam._liveEvent.competitions[0].status;
-      headlineText = liveTeam.name + ' ' + STL.utils.getScoreDisplay(ha) + ' · Opp ' + STL.utils.getScoreDisplay(opp) + ' — live' + (st.type?.detail ? ' (' + st.type.detail + ')' : '') + '.';
+      headlineText = heroName(liveTeam) + ' ' + STL.utils.getScoreDisplay(ha) + ' · Opp ' + STL.utils.getScoreDisplay(opp) + ' — live' + (st.type?.detail ? ' (' + st.type.detail + ')' : '') + '.';
       kickerText = 'LIVE NOW · ' + liveTeam.league;
     } else {
       let soon = null;
@@ -192,7 +196,7 @@ STL.dashboard = {
         pick = activeTeam || teams[0];
         if (pick) {
           headlineText = 'Following ' + teamPhrase(pick) + ' all season long.';
-          kickerText = pick.league + ' · ' + pick.name.toUpperCase();
+          kickerText = pick.league + ' · ' + heroName(pick).toUpperCase();
         }
       }
     }

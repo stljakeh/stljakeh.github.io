@@ -744,7 +744,7 @@ STL.api = {
   // True when an event is postseason (playoffs). Schedule events carry
   // event-level seasonType {id:'3', type:3, name:'Postseason'} (the
   // competitions level may too). Postseason games are excluded from the
-  // computed regular-season record (e.g. BattleHawks show 6-4, not 6-5).
+  // computed regular-season record (e.g. Battlehawks show 6-4, not 6-5).
   isPostseason: function(ev) {
     try {
       const sts = [ev.seasonType, ev.competitions?.[0]?.seasonType].filter(Boolean);
@@ -1028,7 +1028,7 @@ STL.api = {
     let compWins = 0, compLosses = 0, compDraws = 0, compOtl = 0;
     for (const ev of completedEvents) {
       // Regular-season record only — postseason games don't count
-      // (BattleHawks 2026: 6-4, with the semifinal loss excluded).
+      // (Battlehawks 2026: 6-4, with the semifinal loss excluded).
       if (STL.api.isPostseason(ev)) continue;
       const ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === String(team.id); });
       const opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== String(team.id); });
@@ -1765,7 +1765,7 @@ STL.api = {
   // St. Louis CITY2 via the MLS official stats API (CORS *, same feed family
   // as the MLS standings override). Regular season (MLS-COM-000003) feeds the
   // record; playoffs (MLS-COM-000004) count for last/next so a postseason run
-  // shows. Record stays regular-season only (BattleHawks precedent). Shares
+  // shows. Record stays regular-season only (Battlehawks precedent). Shares
   // MLS_SEASON_ID with the first team. Leaders come from the prefetched
   // city2-leaders.json (see attachCity2Leaders).
   fetchMlsnpAffiliate: async function(cardClass, aff) {
