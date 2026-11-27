@@ -72,6 +72,12 @@ body.themed {
   gap: 12px; padding: 2px 2px 0;
 }
 .wordmark { line-height: 1; }
+a.wordmark {
+  display: block; color: inherit; text-decoration: none;
+}
+a.wordmark:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px;
+}
 .wordmark .wm-kicker {
   font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
   letter-spacing: 3px; color: var(--accent); margin-bottom: 4px;
