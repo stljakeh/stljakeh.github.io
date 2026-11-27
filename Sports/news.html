@@ -100,6 +100,77 @@
   padding: 40px;
   font-size: 0.9rem;
 }
+.tx-strip {
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  color: var(--card-ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 8px 0 14px;
+  overflow: hidden;
+}
+.tx-label {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: rgba(var(--ink-rgb), 0.06);
+  border-right: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--accent);
+}
+.tx-viewport { flex: 1; min-width: 0; overflow: hidden; }
+.tx-track {
+  display: flex;
+  width: max-content;
+  animation: tx-marquee 120s linear infinite;
+}
+.tx-strip:hover .tx-track, .tx-strip:focus-within .tx-track { animation-play-state: paused; }
+.tx-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 22px;
+  padding: 8px 22px 8px 0;
+}
+.tx-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 360px;
+  color: var(--card-ink);
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tx-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.tx-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.tx-dot-fallback { background: var(--card-mute); }
+.tx-team { font-weight: 700; }
+.tx-meta {
+  color: var(--card-mute);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.5px;
+}
+.tx-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-item:hover .tx-text { text-decoration: underline; }
+@keyframes tx-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tx-viewport { overflow-x: auto; }
+  .tx-track { animation: none; }
+  .tx-group[aria-hidden="true"] { display: none; }
+}
 </style>
 <link rel="stylesheet" href="css/nav.css">
 </head>
@@ -132,6 +203,10 @@
   <div class="mini-hero">
     <h1>News</h1>
     <div class="sub" id="feedSub">Loading...</div>
+  </div>
+  <div class="tx-strip" id="txTicker" aria-label="Roster moves" style="display:none;">
+    <span class="tx-label">ROSTER MOVES</span>
+    <div class="tx-viewport"><div class="tx-track" id="txTrack"></div></div>
   </div>
   <div class="news-list" id="newsList">
     <div class="loading">Loading news...</div>
@@ -219,7 +294,77 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
+function txShortName(name) {
+  return String(name || 'Team').replace(/^St\.?\s+Louis\s+/i, '').replace(/\s+Soccer$/i, '');
+}
+
+function txTime(value) {
+  var t = Date.parse(value);
+  return isNaN(t) ? -Infinity : t;
+}
+
+function txSafeUrl(raw) {
+  if (!raw) return null;
+  var href = String(raw).trim();
+  try {
+    var parsed = new URL(href, window.location.href);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return escHtml(parsed.href).replace(/"/g, '&quot;');
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadTransactions() {
+  var ticker = document.getElementById('txTicker');
+  var track = document.getElementById('txTrack');
+  try {
+    var resp = await fetch('data/transactions.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('bad response');
+    var data = await resp.json();
+    if (!data || !Array.isArray(data.items) || !data.items.length) {
+      ticker.style.display = 'none';
+      return;
+    }
+    var teamById = {};
+    TEAMS.forEach(function(t) { teamById[String(t.id)] = t; });
+    var items = data.items.slice().sort(function(a, b) {
+      var ta = txTime(a && a.date);
+      var tb = txTime(b && b.date);
+      if (ta === tb) return 0;
+      return tb - ta;
+    }).slice(0, 30);
+    var rendered = items.map(function(it) {
+      it = it || {};
+      var team = teamById[String(it.teamId)];
+      var teamName = txShortName(team ? team.name : (it.teamName || 'Team'));
+      var dot = team
+        ? '<span class="tx-dot" style="background:' + escHtml(String(team.color || '')) + ';"></span>'
+        : '<span class="tx-dot tx-dot-fallback"></span>';
+      var meta = escHtml(String(it.kind || 'Roster news'));
+      var ts = txTime(it.date);
+      if (ts !== -Infinity) meta += ' · ' + escHtml(fmtDate(it.date));
+      var text = escHtml(String(it.text || ''));
+      var href = txSafeUrl(it.url);
+      var tag = href ? 'a' : 'span';
+      var attrs = href ? ' href="' + href + '" target="_blank" rel="noopener"' : '';
+      return '<' + tag + ' class="tx-item"' + attrs + '>' +
+        dot +
+        '<span class="tx-team">' + escHtml(teamName) + '</span>' +
+        '<span class="tx-meta">' + meta + '</span>' +
+        '<span class="tx-text">' + text + '</span>' +
+      '</' + tag + '>';
+    }).join('');
+    var groupHtml = '<div class="tx-group">' + rendered + '</div>';
+    track.innerHTML = groupHtml + '<div class="tx-group" aria-hidden="true" inert>' + rendered + '</div>';
+    ticker.style.display = 'flex';
+  } catch (e) {
+    ticker.style.display = 'none';
+  }
+}
+
 loadNews();
+loadTransactions();
 </script>
 </body>
 </html>
