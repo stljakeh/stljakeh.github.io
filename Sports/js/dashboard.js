@@ -8,6 +8,10 @@ var refreshTimer = null;
 var isRefreshing = false;
 var countdownTimer = null;
 
+function teamPhrase(team) {
+  return (team.noThe ? '' : 'the ') + team.name;
+}
+
 STL.dashboard = {
 
   teamList: function() {
@@ -42,7 +46,7 @@ STL.dashboard = {
     try {
       window._mlsOverall = {};
       window._mlsConfTeams = [];
-      await STL.api.enrichLiveScores();
+      const livePromise = STL.api.enrichLiveScores();
       await STL.api.fetchMlsStandings();
       // Throttled (limit 4): unbounded Promise.all bursts all teams at once,
       // which is what trips the proxy rate limits and makes random cards fail.
@@ -74,6 +78,9 @@ STL.dashboard = {
         STL.dashboard.updateHero();
         STL.dashboard._paintedOnce = true;
       }
+
+      await livePromise.catch(function() {});
+      STL.dashboard.updateHero();
 
       const now = new Date();
       const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -175,7 +182,7 @@ STL.dashboard = {
       if (soon) {
         pick = soon.team; pickDate = soon.ms;
         const verb = VERB[soon.team.sport] || 'Game time';
-        headlineText = verb + ' for the ' + soon.team.name + ' in ' + fmtDur(soon.ms) + '.';
+        headlineText = verb + ' for ' + teamPhrase(soon.team) + ' in ' + fmtDur(soon.ms) + '.';
         kickerText = 'NEXT UP · ' + soon.team.league;
       } else {
         const activeTeam = teams.find(t => {
@@ -184,7 +191,7 @@ STL.dashboard = {
         });
         pick = activeTeam || teams[0];
         if (pick) {
-          headlineText = 'Following the ' + pick.name + ' all season long.';
+          headlineText = 'Following ' + teamPhrase(pick) + ' all season long.';
           kickerText = pick.league + ' · ' + pick.name.toUpperCase();
         }
       }

@@ -119,6 +119,10 @@ def main():
     with open(dest, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
         f.write("\n")
+    meta = os.path.join(os.path.dirname(dest), "espn-prefetch-meta.json")
+    with open(meta, "w", encoding="utf-8") as f:
+        json.dump({"generated_at": out["generated_at"]}, f)
+        f.write("\n")
     size_kb = os.path.getsize(dest) // 1024
     print("wrote %s (%d KB, %d/%d teams%s)" % (
         dest, size_kb, len(out["teams"]), len(TEAMS),

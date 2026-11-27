@@ -839,16 +839,27 @@ STL.api = {
       return STL.api._espnPrefetch.data;
     }
     // Single in-flight fetch: all teams' parallel fetchTeam calls share it
-    // instead of each downloading the ~350KB bundle separately.
+    // instead of each downloading the bundle separately.
     if (STL.api._espnPrefetchLoading) return STL.api._espnPrefetchLoading;
     STL.api._espnPrefetchLoading = (async function() {
       try {
+        // The tiny meta file gates the large bundle: a stale bundle would be
+        // rejected by consumePrefetch, so don't download it at all.
+        try {
+          const metaResp = await fetch('data/espn-prefetch-meta.json', { cache: 'no-store' });
+          if (metaResp.ok) {
+            const meta = await metaResp.json();
+            const gen = Date.parse(meta.generated_at);
+            if (isFinite(gen) && now - gen > STL.api.ESPN_CACHE_TTL_MS) return null;
+          }
+        } catch (e) {}
         // no-store: Pages CDN + browser HTTP cache can otherwise serve a
         // >6h-old bundle that consumePrefetch then rejects, dropping us to
         // the flaky live path for no reason.
         const resp = await fetch('data/espn-prefetch.json', { cache: 'no-store' });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
+        if (!data || !data.generated_at || now - Date.parse(data.generated_at) > STL.api.ESPN_CACHE_TTL_MS) return null;
         STL.api._espnPrefetch = { at: Date.now(), data: data };
         return data;
       } finally {
@@ -856,6 +867,25 @@ STL.api = {
       }
     })();
     return STL.api._espnPrefetchLoading;
+  },
+
+  _espnStaleBundle: null,
+  _espnStaleBundleLoading: null,
+
+  staleBundle: async function() {
+    if (STL.api._espnStaleBundle) return STL.api._espnStaleBundle;
+    if (STL.api._espnStaleBundleLoading) return STL.api._espnStaleBundleLoading;
+    STL.api._espnStaleBundleLoading = (async function() {
+      try {
+        const resp = await fetch('data/espn-prefetch.json', { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        STL.api._espnStaleBundle = await resp.json();
+        return STL.api._espnStaleBundle;
+      } finally {
+        STL.api._espnStaleBundleLoading = null;
+      }
+    })();
+    return STL.api._espnStaleBundleLoading;
   },
 
   consumePrefetch: async function(team) {
@@ -879,7 +909,7 @@ STL.api = {
     // AND the localStorage cache both miss. Better a slightly old paint than
     // a random "Failed to load".
     try {
-      const b = await STL.api.prefetchBundle();
+      const b = await STL.api.staleBundle();
       if (!b || !b.teams) return null;
       const entry = b.teams[team.cardClass];
       if (!entry || !entry.team) return null;

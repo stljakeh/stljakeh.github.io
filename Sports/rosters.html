@@ -34,6 +34,8 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
 }
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .section-team { font-size: 0.75rem; color: var(--card-mute); text-transform: uppercase; letter-spacing: 0.5px; }
+.section-avg { font-size: 0.72rem; color: var(--card-mute); font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
+.roster-section.open .section-avg { display: none; }
 .roster-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .table-wrap { overflow-x: auto; }
 .roster-table th {
@@ -58,6 +60,7 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
 .error-msg { text-align: center; color: var(--danger); padding: 40px; }
 .loading { text-align: center; color: var(--card-mute); padding: 40px; }
 @media (max-width: 640px) {
+  .section-header { flex-wrap: wrap; }
   .roster-table { font-size: 0.78rem; }
   .roster-table th, .roster-table td { padding: 6px 8px; white-space: normal; }
 }
@@ -167,7 +170,8 @@ var MANUAL_MEASUREMENTS = {
   'citysc|tyson pearce':       { htIn: 71, wtLb: 165 },
   'citysc|zach zengue':        { wtLb: 161 },
   'citysc|caden glover':       { wtLb: 176 },
-  'battlehawks|que mcbroom':   { birthDate: '2002-12-21' }
+  'battlehawks|shane watts':     { birthDate: '2002-04-01' },
+  'battlehawks|trevor mayberry': { birthDate: '2002-08-03' }
 };
 
 // Players missing from a team's live feed but still worth showing.
@@ -185,6 +189,7 @@ var MANUAL_PLAYERS = {
 // graphic (Nov 12, 2026) protects 35 and these are not among them.
 var REMOVED_PLAYERS = [
   'citysc|riley lynch',
+  'citysc|colin welsh',
   'battlehawks|a.j. thomas',
   'battlehawks|abdul beecham',
   'battlehawks|abraham beauplan',
@@ -196,7 +201,8 @@ var REMOVED_PLAYERS = [
   'battlehawks|luq barcoo',
   'battlehawks|michael ojemudia',
   'battlehawks|pita taumoepenu',
-  'battlehawks|que mcbroom'
+  'battlehawks|que mcbroom',
+  'battlehawks|myles sims'
 ];
 
 function playerKey(teamId, name) {
@@ -254,6 +260,35 @@ function rosterRow(player, jersey, pos, ht, wt, extra, showAge) {
     '</tr>';
 }
 
+function rosterAverages(groups) {
+  var nHt = 0, sumHt = 0, nWt = 0, sumWt = 0, nAge = 0, sumAge = 0;
+  groups.forEach(function(g) {
+    g.items.forEach(function(item) {
+      var hi = numOrNull(item.htIn);
+      if (hi != null) { nHt++; sumHt += hi; }
+      var wl = numOrNull(item.wtLb);
+      if (wl != null) { nWt++; sumWt += wl; }
+      var ag = numOrNull(item.player && item.player.age);
+      if (ag != null) { nAge++; sumAge += ag; }
+    });
+  });
+  return {
+    ht: nHt ? fmtHtIn(sumHt / nHt) : null,
+    wt: nWt ? Math.round(sumWt / nWt) : null,
+    age: nAge ? (Math.round(sumAge / nAge * 10) / 10).toFixed(1) : null
+  };
+}
+
+function headerAvgHtml(team, groups) {
+  var a = rosterAverages(groups);
+  var parts = [];
+  if (a.ht) parts.push(a.ht);
+  if (a.wt != null) parts.push(a.wt + ' lbs');
+  if (team.showAge !== false && a.age) parts.push(a.age + ' yrs');
+  if (!parts.length) return '';
+  return '<span class="section-avg">Avg ' + parts.join(' &middot; ') + '</span>';
+}
+
 function tableHtml(cols, groups) {
   var colCount = 5 + (cols.extra ? 1 : 0) + (cols.showAge !== false ? 1 : 0);
   var html = '<div class="table-wrap"><table class="roster-table"><thead><tr>' +
@@ -274,25 +309,15 @@ function tableHtml(cols, groups) {
     html += rows.join('');
   });
   html += '</tbody>';
-  var nHt = 0, sumHt = 0, nWt = 0, sumWt = 0, nAge = 0, sumAge = 0;
-  groups.forEach(function(g) {
-    g.items.forEach(function(item) {
-      var hi = numOrNull(item.htIn);
-      if (hi != null) { nHt++; sumHt += hi; }
-      var wl = numOrNull(item.wtLb);
-      if (wl != null) { nWt++; sumWt += wl; }
-      var ag = numOrNull(item.player && item.player.age);
-      if (ag != null) { nAge++; sumAge += ag; }
-    });
-  });
+  var avg = rosterAverages(groups);
   html += '<tfoot><tr class="avg-row">' +
     '<td class="num"></td>' +
     '<td><span class="player-name">Avg</span></td>' +
     '<td></td>' +
-    '<td>' + (nHt ? fmtHtIn(sumHt / nHt) : '&mdash;') + '</td>' +
-    '<td>' + (nWt ? String(Math.round(sumWt / nWt)) + ' lbs' : '&mdash;') + '</td>' +
+    '<td>' + (avg.ht || '&mdash;') + '</td>' +
+    '<td>' + (avg.wt != null ? String(avg.wt) + ' lbs' : '&mdash;') + '</td>' +
     (cols.extra ? '<td></td>' : '') +
-    (cols.showAge !== false ? '<td class="num muted">' + (nAge ? (Math.round(sumAge / nAge * 10) / 10).toFixed(1) : '&mdash;') + '</td>' : '') +
+    (cols.showAge !== false ? '<td class="num muted">' + (avg.age || '&mdash;') + '</td>' : '') +
     '</tr></tfoot>';
   return html + '</table></div>';
 }
@@ -447,6 +472,7 @@ async function loadRosters() {
           '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
             '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
             '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + ' &middot; ' + count + ' players</span>' +
+            headerAvgHtml(team, groups) +
             '<button class="details-btn" type="button" data-roster="' + team.id + '" style="margin-left:auto">+ details</button>' +
           '</div><div class="rbody">' + renderRoster(team, groups) + '</div></div>';
       })

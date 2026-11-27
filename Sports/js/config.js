@@ -59,7 +59,8 @@ STL.config = {
     },
     {
       id: '21812',
-      name: 'CITY SC',
+      name: 'St. Louis CITY sc',
+      noThe: true,
       league: 'MLS',
       leagueFull: 'Western Conference',
       sport: 'soccer',
@@ -150,6 +151,7 @@ STL.config = {
     {
       id: '132',
       name: 'Bayern Munich',
+      noThe: true,
       league: 'Bundesliga',
       leagueFull: 'German Bundesliga',
       sport: 'soccer',
@@ -165,6 +167,7 @@ STL.config = {
     {
       id: '393',
       name: 'Nottingham Forest',
+      noThe: true,
       league: 'EPL',
       leagueFull: 'English Premier League',
       sport: 'soccer',
@@ -180,6 +183,7 @@ STL.config = {
     {
       id: '7108',
       name: 'Nagoya Grampus',
+      noThe: true,
       league: 'J1 League',
       leagueFull: 'Japanese J1 League',
       sport: 'soccer',
@@ -196,6 +200,7 @@ STL.config = {
     {
       id: '22028',
       name: 'Al Kholood',
+      noThe: true,
       league: 'SPL',
       leagueFull: 'Saudi Pro League',
       sport: 'soccer',
@@ -226,7 +231,7 @@ STL.config = {
     },
     {
       id: '481',
-      name: 'Germany MNT',
+      name: 'DFB',
       league: 'International',
       leagueFull: "Germany Men's National Team",
       sport: 'soccer',
@@ -257,7 +262,7 @@ STL.config = {
     },
     {
       id: '17412',
-      name: "SIUE Men's Soccer",
+      name: 'SIUE Cougars',
       league: "NCAA Men's Soccer",
       leagueFull: 'OVC',
       sport: 'soccer',
