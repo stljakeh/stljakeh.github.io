@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://site.api.espn.com" crossorigin>
 <link rel="stylesheet" href="css/theme.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -217,6 +218,8 @@
 </div>
 </div>
 
+<script src="js/utils.js"></script>
+<script src="js/shared.js"></script>
 <script>
 var TEAMS = [
   { id: '24', name: 'St. Louis Cardinals', sport: 'baseball', league: 'mlb', color: '#C41E3A' },
@@ -225,6 +228,11 @@ var TEAMS = [
   { id: '112651', name: 'St. Louis Battlehawks', sport: 'football', league: 'ufl', color: '#00529B' },
   { id: '17412', name: 'SIUE Soccer', sport: 'soccer', league: 'usa.ncaa.m.1', color: '#C8102E' },
 ];
+
+var escHtml = STL.utils.escHtml;
+var safeUrl = STL.utils.safeUrl;
+var NEWS_CACHE_KEY = 'stl_news_cache_v1';
+var NEWS_CACHE_TTL = 15 * 60000;
 
 function fmtDate(iso) {
   var d = new Date(iso);
@@ -240,61 +248,80 @@ function fmtDate(iso) {
 
 async function fetchLeagueNews(sport, league, teamId) {
   try {
-    var resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/' + sport + '/' + league + '/news?limit=20');
+    var resp = await STL.shared.fetchWithTimeout('https://site.api.espn.com/apis/site/v2/sports/' + sport + '/' + league + '/news?limit=20', 8000);
     if (!resp.ok) return [];
     var data = await resp.json();
     return (data.articles || []).filter(function(a) {
       if (!a.categories) return false;
       return a.categories.some(function(c) { return c.type === 'team' && String(c.teamId) === teamId; });
-    }).map(function(a) { a._teamId = teamId; return a; });
+    }).map(function(a) {
+      return {
+        _teamId: teamId,
+        published: a.published || '',
+        headline: a.headline || '',
+        description: a.description || '',
+        img: a.images && a.images[0] ? a.images[0].url : null,
+        link: a.links && a.links.web ? a.links.web.href : '#'
+      };
+    });
   } catch (e) {
     return [];
   }
 }
 
+function renderNewsItems(items) {
+  var list = document.getElementById('newsList');
+  var sub = document.getElementById('feedSub');
+  var teamById = {};
+  TEAMS.forEach(function(t) { teamById[String(t.id)] = t; });
+  sub.textContent = items.length + ' articles';
+  list.innerHTML = items.map(function(a) {
+    var t = teamById[String(a._teamId)] || { name: 'Team', color: '#666' };
+    var img = a.img ? safeUrl(a.img) : null;
+    if (img === '#') img = null;
+    var link = safeUrl(a.link);
+    return '<div class="news-card">' +
+      '<div class="news-card-accent" style="background:' + escHtml(t.color) + ';"></div>' +
+      (img ? '<div class="news-card-thumb"><img src="' + escHtml(img) + '" alt="" loading="lazy"></div>' : '') +
+      '<div class="news-card-body">' +
+        '<div class="news-card-top">' +
+          '<span class="news-team-badge" style="background:' + escHtml(t.color) + ';color:#fff;">' + escHtml(t.name) + '</span>' +
+          '<span class="news-date">' + escHtml(fmtDate(a.published)) + '</span>' +
+        '</div>' +
+        '<a class="news-headline" href="' + escHtml(link) + '" target="_blank" rel="noopener">' + escHtml(a.headline) + '</a>' +
+        '<div class="news-description">' + escHtml(a.description || '') + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
 async function loadNews() {
   var list = document.getElementById('newsList');
   var sub = document.getElementById('feedSub');
+  var cached = STL.shared.readCache(NEWS_CACHE_KEY);
+  if (cached && cached.length) {
+    renderNewsItems(cached);
+  }
   try {
     var results = await Promise.all(TEAMS.map(function(t) { return fetchLeagueNews(t.sport, t.league, t.id); }));
     var all = [];
-    TEAMS.forEach(function(t, i) {
-      results[i].forEach(function(a) { all.push({ article: a, team: t }); });
-    });
-    all.sort(function(a, b) { return new Date(b.article.published) - new Date(a.article.published); });
+    results.forEach(function(arr) { arr.forEach(function(a) { all.push(a); }); });
+    all.sort(function(a, b) { return new Date(b.published) - new Date(a.published); });
     if (!all.length) {
-      list.innerHTML = '<div class="error-msg">No news articles found for your teams.</div>';
-      sub.textContent = 'No articles';
+      if (!cached || !cached.length) {
+        list.innerHTML = '<div class="error-msg">No news articles found for your teams.</div>';
+        sub.textContent = 'No articles';
+      }
       return;
     }
-    sub.textContent = all.length + ' articles';
-    list.innerHTML = all.map(function(item) {
-      var a = item.article, t = item.team;
-      var img = a.images && a.images[0] ? a.images[0].url : null;
-      var link = a.links && a.links.web ? a.links.web.href : '#';
-      return '<div class="news-card">' +
-        '<div class="news-card-accent" style="background:' + t.color + ';"></div>' +
-        (img ? '<div class="news-card-thumb"><img src="' + img + '" alt="" loading="lazy"></div>' : '') +
-        '<div class="news-card-body">' +
-          '<div class="news-card-top">' +
-            '<span class="news-team-badge" style="background:' + t.color + ';color:#fff;">' + t.name + '</span>' +
-            '<span class="news-date">' + fmtDate(a.published) + '</span>' +
-          '</div>' +
-          '<a class="news-headline" href="' + link + '" target="_blank" rel="noopener">' + escHtml(a.headline) + '</a>' +
-          '<div class="news-description">' + escHtml(a.description || '') + '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+    STL.shared.writeCache(NEWS_CACHE_KEY, all, NEWS_CACHE_TTL);
+    renderNewsItems(all);
   } catch (e) {
-    list.innerHTML = '<div class="error-msg">Failed to load news.</div>';
-    sub.textContent = 'Error';
+    if (!cached || !cached.length) {
+      list.innerHTML = '<div class="error-msg">Failed to load news.</div>';
+      sub.textContent = 'Error';
+    }
   }
-}
-
-function escHtml(s) {
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
 }
 
 function txShortName(name) {

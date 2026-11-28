@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://site.api.espn.com" crossorigin>
 <link rel="stylesheet" href="css/theme.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -103,6 +104,8 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
   </div>
 </div>
 
+<script src="js/utils.js"></script>
+<script src="js/shared.js"></script>
 <script>
 var TEAMS = [
   {
@@ -245,9 +248,9 @@ function fmtHtIn(inches) {
   return Math.floor(r / 12) + "' " + (r % 12) + '"';
 }
 
-function esc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+var esc = STL.utils.escHtml;
+var ROSTER_CACHE_TTL = 6 * 3600000;
+function rosterCacheKey(id) { return 'stl_roster_v1_' + id; }
 
 function rosterRow(player, jersey, pos, ht, wt, extra, showAge) {
   var name = player.displayName || player.full_name || '';
@@ -382,13 +385,13 @@ function espnGroups(team, data) {
 
 async function fetchEspn(team) {
   var url = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.slug + '/teams/' + team.teamId + '/roster';
-  var resp = await fetch(url);
+  var resp = await STL.shared.fetchWithTimeout(url, 8000);
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   return espnGroups(team, await resp.json());
 }
 
 async function fetchUfl() {
-  var listResp = await fetch('https://www.theufl.com/api/rosters?filter[team_id]=1&include=season');
+  var listResp = await STL.shared.fetchWithTimeout('https://www.theufl.com/api/rosters?filter[team_id]=1&include=season', 8000);
   if (!listResp.ok) throw new Error('HTTP ' + listResp.status);
   var list = (await listResp.json()).data || [];
   var reg = list
@@ -396,8 +399,8 @@ async function fetchUfl() {
     .sort(function(a, b) { return new Date(b.season.start_date) - new Date(a.season.start_date); });
   var roster = reg[0];
   if (!roster) throw new Error('no roster');
-  var detailResp = await fetch(
-    'https://www.theufl.com/api/rosters/' + roster.id + '?include=visiblePlayerRosters.photo,visiblePlayerRosters.player.photo'
+  var detailResp = await STL.shared.fetchWithTimeout(
+    'https://www.theufl.com/api/rosters/' + roster.id + '?include=visiblePlayerRosters.photo,visiblePlayerRosters.player.photo', 8000
   );
   if (!detailResp.ok) throw new Error('HTTP ' + detailResp.status);
   var detail = await detailResp.json();
@@ -452,56 +455,78 @@ async function fetchUfl() {
   });
 }
 
+function filterRosterGroups(team, rawGroups) {
+  var groups = (rawGroups || []).map(function(g) {
+    return {
+      name: g.name,
+      items: (g.items || []).filter(function(item) {
+        var nm = item.player && (item.player.displayName || item.player.full_name);
+        return !isRemoved(team.id, nm);
+      })
+    };
+  }).filter(function(g) { return g.items.length > 0; });
+  return groups;
+}
+
+function renderRosterSectionInner(team, groups) {
+  var count = groups.reduce(function(n, g) { return n + g.items.length; }, 0);
+  return '<div class="section-header" style="border-bottom-color:' + esc(team.color) + ';">' +
+    '<h2 style="color:' + esc(team.color) + ';">' + esc(team.name) + '</h2>' +
+    '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + ' &middot; ' + count + ' players</span>' +
+    headerAvgHtml(team, groups) +
+    '<button class="details-btn" type="button" data-roster="' + esc(team.id) + '" style="margin-left:auto">' +
+      (window._rosterOpen && window._rosterOpen[team.id] ? '\u2013 close' : '+ details') +
+    '</button>' +
+  '</div><div class="rbody">' + renderRoster(team, groups) + '</div>';
+}
+
+function applyRosterSection(team, groups) {
+  var sec = document.getElementById('rsec-' + team.id);
+  if (!sec) return;
+  sec.innerHTML = renderRosterSectionInner(team, groups);
+  if (window._rosterOpen && window._rosterOpen[team.id]) {
+    sec.classList.add('open');
+  } else {
+    sec.classList.remove('open');
+  }
+}
+
 async function loadRosters() {
   var container = document.getElementById('rostersContent');
-  var loaded = 0;
-  var sections = new Array(TEAMS.length);
-
-  await Promise.all(TEAMS.map(function(team, idx) {
-    return Promise.resolve()
-      .then(function() { return team.type === 'ufl' ? fetchUfl() : fetchEspn(team); })
-      .then(function(groups) {
-        groups.forEach(function(g) {
-          g.items = g.items.filter(function(item) {
-            var nm = item.player && (item.player.displayName || item.player.full_name);
-            return !isRemoved(team.id, nm);
-          });
-        });
-        groups = groups.filter(function(g) { return g.items.length > 0; });
-        if (!groups.length) throw new Error('empty roster');
-        loaded++;
-        var count = groups.reduce(function(n, g) { return n + g.items.length; }, 0);
-        sections[idx] = '<div class="roster-section" data-team="' + team.id + '">' +
-          '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
-            '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
-            '<span class="section-team">' + (team.type === 'ufl' ? 'theufl.com' : 'ESPN') + ' &middot; ' + count + ' players</span>' +
-            headerAvgHtml(team, groups) +
-            '<button class="details-btn" type="button" data-roster="' + team.id + '" style="margin-left:auto">+ details</button>' +
-          '</div><div class="rbody">' + renderRoster(team, groups) + '</div></div>';
-      })
-      .catch(function() {
-        sections[idx] = '<div class="roster-section" data-team="' + team.id + '">' +
-          '<div class="section-header" style="border-bottom-color:' + team.color + ';">' +
-            '<h2 style="color:' + team.color + ';">' + team.name + '</h2>' +
-          '</div>' +
-          '<div class="error-msg">Could not load roster.</div></div>';
-      });
-  }));
-
-  if (!loaded) {
-    container.innerHTML = '<div class="error-msg">Could not load roster data.</div>';
-    return;
-  }
-  container.innerHTML = sections.join('');
   window._rosterOpen = window._rosterOpen || {};
-  Array.prototype.forEach.call(container.querySelectorAll('.roster-section'), function(sec) {
-    var id = sec.getAttribute('data-team');
-    if (id && window._rosterOpen[id]) {
-      sec.classList.add('open');
-      var btn = sec.querySelector('[data-roster]');
-      if (btn) btn.textContent = '\u2013 close';
+
+  if (!document.getElementById('rsec-' + TEAMS[0].id)) {
+    container.innerHTML = TEAMS.map(function(team) {
+      return '<div class="roster-section" id="rsec-' + esc(team.id) + '" data-team="' + esc(team.id) + '">' +
+        '<div class="section-header" style="border-bottom-color:' + esc(team.color) + ';">' +
+          '<h2 style="color:' + esc(team.color) + ';">' + esc(team.name) + '</h2>' +
+        '</div><div class="loading">Loading…</div></div>';
+    }).join('');
+  }
+
+  await Promise.all(TEAMS.map(async function(team) {
+    var cachedRaw = STL.shared.readCache(rosterCacheKey(team.id));
+    var cachedGroups = cachedRaw ? filterRosterGroups(team, cachedRaw) : null;
+    if (cachedGroups && cachedGroups.length) {
+      applyRosterSection(team, cachedGroups);
     }
-  });
+    try {
+      var rawGroups = team.type === 'ufl' ? await fetchUfl() : await fetchEspn(team);
+      var groups = filterRosterGroups(team, rawGroups);
+      if (!groups.length) throw new Error('empty roster');
+      STL.shared.writeCache(rosterCacheKey(team.id), rawGroups, ROSTER_CACHE_TTL);
+      applyRosterSection(team, groups);
+    } catch (e) {
+      if (!cachedGroups || !cachedGroups.length) {
+        var sec = document.getElementById('rsec-' + team.id);
+        if (sec) {
+          sec.innerHTML = '<div class="section-header" style="border-bottom-color:' + esc(team.color) + ';">' +
+            '<h2 style="color:' + esc(team.color) + ';">' + esc(team.name) + '</h2>' +
+          '</div><div class="error-msg">Could not load roster.</div>';
+        }
+      }
+    }
+  }));
 }
 
 window._rosterOpen = window._rosterOpen || {};

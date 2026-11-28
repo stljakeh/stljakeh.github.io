@@ -78,28 +78,29 @@ STL.render = {
 
   renderError: function(team, msg) {
     const body = document.getElementById('body-' + team.cardClass);
-    if (body) body.innerHTML = '<div class="error-msg">' + msg + '</div>';
+    if (body) body.innerHTML = '<div class="error-msg">' + STL.utils.escHtml(msg) + '</div>';
   },
 
   renderNextGameHtml: function(team, ev, comp, st, vs, opponent, isLive) {
+    const esc = STL.utils.escHtml;
     const dateStrFull = STL.utils.formatDateStr(comp.date, true);
     const timeStr = STL.utils.formatTimeStr(comp.date);
-    const venue = comp.venue ? comp.venue.fullName : '';
+    const venue = comp.venue ? esc(comp.venue.fullName) : '';
     const broadcasts = comp.broadcasts && comp.broadcasts.length > 0
-      ? [...new Set(comp.broadcasts.map(b => b.media ? b.media.shortName : '').filter(Boolean))].join(', ')
+      ? esc([...new Set(comp.broadcasts.map(b => b.media ? b.media.shortName : '').filter(Boolean))].join(', '))
       : '';
     const label = isLive ? 'In Progress' : 'Next Game';
     let detailHtml = '';
     if (isLive && st.detail) {
       const dc = comp.status.displayClock;
-      const clock = dc && dc !== '0:00' ? ' (' + dc + ')' : '';
-      detailHtml = '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + st.detail + clock + '</div>';
+      const clock = dc && dc !== '0:00' ? ' (' + esc(dc) + ')' : '';
+      detailHtml = '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + esc(st.detail) + clock + '</div>';
     }
     let winHtml = '';
     if (team._winProb !== undefined) {
       const wp = team._winProb;
       const color = wp > 60 ? '#4caf50' : wp > 40 ? '#ff9800' : '#f44336';
-      winHtml = '<div style="font-size:0.75rem;margin-top:3px;color:' + (isLive ? color : 'var(--card-mute)') + ';">' + (isLive ? 'Live Win' : 'Win') + ': ' + wp + '%</div>';
+      winHtml = '<div style="font-size:0.75rem;margin-top:3px;color:' + (isLive ? color : 'var(--card-mute)') + ';">' + (isLive ? 'Live Win' : 'Win') + ': ' + esc(wp) + '%</div>';
     }
     let lineupHtml = '';
     const ld = team._lineupData;
@@ -107,33 +108,33 @@ STL.render = {
       let rows = '';
       if (ld.sport === 'baseball') {
         rows = ld.batters.map(b =>
-          '<div class="lineup-row"><span class="order">' + b.batOrder + '.</span><span class="pos">' + b.position + '</span><span class="name">' + b.name + '</span></div>'
+          '<div class="lineup-row"><span class="order">' + esc(b.batOrder) + '.</span><span class="pos">' + esc(b.position) + '</span><span class="name">' + esc(b.name) + '</span></div>'
         ).join('');
         if (ld.startingPitcher) {
-          rows += '<div class="sp-label">SP: ' + ld.startingPitcher.name + (ld.startingPitcher.throws ? ' (' + ld.startingPitcher.throws + ')' : '') + '</div>';
+          rows += '<div class="sp-label">SP: ' + esc(ld.startingPitcher.name) + (ld.startingPitcher.throws ? ' (' + esc(ld.startingPitcher.throws) + ')' : '') + '</div>';
         }
       } else if (ld.sport === 'soccer') {
-        const formLabel = ld.formation ? ' &middot; ' + ld.formation : '';
+        const formLabel = ld.formation ? ' &middot; ' + esc(ld.formation) : '';
         rows = '<div class="lineup-header">Starting XI' + formLabel + '</div>';
         rows += ld.starters.map(s =>
-          '<div class="lineup-row"><span class="pos">' + s.position + '</span><span class="name">' + s.name + '</span></div>'
+          '<div class="lineup-row"><span class="pos">' + esc(s.position) + '</span><span class="name">' + esc(s.name) + '</span></div>'
         ).join('');
       } else if (ld.sport === 'hockey') {
         rows = '<div class="lineup-header">Lineup</div>';
         if (ld.forwards.length) {
-          rows += '<div class="lineup-row"><span class="pos">F:</span><span class="name">' + ld.forwards.map(f => f.name).join(', ') + '</span></div>';
+          rows += '<div class="lineup-row"><span class="pos">F:</span><span class="name">' + esc(ld.forwards.map(f => f.name).join(', ')) + '</span></div>';
         }
         if (ld.defensemen.length) {
-          rows += '<div class="lineup-row"><span class="pos">D:</span><span class="name">' + ld.defensemen.map(d => d.name).join(', ') + '</span></div>';
+          rows += '<div class="lineup-row"><span class="pos">D:</span><span class="name">' + esc(ld.defensemen.map(d => d.name).join(', ')) + '</span></div>';
         }
         if (ld.startingGoalie) {
-          rows += '<div class="lineup-row"><span class="pos">G:</span><span class="name">' + ld.startingGoalie.name + '</span></div>';
+          rows += '<div class="lineup-row"><span class="pos">G:</span><span class="name">' + esc(ld.startingGoalie.name) + '</span></div>';
         } else if (ld.goalies.length) {
-          rows += '<div class="lineup-row"><span class="pos">G:</span><span class="name">' + ld.goalies.map(g => g.name).join(', ') + '</span></div>';
+          rows += '<div class="lineup-row"><span class="pos">G:</span><span class="name">' + esc(ld.goalies.map(g => g.name).join(', ')) + '</span></div>';
         }
       }
       lineupHtml =
-        '<button class="lineup-toggle" onclick="STL.toggle.lineup(this,\'' + team.cardClass + '\')">' +
+        '<button class="lineup-toggle" onclick="STL.toggle.lineup(this,\'' + esc(team.cardClass) + '\')">' +
           '<span class="lineup-toggle-icon">&#9654;</span> Lineup' +
         '</button>' +
         '<div class="lineup-panel">' + rows + '</div>';
@@ -141,7 +142,7 @@ STL.render = {
     return (
       '<div class="next-game">' +
         '<div class="next-game-label">' + label + '</div>' +
-        '<div class="next-game-detail">' + [vs + ' ' + opponent.team.displayName, dateStrFull, timeStr].filter(Boolean).join(' &middot; ') + '</div>' +
+        '<div class="next-game-detail">' + [esc(vs) + ' ' + esc(opponent.team.displayName), esc(dateStrFull), esc(timeStr)].filter(Boolean).join(' &middot; ') + '</div>' +
         detailHtml +
         (venue ? '<div style="color:var(--card-mute);font-size:0.75rem;margin-top:2px;">' + venue + (broadcasts ? ' &middot; ' + broadcasts : '') + '</div>' : '') +
         winHtml +
@@ -151,6 +152,7 @@ STL.render = {
   },
 
   renderEventComp: function(team, ev, isLast) {
+    const esc = STL.utils.escHtml;
     const comp = ev.competitions[0];
     const st = comp.status.type;
     const homeAway = comp.competitors.find(c => String(c.team.id) === String(team.id));
@@ -158,32 +160,32 @@ STL.render = {
     if (!homeAway || !opponent) return {};
     const isHome = homeAway.homeAway === 'home';
     const vs = isHome ? 'vs' : '@';
-    const oppAbbr = opponent.team.abbreviation;
+    const oppAbbr = esc(opponent.team.abbreviation);
     const result = {};
 
     if (st.completed === true || st.state === 'post') {
-      const ourScore = homeAway.score ? homeAway.score.displayValue : '?';
-      const oppScore = opponent.score ? opponent.score.displayValue : '?';
+      const ourScore = esc(homeAway.score ? homeAway.score.displayValue : '?');
+      const oppScore = esc(opponent.score ? opponent.score.displayValue : '?');
       const won = homeAway.winner === true;
       const lost = opponent.winner === true;
       const resultChar = won ? 'W' : lost ? 'L' : 'D';
       const resultClass = won ? 'win' : lost ? 'loss' : 'draw';
-      const dateLabel = STL.utils.formatDateStr(comp.date);
+      const dateLabel = esc(STL.utils.formatDateStr(comp.date));
       const dateBit = dateLabel ? ' &middot; ' + dateLabel : '';
       result.lastGameHtml = '<span class="stat-value ' + resultClass + '">' + resultChar + ' ' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + dateBit + '</span>';
     } else if (st.state === 'in') {
       const comps = team._liveScoreData || comp.competitors;
       const ha = comps.find(c => String(c.team.id) === String(team.id));
       const opp = comps.find(c => String(c.team.id) !== String(team.id));
-      const ourScore = STL.utils.getScoreDisplay(ha);
-      const oppScore = STL.utils.getScoreDisplay(opp);
+      const ourScore = esc(STL.utils.getScoreDisplay(ha));
+      const oppScore = esc(STL.utils.getScoreDisplay(opp));
       if (!team._liveEvent) {
         team._liveEvent = ev;
         team._liveScoreData = comps;
         team._liveStatus = st;
       }
       if (isLast) {
-        const detail = st.detail ? ' &middot; ' + st.detail : '';
+        const detail = st.detail ? ' &middot; ' + esc(st.detail) : '';
         result.lastGameHtml = '<span class="stat-value win">' + ourScore + '-' + oppScore + ' ' + vs + ' ' + oppAbbr + detail + '</span>';
       } else {
         result.nextGameHtml = STL.render.renderNextGameHtml(team, ev, comp, st, vs, opponent, true);
@@ -197,6 +199,7 @@ STL.render = {
   },
 
   renderBoxScore: function(team) {
+    const esc = STL.utils.escHtml;
     const live = (team._liveStatus && team._liveStatus.type && team._liveStatus.type.state === 'in') || !!(team._liveEvent);
     let bs = null;
     if (live) {
@@ -213,7 +216,7 @@ STL.render = {
 
     const stlSpan = function(side, text) {
       const isStl = (stlIsAway && side === 'away') || (!stlIsAway && side === 'home');
-      return isStl ? '<span class="bs-stl">' + text + '</span>' : text;
+      return isStl ? '<span class="bs-stl">' + esc(text) + '</span>' : esc(text);
     };
 
     let html = '';
@@ -222,18 +225,18 @@ STL.render = {
       stlSpan('away', away.abbr + ' ' + away.score) + ' - ' + stlSpan('home', home.score + ' ' + home.abbr) + '</div>';
 
     if (bs.parts.length) {
-      const head = bs.parts.map(p => '<th>' + p.label + '</th>').join('');
-      const homeCells = bs.parts.map(p => '<td>' + p.home + '</td>').join('');
-      const awayCells = bs.parts.map(p => '<td>' + p.away + '</td>').join('');
+      const head = bs.parts.map(p => '<th>' + esc(p.label) + '</th>').join('');
+      const homeCells = bs.parts.map(p => '<td>' + esc(p.home) + '</td>').join('');
+      const awayCells = bs.parts.map(p => '<td>' + esc(p.away) + '</td>').join('');
       html += '<table class="bs-parts"><thead><tr><th></th>' + head + '</tr></thead><tbody>' +
-        '<tr class="' + (stlIsAway ? 'bs-ours' : '') + '"><td>' + away.abbr + '</td>' + awayCells + '</tr>' +
-        '<tr class="' + (!stlIsAway ? 'bs-ours' : '') + '"><td>' + home.abbr + '</td>' + homeCells + '</tr>' +
+        '<tr class="' + (stlIsAway ? 'bs-ours' : '') + '"><td>' + esc(away.abbr) + '</td>' + awayCells + '</tr>' +
+        '<tr class="' + (!stlIsAway ? 'bs-ours' : '') + '"><td>' + esc(home.abbr) + '</td>' + homeCells + '</tr>' +
         '</tbody></table>';
     }
 
     if (bs.teamStats.length) {
       html += '<div class="bs-stats">' + bs.teamStats.map(function(s) {
-        return '<span class="' + (s.ours ? 'bs-stat-ours' : '') + '">' + s.label + ': ' + s.abbr + ' ' + s.value + '</span>';
+        return '<span class="' + (s.ours ? 'bs-stat-ours' : '') + '">' + esc(s.label) + ': ' + esc(s.abbr) + ' ' + esc(s.value) + '</span>';
       }).join(' &nbsp;&middot;&nbsp; ') + '</div>';
     }
 
@@ -252,12 +255,12 @@ STL.render = {
       });
       html += '<div class="bs-scoring">';
       groups.forEach(function(g) {
-        html += '<div class="lineup-header">' + (g.period || 'Scoring') + '</div>';
+        html += '<div class="lineup-header">' + esc(g.period || 'Scoring') + '</div>';
         g.rows.forEach(function(r) {
           html += '<div class="bs-row' + (r.ours ? ' ours' : '') + '">' +
-            '<span class="bs-clock">' + (r.clock ? r.clock : '') + '</span>' +
-            '<span class="bs-scorer">' + r.text + '</span>' +
-            '<span class="bs-abbr">' + r.abbr + '</span>' +
+            '<span class="bs-clock">' + (r.clock ? esc(r.clock) : '') + '</span>' +
+            '<span class="bs-scorer">' + esc(r.text) + '</span>' +
+            '<span class="bs-abbr">' + esc(r.abbr) + '</span>' +
           '</div>';
         });
       });
@@ -267,7 +270,7 @@ STL.render = {
     return html;
   },
 
-  renderTeam: async function(team, data, schedLastEvent, schedNextEvent) {
+  renderTeam: async function(team, data, schedLastEvent, schedNextEvent, opts) {
     const body = document.getElementById('body-' + team.cardClass);
     const badge = document.getElementById('badge-' + team.cardClass);
     if (!body) return;
@@ -380,7 +383,7 @@ STL.render = {
       }
     }
 
-    if (upcomingEvent && STL.utils.isGameDay(upcomingEvent)) {
+    if (!(opts && opts.skipNetwork) && upcomingEvent && STL.utils.isGameDay(upcomingEvent)) {
       await STL.api.fetchLineup(team, upcomingEvent);
     }
 
@@ -437,7 +440,7 @@ STL.render = {
     }
 
     if (!lastGameHtml && prev && prev.lastGame) {
-      lastGameHtml = '<span class="stat-value ' + prev.lastGame.cls + '">' + prev.lastGame.text + ' · Final ' + prev.season + '</span>';
+      lastGameHtml = '<span class="stat-value ' + STL.utils.escHtml(prev.lastGame.cls) + '">' + STL.utils.escHtml(prev.lastGame.text) + ' · Final ' + STL.utils.escHtml(prev.season) + '</span>';
     }
 
     const lastGameEl = document.getElementById('lastGame-' + team.cardClass);
@@ -486,7 +489,7 @@ STL.render = {
     }
 
     const linksEl = document.getElementById('links-' + team.cardClass);
-    linksEl.innerHTML = team.links.map(l => '<a href="' + l.href + '" target="_blank" rel="noopener">' + l.text + '</a>').join('');
+    linksEl.innerHTML = team.links.map(l => '<a href="' + STL.utils.escHtml(STL.utils.safeUrl(l.href)) + '" target="_blank" rel="noopener">' + STL.utils.escHtml(l.text) + '</a>').join('');
 
     const banner = document.getElementById('liveBanner-' + team.cardClass);
     const scoreEl = document.getElementById('liveScore-' + team.cardClass);
@@ -504,7 +507,7 @@ STL.render = {
           const st = team._liveStatus || team._liveEvent.competitions[0].status;
           const dc = st.displayClock;
           const clock = dc && dc !== '0:00' ? ' (' + dc + ')' : '';
-          infoEl.innerHTML = (isHome ? 'vs' : '@') + ' ' + opp.team.abbreviation + '<br>' + (st.type?.detail || '') + clock;
+          infoEl.innerHTML = (isHome ? 'vs' : '@') + ' ' + STL.utils.escHtml(opp.team.abbreviation) + '<br>' + STL.utils.escHtml(st.type?.detail || '') + STL.utils.escHtml(clock);
         } else {
           banner.style.display = 'none';
         }
@@ -523,7 +526,9 @@ STL.render = {
     const capPanel = document.getElementById('capPanel-' + team.cardClass);
     if (team.cardClass === 'blues') {
       capContainer.style.display = '';
-      capPanel.innerHTML = '<div style="position:relative;width:100%;height:100%;"><iframe height="400" width="100%" style="border-radius:15px;filter:invert(1) hue-rotate(180deg);" frameborder="0" src="https://puckpedia.com/e/team/st-louis-blues/type2" title="St. Louis Blues Compact Cap Summary"></iframe></div>';
+      if (window._capOpen && window._capOpen['blues'] && capPanel && !capPanel.querySelector('iframe')) {
+        capPanel.innerHTML = '<div style="position:relative;width:100%;height:100%;"><iframe height="400" width="100%" style="border-radius:15px;filter:invert(1) hue-rotate(180deg);" frameborder="0" loading="lazy" src="https://puckpedia.com/e/team/st-louis-blues/type2" title="St. Louis Blues Compact Cap Summary"></iframe></div>';
+      }
     } else {
       capContainer.style.display = 'none';
     }
@@ -549,19 +554,20 @@ STL.render = {
     const ng = document.getElementById('nextGame-' + team.cardClass);
     if (ng) ng.innerHTML = '';
     const linksEl = document.getElementById('links-' + team.cardClass);
-    if (linksEl) linksEl.innerHTML = team.links.map(l => '<a href="' + l.href + '" target="_blank" rel="noopener">' + l.text + '</a>').join('');
+    if (linksEl) linksEl.innerHTML = team.links.map(l => '<a href="' + STL.utils.escHtml(STL.utils.safeUrl(l.href)) + '" target="_blank" rel="noopener">' + STL.utils.escHtml(l.text) + '</a>').join('');
   },
 
   /* NPB/KBO cards: record + standing from their league tables. No ESPN
      schedule, so no last/next, countdown, or win probability. */
 
   renderAsiaCard: function(team, st) {
+    const esc = STL.utils.escHtml;
     const body = document.getElementById('body-' + team.cardClass);
     if (!body) return;
     const iconEl = document.querySelector('#card-' + team.cardClass + ' .team-icon');
     if (iconEl) {
       if (team.logo) {
-        iconEl.innerHTML = '<img src="' + team.logo + '" alt="' + team.name + '" onerror="this.parentNode.textContent=\'' + team.icon + '\'">';
+        iconEl.innerHTML = '<img src="' + esc(STL.utils.safeUrl(team.logo)) + '" alt="' + esc(team.name) + '" loading="lazy" onerror="this.parentNode.textContent=\'' + esc(team.icon) + '\'">';
       } else {
         iconEl.textContent = team.icon;
       }
@@ -591,11 +597,11 @@ STL.render = {
     const standingEl = document.getElementById('standing-' + team.cardClass);
     if (st.rank != null) {
       standingRow.style.display = '';
-      let s = st.rank + STL.utils.suffix(parseInt(st.rank)) + ' in ' + (st.leagueName || team.league);
+      let s = esc(st.rank + STL.utils.suffix(parseInt(st.rank)) + ' in ' + (st.leagueName || team.league));
       if (st.gb != null && String(st.gb) !== '-' && String(st.gb) !== '0' && String(st.gb) !== '0.0') {
-        s += ' · ' + st.gb + ' GB';
+        s += ' · ' + esc(st.gb) + ' GB';
       }
-      if (st.note) s += '<br><span style="color:var(--card-mute);font-weight:400;">' + st.note + '</span>';
+      if (st.note) s += '<br><span style="color:var(--card-mute);font-weight:400;">' + esc(st.note) + '</span>';
       standingEl.innerHTML = s;
     } else {
       standingRow.style.display = 'none';
@@ -616,8 +622,8 @@ STL.render = {
       // the NPB prefetch; KBO has none, so its row behaves as before).
       if (st.lastGame && st.lastGame.text) {
         lg.parentElement.style.display = '';
-        let html = '<span class="stat-value ' + (st.lastGame.cls || '') + '">' + st.lastGame.text + '</span>';
-        if (st.lastGame.box) html += ' <a href="' + st.lastGame.box + '" target="_blank" rel="noopener">box</a>';
+        let html = '<span class="stat-value ' + esc(st.lastGame.cls || '') + '">' + esc(st.lastGame.text) + '</span>';
+        if (st.lastGame.box) html += ' <a href="' + esc(STL.utils.safeUrl(st.lastGame.box)) + '" target="_blank" rel="noopener">box</a>';
         lg.innerHTML = html;
       } else {
         lg.parentElement.style.display = 'none';
@@ -626,7 +632,7 @@ STL.render = {
     const ng = document.getElementById('nextGame-' + team.cardClass);
     if (ng) ng.innerHTML = '';
     const linksEl = document.getElementById('links-' + team.cardClass);
-    if (linksEl) linksEl.innerHTML = team.links.map(x => '<a href="' + x.href + '" target="_blank" rel="noopener">' + x.text + '</a>').join('');
+    if (linksEl) linksEl.innerHTML = team.links.map(x => '<a href="' + esc(STL.utils.safeUrl(x.href)) + '" target="_blank" rel="noopener">' + esc(x.text) + '</a>').join('');
     const badge = document.getElementById('badge-' + team.cardClass);
     if (badge) {
       const active = st.remaining == null || parseInt(st.remaining) > 0;
@@ -656,6 +662,7 @@ STL.render = {
   },
 
   affRowHtml: function(cardClass, aff) {
+    const esc = STL.utils.escHtml;
     const cached = STL.api._affCache && STL.api._affCache[aff.name];
     let sub = '<span style="color:var(--card-mute);">tap to load record + prospects</span>';
     let gamesHtml = '';
@@ -681,23 +688,24 @@ STL.render = {
             const tag = cached.season || String(cached.seasonName).replace(' Regular Season', '');
             rec += ' · Final ' + tag;
           }
+          let recHtml = esc(rec);
           if (cached.standing) {
-            rec += '<br><span style="color:var(--card-mute);font-weight:400;">' + cached.standing + '</span>';
+            recHtml += '<br><span style="color:var(--card-mute);font-weight:400;">' + esc(cached.standing) + '</span>';
           }
           if (cached.goals && cached.goals.gf != null && cached.goals.ga != null) {
             const gd = cached.goals.gf - cached.goals.ga;
-            rec += '<br><span style="color:var(--card-mute);font-weight:400;">' +
-              cached.goals.gf + ' GF &middot; ' + cached.goals.ga + ' GA (' + (gd > 0 ? '+' + gd : String(gd)) + ' GD)</span>';
+            recHtml += '<br><span style="color:var(--card-mute);font-weight:400;">' +
+              esc(cached.goals.gf) + ' GF &middot; ' + esc(cached.goals.ga) + ' GA (' + esc(gd > 0 ? '+' + gd : String(gd)) + ' GD)</span>';
           }
-          sub = '<span class="aff-rec">' + rec + '</span>';
+          sub = '<span class="aff-rec">' + recHtml + '</span>';
         }
       } else if (cached.note) {
-        sub = '<span style="color:var(--card-mute);">' + cached.note + '</span>';
+        sub = '<span style="color:var(--card-mute);">' + esc(cached.note) + '</span>';
       } else if (cached.seasonStart) {
-        sub = '<span style="color:var(--card-mute);">season begins ' + STL.render.fmtSeasonStart(cached.seasonStart) + '</span>';
+        sub = '<span style="color:var(--card-mute);">season begins ' + esc(STL.render.fmtSeasonStart(cached.seasonStart)) + '</span>';
       }
-      if (cached.lastGame) gamesHtml += '<div class="aff-game">Last: ' + cached.lastGame + '</div>';
-      if (cached.nextGame) gamesHtml += '<div class="aff-game">Next: ' + cached.nextGame + '</div>';
+      if (cached.lastGame) gamesHtml += '<div class="aff-game">Last: ' + esc(cached.lastGame) + '</div>';
+      if (cached.nextGame) gamesHtml += '<div class="aff-game">Next: ' + esc(cached.nextGame) + '</div>';
     }
     let pros = '';
     if (cached && cached.prospects && cached.prospects.length) {
@@ -720,21 +728,21 @@ STL.render = {
           return new Array(n + 1).join('<i class="card-sq ' + kind + '"></i>');
         };
         const label = y + ' yellow, ' + r + ' red';
-        return '<span class="card-marks" role="img" aria-label="' + label + '" title="' + label + '">' +
+        return '<span class="card-marks" role="img" aria-label="' + esc(label) + '" title="' + esc(label) + '">' +
           (y ? sq('y', y) : '') + (r ? sq('r', r) : '') + '</span>';
       };
       pros = '<div class="prospects">' +
-        '<div class="prospects-label">' + prosLabel + '</div>' +
+        '<div class="prospects-label">' + esc(prosLabel) + '</div>' +
         cached.prospects.map(p =>
-          '<div class="prospect-row">' + (p.pos ? '<span class="pos">' + p.pos + '</span>' : '') +
-          '<span class="name">' + p.name + '</span>' +
-          '<span class="pline">' + p.line + cardsHtml(p) + '</span></div>'
+          '<div class="prospect-row">' + (p.pos ? '<span class="pos">' + esc(p.pos) + '</span>' : '') +
+          '<span class="name">' + esc(p.name) + '</span>' +
+          '<span class="pline">' + esc(p.line) + cardsHtml(p) + '</span></div>'
         ).join('') + '</div>';
     }
-    return '<div class="aff-row" id="aff-' + cardClass + '-' + aff.name.replace(/[^a-z0-9]/gi, '') + '">' +
-      '<div class="aff-top"><span class="aff-name">' + aff.name + '</span>' +
-      '<span class="aff-level">' + aff.level + '</span></div>' +
-      '<div class="aff-sub">' + sub + ' &middot; <a href="' + aff.site + '" target="_blank" rel="noopener">site</a></div>' +
+    return '<div class="aff-row" id="aff-' + esc(cardClass) + '-' + esc(aff.name.replace(/[^a-z0-9]/gi, '')) + '">' +
+      '<div class="aff-top"><span class="aff-name">' + esc(aff.name) + '</span>' +
+      '<span class="aff-level">' + esc(aff.level) + '</span></div>' +
+      '<div class="aff-sub">' + sub + ' &middot; <a href="' + esc(STL.utils.safeUrl(aff.site)) + '" target="_blank" rel="noopener">site</a></div>' +
       gamesHtml + pros + '</div>';
   },
 
