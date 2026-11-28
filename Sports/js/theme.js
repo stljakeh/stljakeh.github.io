@@ -32,8 +32,20 @@
     }
   }
 
+  function syncThemeColor(t) {
+    var color = t === 'dark' ? '#171114' : '#f4ecdd';
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.content = color;
+  }
+
   function apply(t) {
     document.documentElement.setAttribute('data-theme', t);
+    syncThemeColor(t);
     syncButtons(t);
   }
 
@@ -49,6 +61,39 @@
     }
   };
 
+  function wireNav() {
+    var nav = document.getElementById('sitenav');
+    var btn = document.querySelector('.menu-btn');
+    if (!nav || !btn || nav._stlNavWired) return;
+    nav._stlNavWired = true;
+
+    function syncExpanded() {
+      btn.setAttribute('aria-expanded', nav.classList.contains('open') ? 'true' : 'false');
+    }
+
+    if (typeof MutationObserver !== 'undefined') {
+      new MutationObserver(syncExpanded).observe(nav, { attributes: true, attributeFilter: ['class'] });
+    }
+    syncExpanded();
+
+    document.addEventListener('click', function(e) {
+      if (!nav.classList.contains('open')) return;
+      var t = e.target;
+      if (btn.contains(t)) return;
+      if (nav.contains(t)) {
+        if (t.closest && t.closest('a')) nav.classList.remove('open');
+        return;
+      }
+      nav.classList.remove('open');
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && nav.classList.contains('open')) {
+        nav.classList.remove('open');
+      }
+    });
+  }
+
   function wire() {
     var btns = document.querySelectorAll('[data-theme-toggle]');
     for (var i = 0; i < btns.length; i++) {
@@ -59,6 +104,7 @@
       });
     }
     syncButtons(window.STL_THEME.get());
+    wireNav();
   }
 
   apply(preferred());

@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4ecdd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="STL Ledger">
 <title>Stats - St. Louis Sports</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
@@ -83,6 +87,7 @@
   width: 100%;
   height: auto;
   cursor: crosshair;
+  touch-action: pan-y;
 }
 .tooltip {
   position: absolute;
@@ -139,6 +144,18 @@
 }
 [data-frac="colorado"] { --frac-color: #B45309; }
 html[data-theme="dark"] [data-frac="colorado"] { --frac-color: #E08B4C; }
+@media (max-width: 540px) {
+  .section { padding: 14px; }
+  .chart-wrap { padding: 14px 10px 12px; }
+  .tooltip { max-width: calc(100vw - 48px); white-space: normal; }
+  .legend { gap: 10px 16px; }
+  .att-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 12px;
+    text-align: center;
+  }
+}
 </style>
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/nav.css">
@@ -748,10 +765,13 @@ function renderAttendanceChart() {
   }
 
   function getNearest(e) {
+    var src = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+    if (src.clientX == null || src.clientY == null) return null;
     var rect = attCanvas.getBoundingClientRect();
     var scaleX = W / rect.width;
-    var mx = (e.clientX - rect.left) * scaleX;
-    var my = (e.clientY - rect.top) * scaleX;
+    var scaleYRatio = H / rect.height;
+    var mx = (src.clientX - rect.left) * scaleX;
+    var my = (src.clientY - rect.top) * scaleYRatio;
 
     var best = null;
     var bestDist = Infinity;
@@ -765,7 +785,8 @@ function renderAttendanceChart() {
       }
     });
 
-    if (best && bestDist < 30) return best;
+    var hitRadius = e.pointerType === 'touch' || e.touches ? 46 : 30;
+    if (best && bestDist < hitRadius) return best;
     return null;
   }
 
@@ -777,16 +798,22 @@ function renderAttendanceChart() {
       '<div class="date">' + escHtml(g.date) + ' &middot; ' + (g.seasonIdx === 0 ? 'XFL' : 'UFL') + '</div>';
     attTooltip.style.display = 'block';
 
-    var rect = attChartWrap.getBoundingClientRect();
-    var scaleX = W / attCanvas.getBoundingClientRect().width;
-    var tx = p.x / scaleX;
-    var ty = p.y / scaleX;
+    var wrapRect = attChartWrap.getBoundingClientRect();
+    var canvasRect = attCanvas.getBoundingClientRect();
+    var scaleX = W / canvasRect.width;
+    var scaleYRatio = H / canvasRect.height;
+    var tx = (canvasRect.left - wrapRect.left) + (p.x / scaleX);
+    var ty = (canvasRect.top - wrapRect.top) + (p.y / scaleYRatio);
+    var tipW = attTooltip.offsetWidth || 180;
+    var tipH = attTooltip.offsetHeight || 64;
 
     var left = tx + 12;
-    var top = ty - 8;
+    var top = ty - tipH - 8;
 
-    if (left + 200 > rect.width) left = tx - 12 - 200;
-    if (top < 0) top = 8;
+    if (left + tipW > wrapRect.width - 8) left = tx - tipW - 12;
+    left = Math.max(8, Math.min(left, wrapRect.width - tipW - 8));
+    if (top < 8) top = ty + 14;
+    top = Math.max(8, Math.min(top, Math.max(8, wrapRect.height - tipH - 8)));
 
     attTooltip.style.left = left + 'px';
     attTooltip.style.top = top + 'px';
@@ -796,18 +823,42 @@ function renderAttendanceChart() {
     attTooltip.style.display = 'none';
   }
 
-  attCanvas.onmousemove = function(e) {
+  function inspectPoint(e) {
     var p = getNearest(e);
     if (p) {
       showTooltip(p);
       attCanvas.style.cursor = 'crosshair';
-    } else {
-      hideTooltip();
-      attCanvas.style.cursor = 'default';
+      return true;
+    }
+    hideTooltip();
+    attCanvas.style.cursor = 'default';
+    return false;
+  }
+
+  attCanvas.onmousemove = inspectPoint;
+  attCanvas.onpointerdown = function(e) {
+    if (e.pointerType === 'touch' || !inspectPoint(e)) {
+      inspectPoint(e);
     }
   };
-
+  attCanvas.ontouchstart = function(e) {
+    inspectPoint(e);
+  };
+  attCanvas.ontouchmove = function(e) {
+    inspectPoint(e);
+  };
   attCanvas.onmouseleave = hideTooltip;
+
+  window._attHideTooltip = hideTooltip;
+  if (!window._attOutsideTapWired) {
+    window._attOutsideTapWired = true;
+    document.addEventListener('pointerdown', function(e) {
+      var wrap = document.getElementById('attChartWrap');
+      if (wrap && !wrap.contains(e.target) && window._attHideTooltip) {
+        window._attHideTooltip();
+      }
+    });
+  }
 
   // Redraw-safe: drop the previous legend so toggles don't stack them.
   var oldLegend = attChartWrap.querySelector('.legend');

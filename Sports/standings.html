@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4ecdd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="STL Ledger">
 <title>Standings - St. Louis Sports</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
@@ -32,7 +36,7 @@
 .section-header h2 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .section-team { font-size: 0.75rem; color: var(--card-mute); text-transform: uppercase; letter-spacing: 0.5px; }
 .standings-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--card-ink); }
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 .standings-table th {
   text-align: left; padding: 8px 12px; font-size: 0.7rem;
   color: var(--card-mute); text-transform: uppercase; letter-spacing: 1px;
@@ -52,8 +56,10 @@
 .strk-t { color: #a86a00; font-weight: 700; }
 .strk-dot { display: inline-block; width: 22px; text-align: center; }
 @media (max-width: 640px) {
+  .standings-section { padding: 14px; }
   .standings-table { font-size: 0.78rem; }
   .standings-table th, .standings-table td { padding: 6px 8px; white-space: normal; }
+  .standings-table td:nth-child(2) { min-width: 112px; }
   .standings-table th.num, .standings-table td.num { white-space: nowrap; }
   .team-logo { display: none; }
   .strk-dot { width: 16px; font-size: 0.7rem; }

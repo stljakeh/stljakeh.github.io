@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4ecdd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="STL Ledger">
 <title>Rosters - St. Louis Sports</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
@@ -41,7 +45,7 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
 .section-avg { font-size: 0.72rem; color: var(--card-mute); font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
 .roster-section.open .section-avg { display: none; }
 .roster-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 .roster-table th {
   text-align: left; padding: 8px 10px; font-size: 0.7rem;
   color: var(--card-mute); text-transform: uppercase; letter-spacing: 1px;
@@ -64,9 +68,12 @@ html[data-theme="dark"] .roster-section[data-team="blues"] tr.group-row td { col
 .error-msg { text-align: center; color: var(--danger); padding: 40px; }
 .loading { text-align: center; color: var(--card-mute); padding: 40px; }
 @media (max-width: 640px) {
-  .section-header { flex-wrap: wrap; }
+  .roster-section { padding: 14px; }
+  .section-header { flex-wrap: wrap; gap: 8px 10px; }
   .roster-table { font-size: 0.78rem; }
-  .roster-table th, .roster-table td { padding: 6px 8px; white-space: normal; }
+  .roster-table th, .roster-table td { padding: 6px 8px; white-space: nowrap; }
+  .roster-table td:nth-child(2) { white-space: normal; min-width: 120px; }
+  .roster-table td:nth-child(6) { white-space: normal; min-width: 140px; }
 }
 </style>
 <link rel="stylesheet" href="css/nav.css">

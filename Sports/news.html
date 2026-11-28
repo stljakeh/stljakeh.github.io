@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4ecdd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="STL Ledger">
 <title>News - St. Louis Sports</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
@@ -90,7 +94,8 @@
   .news-card { flex-direction: column; }
   .news-card-thumb { width: 100%; height: 180px; }
   .news-card-accent { width: 100%; height: 4px; }
-
+  .news-card-body { padding: 14px 16px; }
+  .news-card-top { flex-wrap: wrap; gap: 6px 10px; }
 }
 .error-msg {
   text-align: center;
@@ -129,13 +134,21 @@
   white-space: nowrap;
   color: var(--accent);
 }
-.tx-viewport { flex: 1; min-width: 0; overflow: hidden; }
+.tx-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tx-viewport::-webkit-scrollbar { display: none; }
 .tx-track {
   display: flex;
   width: max-content;
   animation: tx-marquee 120s linear infinite;
 }
-.tx-strip:hover .tx-track, .tx-strip:focus-within .tx-track { animation-play-state: paused; }
+.tx-strip:hover .tx-track, .tx-strip:focus-within .tx-track, .tx-strip:active .tx-track { animation-play-state: paused; }
 .tx-group {
   display: flex;
   flex: 0 0 auto;
