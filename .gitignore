@@ -1,0 +1,12 @@
+# Obsidian vault — plugins with secrets
+.obsidian/plugins/obsidian-local-rest-api/data.json
+
+# Scratch file
+Sports/dashboard.md.md
+
+# Opencode instructions
+AGENTS.md
+SKILL.md
+
+# XI Builder / FPR plaintext source - NEVER commit (encrypted build output is FPR.html)
+Sports/FPR.src.html
