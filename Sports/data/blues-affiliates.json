@@ -1,67 +1,67 @@
 {
-  "generated_at": "2026-11-27T21:29:06.869520+00:00",
+  "generated_at": "2026-11-28T08:09:44.756853+00:00",
   "affiliates": {
     "Springfield Thunderbirds": {
       "record": {
-        "wins": 5,
+        "wins": 6,
         "losses": 7,
         "otl": 2,
         "sol": 3,
-        "points": 15,
-        "streak": "1-0-0-0"
+        "points": 17,
+        "streak": "2-0-0-0"
       },
       "prospects": [
         {
           "name": "T.J. Tynan",
           "pos": "C",
-          "line": "3 G / 10 A / 13 PTS \u00b7 17 GP"
+          "line": "4 G / 10 A / 14 PTS \u00b7 18 GP"
         },
         {
           "name": "Justin Carbonneau",
           "pos": "F",
-          "line": "5 G / 5 A / 10 PTS \u00b7 17 GP"
+          "line": "5 G / 5 A / 10 PTS \u00b7 18 GP"
         },
         {
-          "name": "Aleksanteri Kaskim\u00e4ki",
-          "pos": "F",
-          "line": "2 G / 5 A / 7 PTS \u00b7 6 GP"
+          "name": "Simon Robertsson",
+          "pos": "RW",
+          "line": "3 G / 4 A / 7 PTS \u00b7 9 GP"
         }
       ],
       "standing": "6th Atlantic Division",
-      "lastGame": "W 2-1 @ Hartford \u00b7 Sun, Nov 22",
-      "nextGame": "@ Hartford \u00b7 Fri, Nov 27 \u00b7 5:00 pm EST",
+      "lastGame": "W 5-1 @ Hartford \u00b7 Fri, Nov 27",
+      "nextGame": "vs Utica \u00b7 Sat, Nov 28 \u00b7 6:05 pm EST",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-01"
     },
     "Worcester Railers": {
       "record": {
-        "wins": 6,
+        "wins": 7,
         "losses": 7,
         "otl": 0,
         "sol": 0,
-        "points": 12,
-        "streak": "0-1-0-0"
+        "points": 14,
+        "streak": "1-0-0-0"
       },
       "prospects": [
         {
           "name": "Jordan Kaplan",
           "pos": "F",
-          "line": "4 G / 4 A / 8 PTS \u00b7 13 GP"
+          "line": "4 G / 5 A / 9 PTS \u00b7 14 GP"
         },
         {
           "name": "Sam Stange",
           "pos": "F",
-          "line": "2 G / 5 A / 7 PTS \u00b7 11 GP"
+          "line": "2 G / 5 A / 7 PTS \u00b7 12 GP"
         },
         {
           "name": "Declan McDonnell",
           "pos": "F",
-          "line": "4 G / 1 A / 5 PTS \u00b7 13 GP"
+          "line": "4 G / 1 A / 5 PTS \u00b7 14 GP"
         }
       ],
       "standing": "8th North",
-      "lastGame": "L 0-2 @ Maine \u00b7 Nov. 25",
-      "nextGame": "@ Tulsa \u00b7 Nov. 27 \u00b7 7:05 pm CST",
+      "lastGame": "W 2-0 @ Tulsa \u00b7 Nov. 27",
+      "nextGame": "@ Tulsa \u00b7 Nov. 28 \u00b7 7:05 pm CST",
       "seasonName": "2026-27 Regular Season",
       "seasonStart": "2026-10-15"
     }
