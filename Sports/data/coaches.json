@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-28T07:48:48.340844+00:00",
+  "generated_at": "2026-11-28T08:03:11.858064+00:00",
   "coaches": [
     {
       "id": "montgomery",
@@ -9,6 +9,7 @@
       "sport": "hockey",
       "leagueSlug": "nhl",
       "initials": "JM",
+      "headshot": "https://media.d3.nhle.com/image/private/t_ratio16_9-size30/f_auto/prd/d1pbmldxn1lw0jihojxa.jpg",
       "name": "Jim Montgomery",
       "aliases": [
         "Jim Montgomery"
@@ -129,6 +130,7 @@
       "sport": "baseball",
       "leagueSlug": "mlb",
       "initials": "OM",
+      "headshot": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/Maral2023a.jpg/330px-Maral2023a.jpg",
       "name": "Oli Marmol",
       "aliases": [
         "Oli Marmol",
@@ -264,6 +266,7 @@
       "sport": "soccer",
       "leagueSlug": "usa.1",
       "initials": "YD",
+      "headshot": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/CINvPGH_2018-09-01_-_Yoann_Damet_%2830148583167%29_%28cropped%29.jpg/330px-CINvPGH_2018-09-01_-_Yoann_Damet_%2830148583167%29_%28cropped%29.jpg",
       "name": "Yoann Damet",
       "aliases": [
         "Yoann Damet"
@@ -365,6 +368,7 @@
       "sport": "football",
       "leagueSlug": "ufl",
       "initials": "RP",
+      "headshot": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Ricky_Proehl_%28cropped%29.jpg/330px-Ricky_Proehl_%28cropped%29.jpg",
       "name": "Ricky Proehl",
       "aliases": [
         "Ricky Proehl"

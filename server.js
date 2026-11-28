@@ -170,6 +170,7 @@ async function fetchNewCoachProfile(baseCoach, detected, liveRecord) {
   let birthPlace = '—';
   let almaMater = '—';
   let bio = `${detected.name} was detected via ${detected.sourceLabel} as the ${baseCoach.role.toLowerCase()} of the ${baseCoach.team}.`;
+  let headshot = '';
   let careerRows = [];
 
   try {
@@ -198,9 +199,13 @@ async function fetchNewCoachProfile(baseCoach, detected, liveRecord) {
         careerRows.push({ label: 'Prior Coaching / Playing', value: prev.value });
       }
     }
-    if (sumRes.status === 'fulfilled' && sumRes.value?.extract) {
-      const sentences = sumRes.value.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
-      if (sentences) bio = sentences;
+    if (sumRes.status === 'fulfilled' && sumRes.value) {
+      if (sumRes.value.extract) {
+        const sentences = sumRes.value.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+        if (sentences) bio = sentences;
+      }
+      const rawImg = sumRes.value.thumbnail?.source || sumRes.value.originalimage?.source || '';
+      if (rawImg) headshot = rawImg.split('?')[0];
     }
   } catch {}
 
@@ -222,6 +227,7 @@ async function fetchNewCoachProfile(baseCoach, detected, liveRecord) {
   return {
     ...baseCoach,
     initials: initialsFor(detected.name),
+    headshot,
     name: detected.name,
     aliases: [detected.name],
     franchiseNumber: `Appointed ${todayDisp} (auto-detected via ${detected.sourceLabel})`,

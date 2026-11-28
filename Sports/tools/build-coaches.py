@@ -194,6 +194,7 @@ def build_new_coach(base, name, link_title, source_label, live_rec):
         base["role"].lower(),
         base["team"],
     )
+    headshot = ""
     career_rows = []
 
     try:
@@ -234,6 +235,13 @@ def build_new_coach(base, name, link_title, source_label, live_rec):
             sentences = re.split(r"(?<=[.!?])\s+", extract.strip())[:2]
             if sentences:
                 bio = " ".join(sentences)
+        raw_img = (
+            (summary.get("thumbnail") or {}).get("source")
+            or (summary.get("originalimage") or {}).get("source")
+            or ""
+        )
+        if raw_img:
+            headshot = raw_img.split("?")[0]
     except Exception:
         pass
 
@@ -263,6 +271,7 @@ def build_new_coach(base, name, link_title, source_label, live_rec):
     out.update(
         {
             "initials": initials_for(name),
+            "headshot": headshot,
             "name": name,
             "aliases": [name],
             "franchiseNumber": "Appointed %s (auto-detected via %s)"

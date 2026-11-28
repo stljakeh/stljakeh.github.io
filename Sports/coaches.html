@@ -51,22 +51,41 @@
   min-width: 0;
 }
 
+.coach-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  background: var(--team, var(--hero));
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14), inset 0 0 0 1.5px var(--team, var(--hero));
+}
+
+.coach-photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
 .coach-mono {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 100%;
+  height: 100%;
   background: var(--team, var(--hero));
   color: #fff;
   font-family: var(--serif);
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   letter-spacing: 0.5px;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
+
+.coach-avatar.is-fallback .coach-photo { display: none; }
+.coach-avatar.is-fallback .coach-mono { display: flex; }
 
 html[data-theme="dark"] .team-blues .coach-mono {
   color: #171114;
@@ -263,7 +282,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
 @media (max-width: 540px) {
   .coach-metrics { grid-template-columns: 1fr; gap: 6px; }
   .trow1 { flex-wrap: wrap; }
-  .coach-record-wrap { margin-left: 49px; text-align: left; }
+  .coach-record-wrap { margin-left: 57px; text-align: left; }
 }
 </style>
 </head>
@@ -328,7 +347,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
 <script>
 (function() {
   var esc = STL.utils.escHtml;
-  var CACHE_KEY = 'stl_coaches_v1';
+  var CACHE_KEY = 'stl_coaches_v2';
   var CACHE_TTL = 10 * 60 * 1000;
   var openState = {};
   var currentCoaches = [];
@@ -420,11 +439,18 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
       ? '<div class="coach-change-banner">Coaching change auto-detected via ' + esc(c.detectedSource || 'live feed') + ' &middot; Succeeds ' + esc(c.previousCoach.name) + ' (' + esc(c.previousCoach.record) + ')</div>'
       : '';
 
+    var avatarHtml = '<div class="coach-avatar' + (c.headshot ? '' : ' is-fallback') + '">' +
+      (c.headshot
+        ? '<img class="coach-photo" src="' + esc(c.headshot) + '" alt="' + esc(c.name) + ' headshot" loading="lazy" referrerpolicy="no-referrer">'
+        : '') +
+      '<div class="coach-mono" aria-hidden="true">' + esc(c.initials) + '</div>' +
+    '</div>';
+
     return '<article class="teamcard ' + esc(c.teamClass) + (isOpen ? ' open' : '') + '" data-coach="' + esc(c.id) + '">' +
       '<div class="tmain">' +
         '<div class="trow1">' +
           '<div class="coach-head-main">' +
-            '<div class="coach-mono" aria-hidden="true">' + esc(c.initials) + '</div>' +
+            avatarHtml +
             '<div class="coach-title-wrap">' +
               '<div class="tname">' + esc(c.name) + '</div>' +
               '<div class="tleague">' + esc(c.team) + ' &middot; ' + esc(c.league) + ' ' + esc(c.role) + '</div>' +
@@ -626,6 +652,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
           var todayIso = new Date().toISOString().slice(0, 10);
           var todayDisp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           var bio = detected.name + ' was detected via ' + srcLabel + ' as the ' + coach.role.toLowerCase() + ' of the ' + coach.team + '.';
+          var headshot = '';
           try {
             var sumR = await STL.shared.fetchWithTimeout(
               'https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent((detected.linkTitle || detected.name).replace(/\s+/g, '_')),
@@ -634,12 +661,15 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
             if (sumR.ok) {
               var sd = await sumR.json();
               if (sd.extract) bio = sd.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+              var rawImg = (sd.thumbnail && sd.thumbnail.source) || (sd.originalimage && sd.originalimage.source) || '';
+              if (rawImg) headshot = rawImg.split('?')[0];
             }
           } catch (e) {}
           var parts = detected.name.trim().split(/\s+/);
           var initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : detected.name.slice(0, 2).toUpperCase();
           return Object.assign({}, coach, {
             initials: initials,
+            headshot: headshot,
             name: detected.name,
             aliases: [detected.name],
             hiredDate: todayIso,
@@ -728,6 +758,14 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
       }
     }
   }
+
+  grid.addEventListener('error', function(e) {
+    var img = e.target;
+    if (img && img.classList && img.classList.contains('coach-photo')) {
+      var wrap = img.closest('.coach-avatar');
+      if (wrap) wrap.classList.add('is-fallback');
+    }
+  }, true);
 
   grid.addEventListener('click', function(e) {
     var btn = e.target && e.target.closest ? e.target.closest('[data-toggle-coach]') : null;
