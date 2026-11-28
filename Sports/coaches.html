@@ -292,8 +292,184 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   font-size: 0.9rem;
 }
 
+.team-rams { --team: #003594; }
+.team-browns { --team: #b45309; }
+html[data-theme="dark"] .team-rams { --team: #7baaf7; }
+html[data-theme="dark"] .team-browns { --team: #e08b4c; }
+
+.lb-card {
+  background: var(--card);
+  color: var(--card-ink);
+  border-radius: 14px;
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
+  box-shadow: 0 3px 12px rgba(var(--ink-rgb), 0.1);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.lb-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lb-title {
+  font-family: var(--serif);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--card-ink);
+  line-height: 1.2;
+}
+
+.lb-sub {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--card-mute);
+  margin-top: 3px;
+}
+
+.lb-tabs {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(var(--ink-rgb), 0.03);
+}
+
+.lb-tab {
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--card-mute);
+  padding: 6px 13px;
+  min-height: 34px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s ease;
+}
+.lb-tab + .lb-tab { border-left: 1px solid var(--line); }
+.lb-tab:hover { color: var(--card-ink); background: rgba(var(--ink-rgb), 0.05); }
+.lb-tab:active { transform: scale(0.96); }
+.lb-tab.active {
+  background: var(--card-ink);
+  color: var(--card);
+  font-weight: 700;
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 6px;
+  border-bottom: 1px solid rgba(var(--ink-rgb), 0.07);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row.is-live {
+  background: rgba(var(--ink-rgb), 0.035);
+  border-radius: 8px;
+  margin: 2px -6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-bottom-color: transparent;
+}
+
+.lb-rank {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--card-mute);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.lb-row.is-top3 .lb-rank {
+  color: var(--team, var(--accent));
+}
+
+.lb-info { min-width: 0; }
+
+.lb-name-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.lb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--team, var(--accent));
+  flex-shrink: 0;
+}
+
+.lb-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--card-ink);
+}
+
+.lb-meta {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--card-mute);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.lb-bar-track {
+  margin-top: 6px;
+  height: 4px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(var(--ink-rgb), 0.08);
+  overflow: hidden;
+}
+
+.lb-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--team, var(--accent));
+  min-width: 3px;
+}
+
+.lb-days {
+  font-family: var(--mono);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--card-ink);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-days-unit {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--card-mute);
+  margin-top: 1px;
+}
+
 @media (pointer: coarse) {
   .expand-all-btn { min-height: 40px; padding: 6px 14px; }
+  .lb-tab { min-height: 40px; padding: 6px 15px; }
 }
 
 @media (max-width: 540px) {
@@ -301,6 +477,9 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   .coach-metrics > :last-child { grid-column: 1 / -1; }
   .trow1 { flex-wrap: wrap; }
   .coach-record-wrap { margin-left: 57px; text-align: left; }
+  .lb-card { padding: 14px; }
+  .lb-row { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px 10px; }
+  .lb-days { font-size: 0.82rem; }
 }
 </style>
 </head>
@@ -353,6 +532,17 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
 
     <main class="cards" id="coachesGrid"><div class="loading">Loading coaches...</div></main>
 
+    <div class="divider" aria-hidden="true">
+      <svg width="34" height="14" viewBox="0 0 34 14">
+        <path d="M1,2 C10,2 12,6 17,6 C22,6 24,2 33,2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M1,12 C10,12 12,8 17,8 C22,8 24,12 33,12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M17,6 L17,8" stroke="currentColor" stroke-width="1.6"/>
+      </svg>
+      <span>TENURE LEDGER</span>
+    </div>
+
+    <section class="lb-card" id="tenureLeaderboard" aria-label="Longest tenured St. Louis coaches"></section>
+
     <div class="page-foot">
       <span id="syncFootNote">Sources: ESPN, MLB Stats API, Wikipedia</span>
     </div>
@@ -368,6 +558,32 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   var CACHE_TTL = 10 * 60 * 1000;
   var openState = {};
   var currentCoaches = [];
+  var lbMode = 'all';
+
+  var HISTORICAL_TENURES = [
+    { name: 'Tony La Russa', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1995-10-23', end: '2011-10-31', note: 'Oct 23, 1995 – Oct 31, 2011' },
+    { name: 'Red Schoendienst', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1964-10-20', end: '1976-10-05', note: 'Oct 20, 1964 – Oct 5, 1976 (primary tenure)' },
+    { name: 'Whitey Herzog', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1980-06-08', end: '1990-07-06', note: 'Jun 8, 1980 – Jul 6, 1990' },
+    { name: 'Joel Quenneville', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '1997-01-06', end: '2004-02-24', note: 'Jan 6, 1997 – Feb 24, 2004' },
+    { name: 'Mike Matheny', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '2011-11-14', end: '2018-07-14', note: 'Nov 14, 2011 – Jul 14, 2018' },
+    { name: 'Mike Martz', team: 'St. Louis Rams', league: 'NFL', teamClass: 'team-rams', start: '2000-02-02', end: '2006-01-02', note: 'Feb 2, 2000 – Jan 2, 2006' },
+    { name: 'Jim Hanifan', team: 'St. Louis Cardinals', league: 'NFL', teamClass: 'team-cardinals', start: '1980-01-30', end: '1985-12-21', note: 'Jan 30, 1980 – Dec 21, 1985' },
+    { name: 'Billy Southworth', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1940-06-14', end: '1945-11-06', note: 'Jun 14, 1940 – Nov 6, 1945' },
+    { name: 'Ken Hitchcock', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '2011-11-06', end: '2017-02-01', note: 'Nov 6, 2011 – Feb 1, 2017' },
+    { name: 'Luke Sewell', team: 'St. Louis Browns', league: 'MLB', teamClass: 'team-browns', start: '1941-06-05', end: '1946-08-31', note: 'Jun 5, 1941 – Aug 31, 1946' },
+    { name: 'Frankie Frisch', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1933-07-25', end: '1938-09-11', note: 'Jul 25, 1933 – Sep 11, 1938' },
+    { name: 'Craig Berube', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '2018-11-20', end: '2023-12-12', note: 'Nov 20, 2018 – Dec 12, 2023' },
+    { name: 'Eddie Dyer', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1945-11-06', end: '1950-10-16', note: 'Nov 6, 1945 – Oct 16, 1950' },
+    { name: 'Charley Winner', team: 'St. Louis Cardinals', league: 'NFL', teamClass: 'team-cardinals', start: '1966-02-10', end: '1971-01-06', note: 'Feb 10, 1966 – Jan 6, 1971' },
+    { name: 'Joe Torre', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '1990-08-01', end: '1995-06-16', note: 'Aug 1, 1990 – Jun 16, 1995' },
+    { name: 'Jeff Fisher', team: 'St. Louis Rams', league: 'NFL', teamClass: 'team-rams', start: '2012-01-13', end: '2016-01-12', note: 'Jan 13, 2012 – Jan 12, 2016 (STL era)' },
+    { name: 'Brian Sutter', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '1988-06-20', end: '1992-05-01', note: 'Jun 20, 1988 – May 1, 1992' },
+    { name: 'Anthony Becht', team: 'St. Louis Battlehawks', league: 'XFL / UFL', teamClass: 'team-battlehawks', start: '2022-04-13', end: '2025-12-29', note: 'Apr 13, 2022 – Dec 29, 2025' },
+    { name: 'Scotty Bowman', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '1967-11-21', end: '1971-06-10', note: 'Nov 21, 1967 – Jun 10, 1971' },
+    { name: 'Mike Shildt', team: 'St. Louis Cardinals', league: 'MLB', teamClass: 'team-cardinals', start: '2018-07-14', end: '2021-10-14', note: 'Jul 14, 2018 – Oct 14, 2021' },
+    { name: 'Andy Murray', team: 'St. Louis Blues', league: 'NHL', teamClass: 'team-blues', start: '2006-12-11', end: '2010-01-02', note: 'Dec 11, 2006 – Jan 2, 2010' },
+    { name: 'Bradley Carnell', team: 'St. Louis CITY SC', league: 'MLS', teamClass: 'team-city-sc', start: '2022-01-05', end: '2024-07-01', note: 'Jan 5, 2022 – Jul 1, 2024' }
+  ];
 
   function calcTenure(isoDate) {
     if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
@@ -537,10 +753,90 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   }
 
   var grid = document.getElementById('coachesGrid');
+  var lbEl = document.getElementById('tenureLeaderboard');
   var expandBtn = document.getElementById('expandAllBtn');
   var syncBtn = document.getElementById('syncBtn');
   var subEl = document.getElementById('coachesSub');
   var footNoteEl = document.getElementById('syncFootNote');
+
+  function diffIsoDays(startIso, endIso) {
+    var s = startIso.split('-').map(Number);
+    var e = endIso.split('-').map(Number);
+    var d1 = new Date(s[0], s[1] - 1, s[2]);
+    var d2 = new Date(e[0], e[1] - 1, e[2]);
+    return Math.max(0, Math.round((d2 - d1) / 86400000));
+  }
+
+  function renderLeaderboard() {
+    if (!lbEl) return;
+    var activeRows = (currentCoaches || []).map(function(c) {
+      var t = calcTenure(c.hiredDate);
+      return {
+        name: c.name,
+        team: c.team,
+        league: c.league,
+        teamClass: c.teamClass || '',
+        days: t.days,
+        note: 'Since ' + (c.hiredDisplay || c.hiredDate || 'Recently'),
+        live: true
+      };
+    });
+
+    var rows;
+    if (lbMode === 'active') {
+      rows = activeRows;
+    } else {
+      var histRows = HISTORICAL_TENURES.map(function(h) {
+        return {
+          name: h.name,
+          team: h.team,
+          league: h.league,
+          teamClass: h.teamClass,
+          days: diffIsoDays(h.start, h.end),
+          note: h.note,
+          live: false
+        };
+      });
+      rows = histRows.concat(activeRows);
+    }
+
+    rows.sort(function(a, b) {
+      if (b.days !== a.days) return b.days - a.days;
+      return a.name.localeCompare(b.name);
+    });
+
+    var maxDays = rows.length ? Math.max(rows[0].days, 1) : 1;
+    var rowsHtml = rows.map(function(r, idx) {
+      var pct = Math.max(2, Math.round((r.days / maxDays) * 100));
+      var cls = 'lb-row ' + esc(r.teamClass) + (r.live ? ' is-live' : '') + (idx < 3 ? ' is-top3' : '');
+      return '<div class="' + cls + '">' +
+        '<div class="lb-rank">' + (idx + 1) + '</div>' +
+        '<div class="lb-info">' +
+          '<div class="lb-name-line">' +
+            '<span class="lb-dot" aria-hidden="true"></span>' +
+            '<span class="lb-name">' + esc(r.name) + '</span>' +
+            (r.live ? '<span class="coach-live-pill">Active</span>' : '') +
+          '</div>' +
+          '<div class="lb-meta">' + esc(r.team) + ' &middot; ' + esc(r.league) + ' &middot; ' + esc(r.note) + '</div>' +
+          '<div class="lb-bar-track"><div class="lb-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+        '<div class="lb-days">' + r.days.toLocaleString('en-US') + '<span class="lb-days-unit">days</span></div>' +
+      '</div>';
+    }).join('');
+
+    lbEl.innerHTML =
+      '<div class="lb-head">' +
+        '<div>' +
+          '<h2 class="lb-title">Longest Tenured St. Louis Coaches</h2>' +
+          '<div class="lb-sub">Units: Days &middot; Active tenures update daily</div>' +
+        '</div>' +
+        '<div class="lb-tabs" role="tablist" aria-label="Leaderboard filter">' +
+          '<button class="lb-tab' + (lbMode === 'all' ? ' active' : '') + '" type="button" data-lb-mode="all" role="tab" aria-selected="' + (lbMode === 'all' ? 'true' : 'false') + '">All-Time</button>' +
+          '<button class="lb-tab' + (lbMode === 'active' ? ' active' : '') + '" type="button" data-lb-mode="active" role="tab" aria-selected="' + (lbMode === 'active' ? 'true' : 'false') + '">Active (' + activeRows.length + ')</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="lb-list">' + rowsHtml + '</div>';
+  }
 
   function syncExpandBtn() {
     var cards = grid.querySelectorAll('.teamcard');
@@ -554,6 +850,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
     if (!currentCoaches.length) return;
     grid.innerHTML = currentCoaches.map(renderCoachCard).join('');
     syncExpandBtn();
+    renderLeaderboard();
 
     var ts = payload.checked_at || payload.generated_at;
     if (ts) {
@@ -818,6 +1115,19 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
     loadCoaches(true);
   });
 
+  if (lbEl) {
+    lbEl.addEventListener('click', function(e) {
+      var btn = e.target && e.target.closest ? e.target.closest('[data-lb-mode]') : null;
+      if (!btn) return;
+      var next = btn.getAttribute('data-lb-mode');
+      if (next && next !== lbMode) {
+        lbMode = next;
+        renderLeaderboard();
+      }
+    });
+  }
+
+  renderLeaderboard();
   loadCoaches(false);
 })();
 </script>
