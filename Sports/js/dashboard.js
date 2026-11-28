@@ -50,11 +50,13 @@ STL.dashboard = {
     try {
       window._mlsOverall = {};
       window._mlsConfTeams = [];
+      const needsMls = teams.some(function(t) { return t.sport === 'soccer' && t.leagueSlug === 'usa.1'; });
+      window._mlsPromise = needsMls ? STL.api.fetchMlsStandings() : null;
       const livePromise = STL.api.enrichLiveScores();
-      await STL.api.fetchMlsStandings();
       // Throttled (limit 4): unbounded Promise.all bursts all teams at once,
       // which is what trips the proxy rate limits and makes random cards fail.
       await STL.api.mapLimit(teams, 4, function(t) { return STL.api.fetchTeam(t); });
+      if (window._mlsPromise) await window._mlsPromise.catch(function() {});
       STL.dashboard.applyHideWhenIdle();
       STL.dashboard.adjustRefreshInterval();
       STL.dashboard.startCountdownTimer();

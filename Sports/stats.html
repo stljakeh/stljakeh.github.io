@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/x-icon" href="../favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://site.api.espn.com" crossorigin>
 <style>
 /* Page chrome (body, masthead, nav, mini-hero) is handled by css/theme.css. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -176,6 +177,8 @@ html[data-theme="dark"] [data-frac="colorado"] { --frac-color: #E08B4C; }
 </div>
 </div>
 
+<script src="js/utils.js"></script>
+<script src="js/shared.js"></script>
 <script>
 var TEAMS = [
   { id: '24',  name: 'St. Louis Cardinals',  sport: 'baseball', league: 'mlb',        color: '#C41E3A' },
@@ -252,102 +255,21 @@ function safe(v) {
   return v != null ? v : '\u2014';
 }
 
-function escHtml(s) {
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+var escHtml = STL.utils.escHtml;
 
 function findStat(stats, name) {
   var s = stats.find(function(x) { return x.name === name; });
   return s ? s : null;
 }
 
-// Fail-fast fetch: one hung ESPN endpoint must not hang the page.
-function fetchTimeout(url, ms) {
-  ms = ms || 12000;
-  if (typeof AbortController === 'undefined') return fetch(url);
-  var ctrl = new AbortController();
-  var t = setTimeout(function() { ctrl.abort(); }, ms);
-  return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
+function espnFetch(url, ms) {
+  return STL.shared.fetchResponseWithFallback(url, ms || 10000);
 }
 
-// ESPN fetch with CORS-proxy fallback (same shape as STL.api.fetchWithFallback
-// on the dashboard). ESPN's bare team endpoint (.../teams/{id}) currently sends
-// no Access-Control-Allow-Origin, so a direct fetch fails there with a
-// TypeError. Direct is always tried first; only a network-level TypeError
-// falls through to the proxies, never HTTP statuses.
-var ESPN_PROXIES = [
-  'https://api.cors.lol/?url=',
-  'https://api.allorigins.win/raw?url='
-];
-function espnSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
-async function espnFetch(url, ms) {
-  try {
-    var direct = await fetchTimeout(url, ms);
-    if (!direct.ok) return direct;
-    // HTML error pages wearing HTTP 200 (proxies, middleboxes, bot walls) —
-    // only real JSON is accepted direct; anything else takes the proxy path.
-    var dtext = null, dparsed = null;
-    try {
-      dtext = await direct.text();
-      dparsed = JSON.parse(dtext);
-    } catch (e0) { dparsed = null; }
-    if (dparsed && typeof dparsed === 'object') {
-      return new Response(dtext, { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    var badBody = new Error('non-JSON body');
-    badBody.name = 'TypeError';
-    throw badBody;
-  } catch (e) {
-    var isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
-      (e && e.name === 'TypeError');
-    if (!isTypeError) throw e;
-    for (var i = 0; i < ESPN_PROXIES.length; i++) {
-      for (var attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await espnSleep(1500 * attempt);
-        var resp = null;
-        try {
-          resp = await fetchTimeout(ESPN_PROXIES[i] + encodeURIComponent(url), ms);
-        } catch (e2) { resp = null; }
-        if (resp && resp.ok) {
-          // Proxy error pages (e.g. allorigins "Access Denied") come back
-          // HTTP 200 with an HTML body — only real JSON is accepted.
-          var text = null, parsed = null;
-          try {
-            text = await resp.text();
-            parsed = JSON.parse(text);
-          } catch (e3) { parsed = null; }
-          if (parsed && typeof parsed === 'object') {
-            return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
-          }
-          // Garbage 200: retrying the same proxy won't turn HTML into JSON.
-          break;
-        }
-        // Rate-limited (429) or transient 5xx -> retry same proxy;
-        // anything else (or proxy unreachable) -> next proxy.
-        var st = resp ? resp.status : 0;
-        if (st !== 429 && !(st >= 500 && st <= 599)) break;
-      }
-    }
-    throw e;
-  }
-}
-
-// 6h localStorage cache (same TTL convention as the MLS/MiLB code) with
-// stale-while-revalidate: paint cache instantly, refresh behind it.
 var STATS_TTL = 6 * 3600000;
 function statsCacheKey(id) { return 'stats_cache_v1_' + id; }
-function readStatsCache(id) {
-  try {
-    var c = JSON.parse(localStorage.getItem(statsCacheKey(id)));
-    if (c && Date.now() < c.expiry) return c.data;
-  } catch (e) {}
-  return null;
-}
-function writeStatsCache(id, data) {
-  try { localStorage.setItem(statsCacheKey(id), JSON.stringify({ data: data, expiry: Date.now() + STATS_TTL })); } catch (e) {}
-}
+function readStatsCache(id) { return STL.shared.readCache(statsCacheKey(id)); }
+function writeStatsCache(id, data) { STL.shared.writeCache(statsCacheKey(id), data, STATS_TTL); }
 
 async function loadTeamStats(team) {
   if (team.sport === 'baseball') {

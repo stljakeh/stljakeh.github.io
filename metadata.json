@@ -1,0 +1,6 @@
+{
+  "name": "St. Louis Sports Ledger",
+  "description": "St. Louis sports dashboard tracking Cardinals, Blues, CITY SC, Battlehawks, and more.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -2,6 +2,27 @@ window.STL = window.STL || {};
 
 STL.utils = {
 
+  escHtml: function(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  safeUrl: function(raw) {
+    if (!raw) return '#';
+    var href = String(raw).trim();
+    if (href.charAt(0) === '/' || href.indexOf('./') === 0 || href.indexOf('../') === 0) return href;
+    try {
+      var parsed = new URL(href, window.location.href);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+    } catch (e) {}
+    return '#';
+  },
+
   suffix: function(n) {
     const s = ['th','st','nd','rd'], v = n % 100;
     return s[(v - 20) % 10] || s[v] || s[0];

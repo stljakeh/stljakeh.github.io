@@ -3,10 +3,12 @@ window.STL = window.STL || {};
 STL.api = {
 
   _liveScoreCache: {},
+  _summaryCache: {},
+  _summaryInFlight: {},
 
-  // Timeout wrapper: one hung endpoint (proxies occasionally hang instead
-  // of failing fast) must not stall the whole refresh.
+  // Timeout wrapper: delegates to STL.shared when available.
   fetchWithTimeout: function(url, ms) {
+    if (window.STL && STL.shared) return STL.shared.fetchWithTimeout(url, ms);
     ms = ms || 10000;
     if (typeof AbortController === 'undefined') return fetch(url);
     const ctrl = new AbortController();
@@ -14,27 +16,26 @@ STL.api = {
     return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
   },
 
-  // First-valid-JSON-wins race across proxy URLs. Proxy error pages (e.g.
-  // allorigins "Access Denied") come back HTTP 200 with an HTML body, so a
-  // bare resp.ok check would hand garbage to every downstream resp.json().
-  // Only bodies that parse as JSON objects/arrays win, returned as a
-  // reconstructed Response; anything else counts as a failure.
   raceUrls: function(urls, ms) {
+    if (window.STL && STL.shared) return STL.shared.raceUrls(urls, ms);
     return new Promise(function(resolve, reject) {
       let pending = urls.length;
       let lastErr = null;
+      let settled = false;
       if (!pending) { reject(new Error('no urls')); return; }
       const fail = function(e) {
         lastErr = e;
-        if (--pending === 0) reject(lastErr);
+        if (--pending === 0 && !settled) reject(lastErr);
       };
       urls.forEach(function(u) {
         STL.api.fetchWithTimeout(u, ms).then(function(resp) {
           if (!resp.ok) { fail(new Error('HTTP ' + resp.status)); return; }
           resp.text().then(function(text) {
+            if (settled) return;
             let parsed = null;
             try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
             if (parsed && typeof parsed === 'object') {
+              settled = true;
               resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
             } else {
               fail(new Error('non-JSON body'));
@@ -45,10 +46,8 @@ STL.api = {
     });
   },
 
-  // Rejects HTML error pages wearing HTTP 200 (proxies serve them, and on
-  // hostile networks middleboxes/bot walls do too). Resolves a reconstructed
-  // Response carrying the validated JSON text; HTTP statuses still throw.
   ensureJson: async function(resp) {
+    if (window.STL && STL.shared) return STL.shared.ensureJson(resp);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const text = await resp.text();
     let parsed = null;
@@ -82,22 +81,13 @@ STL.api = {
   },
 
   _jitterSleep: function(baseMs, spreadMs) {
+    if (window.STL && STL.shared) return STL.shared.jitterSleep(baseMs, spreadMs);
     const ms = (baseMs || 400) + Math.random() * (spreadMs == null ? 500 : spreadMs);
     return STL.api._sleep(ms);
   },
 
-  // Generic fetch with CORS-proxy fallback (used for ESPN, MLS and MLB Stats
-  // endpoints). ESPN's bare team endpoint (.../teams/{id}) currently sends no
-  // Access-Control-Allow-Origin, so an in-browser direct fetch fails there
-  // with a TypeError (direct navigation still works). Direct is always tried
-  // first — schedule/summary/scoreboard send CORS * — and a timeout, a
-  // network-level TypeError, a non-JSON body, or an HTTP 429/5xx falls through
-  // to the proxies (other HTTP statuses like 404 still throw — retrying a bad
-  // id through a proxy can't help). Proxies race in parallel (first valid JSON
-  // wins) with one retry round separated by jitter; every attempt is timed out
-  // so a hung proxy can't stall the refresh. Rethrows the original error when
-  // all fail.
   fetchWithFallback: async function(url, ms) {
+    if (window.STL && STL.shared) return STL.shared.fetchResponseWithFallback(url, ms);
     ms = ms || 10000;
     try {
       return await STL.api.ensureJson(await STL.api.fetchWithTimeout(url, ms));
@@ -117,9 +107,6 @@ STL.api = {
       if (!isAbort && !isTypeError && !isBadBody && !isRetryableStatus) throw e;
       const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
       const urls = proxies.map(function(p) { return p + encodeURIComponent(url); });
-      // Two rounds of parallel race: a slow/flaky proxy no longer blocks the
-      // other, and 429/5xx responses get one more chance (jittered so a
-      // burst of teams doesn't retry in lockstep and re-trigger limits).
       for (let round = 0; round < 2; round++) {
         if (round > 0) await STL.api._jitterSleep(400, 500);
         try {
@@ -128,6 +115,33 @@ STL.api = {
       }
       throw e;
     }
+  },
+
+  // Deduplicated + short-TTL cached ESPN summary fetcher so box score,
+  // live win probability, and gameday lineups share one HTTP call per event.
+  fetchEspnSummary: async function(team, eventId) {
+    if (!eventId) return null;
+    const key = team.sport + '/' + team.leagueSlug + '/' + eventId;
+    const now = Date.now();
+    const cached = STL.api._summaryCache[key];
+    if (cached && now - cached.at < 15000) return cached.data;
+    if (STL.api._summaryInFlight[key]) return STL.api._summaryInFlight[key];
+    STL.api._summaryInFlight[key] = (async function() {
+      try {
+        const resp = await STL.api.fetchWithFallback(
+          'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + eventId
+        );
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        STL.api._summaryCache[key] = { at: Date.now(), data: data };
+        return data;
+      } catch (e) {
+        return null;
+      } finally {
+        delete STL.api._summaryInFlight[key];
+      }
+    })();
+    return STL.api._summaryInFlight[key];
   },
 
   enrichLiveScores: async function() {
@@ -245,11 +259,8 @@ STL.api = {
     if (!comp) return;
     const eventId = event.id;
     try {
-      const resp = await STL.api.fetchWithFallback(
-        'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + eventId
-      );
-      if (!resp.ok) return;
-      const data = await resp.json();
+      const data = await STL.api.fetchEspnSummary(team, eventId);
+      if (!data) return;
 
       if (team.sport === 'baseball') {
         const players = data.boxscore?.players;
@@ -340,11 +351,8 @@ STL.api = {
   fetchBoxScore: async function(team, event) {
     if (!event) return;
     try {
-      const resp = await STL.api.fetchWithFallback(
-        'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + event.id
-      );
-      if (!resp.ok) return;
-      const data = await resp.json();
+      const data = await STL.api.fetchEspnSummary(team, event.id);
+      if (!data) return;
       const bs = STL.api.parseBoxScore(data, event.id, false, team);
       if (bs) {
         team._boxScoreData = bs;
@@ -536,11 +544,8 @@ STL.api = {
 
     try {
       if (isLive) {
-        const resp = await STL.api.fetchWithFallback(
-          'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/summary?event=' + eventId
-        );
-        if (!resp.ok) return;
-        const data = await resp.json();
+        const data = await STL.api.fetchEspnSummary(team, eventId);
+        if (!data) return;
         const summaryComps = data?.competitions?.[0]?.competitors || data?.header?.competitions?.[0]?.competitors;
         const summaryStatus = data?.competitions?.[0]?.status || data?.header?.competitions?.[0]?.status;
         if (summaryComps) {
@@ -589,6 +594,7 @@ STL.api = {
   /* MLS-official data: stats-api.mlssoccer.com sends CORS *, so plain fetch with localStorage caching */
 
   fetchMlsMatches: async function() {
+    if (window.STL && STL.shared) return STL.shared.fetchMlsMatches();
     const url = 'https://stats-api.mlssoccer.com/matches/seasons/' + STL.config.MLS_SEASON_ID +
       '?competition_id=' + STL.config.MLS_COMPETITION_ID +
       '&match_date%5Bgte%5D=2026-02-01&match_date%5Blte%5D=2026-12-31' +
@@ -618,7 +624,7 @@ STL.api = {
 
   findNextGameFromScoreboard: async function(team, startDate) {
     // Memoized per team (6h TTL): an offseason team would otherwise run up to
-    // 14 sequential fetches on every refresh. A found future event is reused
+    // 14 scoreboard checks on every refresh. A found future event is reused
     // while still upcoming; a miss is reused for the TTL.
     var memoKey = 'stl_nextgame_' + team.sport + '_' + team.leagueSlug + '_' + team.id;
     var nowMs = Date.now();
@@ -636,24 +642,36 @@ STL.api = {
     return found;
   },
 
+  // Batched scoreboard scan (3 days concurrently per round) instead of 14
+  // sequential waits; stops as soon as the earliest upcoming game is found.
   scanNextGameFromScoreboard: async function(team, startDate) {
     var d = new Date(startDate || Date.now());
+    var days = [];
     for (var i = 1; i <= 14; i++) {
       var check = new Date(d);
       check.setDate(check.getDate() + i);
-      var dateStr = check.toISOString().slice(0, 10).replace(/-/g, '');
-      try {
-        var resp = await STL.api.fetchWithFallback('https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=' + dateStr);
-        if (!resp.ok) continue;
-        var data = await resp.json();
-        for (var j = 0; j < (data.events || []).length; j++) {
-          var ev = data.events[j];
-          var comps = ev.competitions?.[0]?.competitors;
-          if (!comps) continue;
-          var isOurs = comps.some(function(c) { return String(c.team.id) === String(team.id); });
-          if (isOurs && ev.competitions?.[0]?.status?.type?.state === 'pre') return ev;
-        }
-      } catch (e) { continue; }
+      days.push(check.toISOString().slice(0, 10).replace(/-/g, ''));
+    }
+    var base = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/scoreboard?dates=';
+    for (var start = 0; start < days.length; start += 3) {
+      var batch = days.slice(start, start + 3);
+      var results = await Promise.all(batch.map(function(dateStr) {
+        return STL.api.fetchWithFallback(base + dateStr, 5000).then(async function(resp) {
+          if (!resp.ok) return null;
+          var data = await resp.json();
+          for (var j = 0; j < (data.events || []).length; j++) {
+            var ev = data.events[j];
+            var comps = ev.competitions?.[0]?.competitors;
+            if (!comps) continue;
+            var isOurs = comps.some(function(c) { return String(c.team.id) === String(team.id); });
+            if (isOurs && ev.competitions?.[0]?.status?.type?.state === 'pre') return ev;
+          }
+          return null;
+        }).catch(function() { return null; });
+      }));
+      for (var r = 0; r < results.length; r++) {
+        if (results[r]) return results[r];
+      }
     }
     return null;
   },
@@ -917,84 +935,9 @@ STL.api = {
     } catch (e) { return null; }
   },
 
-  fetchTeam: async function(team) {
-    if (team.manual) {
-      STL.render.renderManual(team);
-      team._lastFetchOk = true;
-      return;
-    }
-    if (team.kbo) {
-      await STL.api.fetchKboLive(team);
-      team._lastFetchOk = true;
-      return;
-    }
-    if (team.npbName) {
-      await STL.api.fetchAsiaBaseball(team);
-      team._lastFetchOk = true;
-      return;
-    }
-    const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
-    // First paint prefers the server-prefetched bundle (instant, identical
-    // everywhere); later refreshes go live. Bundle entries are consumed on
-    // read, so each team paints from it at most once per page load. The
-    // consumed entry is written through to the ESPN cache so refresh #2+
-    // survives live proxy failures instead of erroring at random.
-    const pre = await STL.api.consumePrefetch(team);
-    let data = pre ? { team: pre.team } : null;
-    let allEvents = pre ? (pre.events || []) : [];
-    let loadError = null;
-    if (pre) {
-      STL.api.writeEspnCache(team, pre.team, pre.events || []);
-    }
-    if (!pre) {
-      try {
-        const resp = await STL.api.fetchWithFallback(baseUrl);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        data = await resp.json();
-        STL.api.writeEspnCache(team, data.team, null);
-      } catch (e) {
-        loadError = e;
-        data = null;
-      }
-    }
-
+  _computeTeamState: function(team, allEvents) {
     let lastEvent = null;
     let nextEvent = null;
-    if (!pre) {
-      try {
-        const schedResp = await STL.api.fetchWithFallback(baseUrl + '/schedule');
-        if (schedResp.ok) {
-          const schedData = await schedResp.json();
-          allEvents = schedData.events || [];
-          STL.api.writeEspnCache(team, null, allEvents);
-        }
-      } catch (e) {}
-    }
-
-    // Cache fallback (silent, 6h TTL): once a load has succeeded, later loads
-    // paint the same cards even when live fetches fail. Only a total absence
-    // — true first visit on a dead network — still errors, and only when the
-    // card never rendered before (a failed refresh keeps last-good). Stale
-    // prefetch is the last resort before giving up, so a missed workflow run
-    // or a cold cache still paints instead of flashing "Failed to load".
-    if (!data || !allEvents.length) {
-      const cached = STL.api.readEspnCache(team);
-      if (!data && cached.team) data = { team: cached.team };
-      if (!allEvents.length && cached.events) allEvents = cached.events;
-    }
-    if ((!data || !allEvents.length) && !team._renderedOnce) {
-      const stale = await STL.api.peekStalePrefetch(team);
-      if (stale) {
-        if (!data) data = { team: stale.team };
-        if (!allEvents.length) allEvents = stale.events || [];
-      }
-    }
-    if (!data) {
-      team._lastFetchOk = false;
-      if (!team._renderedOnce) STL.render.renderError(team, 'Failed to load: ' + (loadError ? loadError.message : 'network error'));
-      return;
-    }
-
     let lastDate = null, nextDate = null;
     for (const e of allEvents) {
       const st = e.competitions?.[0]?.status?.type;
@@ -1027,17 +970,12 @@ STL.api = {
 
     let compWins = 0, compLosses = 0, compDraws = 0, compOtl = 0;
     for (const ev of completedEvents) {
-      // Regular-season record only — postseason games don't count
-      // (Battlehawks 2026: 6-4, with the semifinal loss excluded).
       if (STL.api.isPostseason(ev)) continue;
       const ha = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) === String(team.id); });
       const opp = ev.competitions[0].competitors.find(function(c) { return String(c.team.id) !== String(team.id); });
       if (!ha || !opp) continue;
       if (ha.winner === true) compWins++;
       else if (opp.winner === true) {
-        // Hockey records are W-L-OTL, but the schedule's winner flags mark
-        // an OT/SO loss as a plain loss. Split those out so the OTL is not
-        // counted again when render appends it (was showing e.g. 2-3-1).
         if (team.sport === 'hockey' && STL.api.isOvertimeGame(ev)) compOtl++;
         else compLosses++;
       }
@@ -1048,36 +986,149 @@ STL.api = {
     if (team.sport === 'soccer') computedRecord.points = compWins * 3 + compDraws;
     team._computedRecord = computedRecord;
 
-    // Offseason: ESPN's schedule goes empty, so the computed record would be
-    // 0-0 and clobber the final record. Pin the previous season's final
-    // (record + last game) until the next season's games appear.
-    if (completedEvents.length === 0 && team.sport === 'baseball') {
-      await STL.api.fetchMlbPrevFinal(team);
+    return { lastEvent: lastEvent, nextEvent: nextEvent, completedEvents: completedEvents };
+  },
+
+  fetchTeam: async function(team) {
+    if (team.manual) {
+      STL.render.renderManual(team);
+      team._lastFetchOk = true;
+      return;
     }
+    if (team.kbo) {
+      await STL.api.fetchKboLive(team);
+      team._lastFetchOk = true;
+      return;
+    }
+    if (team.npbName) {
+      await STL.api.fetchAsiaBaseball(team);
+      team._lastFetchOk = true;
+      return;
+    }
+    const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
+    const pre = await STL.api.consumePrefetch(team);
+    let data = pre ? { team: pre.team } : null;
+    let allEvents = pre ? (pre.events || []) : [];
+    let loadError = null;
+    if (pre) {
+      STL.api.writeEspnCache(team, pre.team, pre.events || []);
+    }
+    if (!pre) {
+      // Paint any cached or stale-prefetched snapshot immediately so the user
+      // sees populated cards at 0ms while live fetches refresh in parallel.
+      if (!team._renderedOnce) {
+        const earlyCached = STL.api.readEspnCache(team);
+        let earlyData = earlyCached.team ? { team: earlyCached.team } : null;
+        let earlyEvents = earlyCached.events || [];
+        if (!earlyData || !earlyEvents.length) {
+          const earlyStale = await STL.api.peekStalePrefetch(team);
+          if (earlyStale) {
+            if (!earlyData && earlyStale.team) earlyData = { team: earlyStale.team };
+            if (!earlyEvents.length && earlyStale.events) earlyEvents = earlyStale.events;
+          }
+        }
+        if (earlyData) {
+          const earlyState = STL.api._computeTeamState(team, earlyEvents);
+          await STL.render.renderTeam(team, earlyData, earlyState.lastEvent, earlyState.nextEvent, { skipNetwork: true });
+          team._renderedOnce = true;
+        }
+      }
+
+      // Parallelize /teams/{id} and /schedule instead of awaiting sequentially.
+      const [teamRes, schedRes] = await Promise.all([
+        STL.api.fetchWithFallback(baseUrl).then(async function(resp) {
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return resp.json();
+        }).catch(function(e) {
+          loadError = e;
+          return null;
+        }),
+        STL.api.fetchWithFallback(baseUrl + '/schedule').then(async function(schedResp) {
+          if (!schedResp.ok) return null;
+          return schedResp.json();
+        }).catch(function() { return null; })
+      ]);
+      if (teamRes && teamRes.team) {
+        data = teamRes;
+        STL.api.writeEspnCache(team, teamRes.team, null);
+      }
+      if (schedRes) {
+        allEvents = schedRes.events || [];
+        STL.api.writeEspnCache(team, null, allEvents);
+      }
+    }
+
+    if (!data || !allEvents.length) {
+      const cached = STL.api.readEspnCache(team);
+      if (!data && cached.team) data = { team: cached.team };
+      if (!allEvents.length && cached.events) allEvents = cached.events;
+    }
+    if ((!data || !allEvents.length) && !team._renderedOnce) {
+      const stale = await STL.api.peekStalePrefetch(team);
+      if (stale) {
+        if (!data) data = { team: stale.team };
+        if (!allEvents.length) allEvents = stale.events || [];
+      }
+    }
+    if (!data) {
+      team._lastFetchOk = false;
+      if (!team._renderedOnce) STL.render.renderError(team, 'Failed to load: ' + (loadError ? loadError.message : 'network error'));
+      return;
+    }
+
+    const state = STL.api._computeTeamState(team, allEvents);
+    const lastEvent = state.lastEvent;
+    let nextEvent = state.nextEvent;
+    const completedEvents = state.completedEvents;
+
+    // Wait for MLS standings only for MLS teams so non-MLS teams never block.
+    if (team.sport === 'soccer' && team.leagueSlug === 'usa.1' && window._mlsPromise) {
+      await window._mlsPromise.catch(function() {});
+    }
+
+    // Progressive core paint before secondary enrichments (boxscore, winprob,
+    // gameday lineup, offseason scoreboard scan).
+    await STL.render.renderTeam(team, data, lastEvent, nextEvent, { skipNetwork: true });
+    team._renderedOnce = true;
 
     team._lastGameEventId = lastEvent ? lastEvent.id : null;
+    const enrichTasks = [];
+    let didEnrich = false;
+
+    if (completedEvents.length === 0 && team.sport === 'baseball') {
+      didEnrich = true;
+      enrichTasks.push(STL.api.fetchMlbPrevFinal(team));
+    }
     if (lastEvent && team._boxScoreEventId !== lastEvent.id) {
-      await STL.api.fetchBoxScore(team, lastEvent);
+      didEnrich = true;
+      enrichTasks.push(STL.api.fetchBoxScore(team, lastEvent));
     }
-
     if (!nextEvent) {
-      nextEvent = await STL.api.findNextGameFromScoreboard(team, lastEvent ? lastEvent.date : null);
+      didEnrich = true;
+      enrichTasks.push(
+        STL.api.findNextGameFromScoreboard(team, lastEvent ? lastEvent.date : null).then(async function(ev) {
+          if (ev) {
+            nextEvent = ev;
+            const postTasks = [STL.api.fetchWinProb(team, ev)];
+            if (STL.utils.isGameDay(ev)) postTasks.push(STL.api.fetchLineup(team, ev));
+            await Promise.all(postTasks);
+          }
+        })
+      );
+    } else {
+      didEnrich = true;
+      enrichTasks.push(STL.api.fetchWinProb(team, nextEvent));
+      if (STL.utils.isGameDay(nextEvent)) {
+        enrichTasks.push(STL.api.fetchLineup(team, nextEvent));
+      }
     }
 
-    const renders = [];
-    if (nextEvent) {
-      // NOTE: the renderTeam promise must be returned — otherwise refresh()
-      // proceeds to sorting/the hero before rendering finishes, and the hero
-      // can pick a team from half-populated _upcomingEvent data.
-      renders.push(STL.api.fetchWinProb(team, nextEvent).then(function() {
-        return STL.render.renderTeam(team, data, lastEvent, nextEvent);
-      }));
-    } else {
-      renders.push(Promise.resolve().then(function() {
-        return STL.render.renderTeam(team, data, lastEvent, nextEvent);
-      }));
+    if (enrichTasks.length) {
+      await Promise.all(enrichTasks);
     }
-    await Promise.all(renders);
+    if (didEnrich) {
+      await STL.render.renderTeam(team, data, lastEvent, nextEvent, { skipNetwork: true });
+    }
     team._renderedOnce = true;
     team._lastFetchOk = true;
   },
@@ -1344,11 +1395,7 @@ STL.api = {
 
   HT: {
     base: 'https://lscluster.hockeytech.com/feed/index.php',
-    // Verified 2026-09-30: both forward the body unchanged + Access-Control-Allow-Origin: *.
-    // cors.lol is primary but rate-limits bursts (HTTP 429); allorigins is the
-    // fallback but throws transient 520s. (codetabs 522, corsproxy.io needs an
-    // API key, corsfix/isomorphic-git reject us.)
-    proxies: [
+    proxies: (window.STL && STL.shared && STL.shared.PROXIES) || [
       'https://api.cors.lol/?url=',
       'https://api.allorigins.win/raw?url='
     ],
@@ -1394,7 +1441,7 @@ STL.api = {
       if (cached && Date.now() < cached.expiry) return cached.data;
     } catch (e) {}
     const load = async function(u) {
-      const resp = await fetch(u);
+      const resp = await STL.api.fetchWithTimeout(u, 8000);
       if (!resp.ok) {
         const err = new Error('HTTP ' + resp.status);
         err.status = resp.status;
@@ -1414,28 +1461,42 @@ STL.api = {
     const store = function(data) {
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: data, expiry: Date.now() + ttlMs })); } catch (e) {}
     };
-    // Proxied first (works in browsers), direct as fallback (works server-side
-    // and if HockeyTech ever adds CORS headers). Cached body is identical either way.
-    // Proxies are chained: a failure on one falls through to the next, and
-    // HTTP 429 (burst rate-limit) is retried with backoff before moving on.
-    const targets = STL.api.HT.proxies.map(function(p) { return p + encodeURIComponent(url); });
-    targets.push(url);
+    const raceTargets = function(urls) {
+      return new Promise(function(resolve, reject) {
+        let pending = urls.length;
+        let lastErr = null;
+        let settled = false;
+        if (!pending) { reject(new Error('no urls')); return; }
+        urls.forEach(function(u) {
+          load(u).then(function(data) {
+            if (settled) return;
+            settled = true;
+            resolve(data);
+          }, function(e) {
+            lastErr = e;
+            if (--pending === 0 && !settled) reject(lastErr);
+          });
+        });
+      });
+    };
+    const proxyUrls = STL.api.HT.proxies.map(function(p) { return p + encodeURIComponent(url); });
     let lastErr = null;
-    for (const t of targets) {
-      const isDirect = (t === url);
-      let attempt = 0;
-      while (true) {
-        try {
-          const data = await load(t);
-          store(data);
-          return data;
-        } catch (e) {
-          lastErr = e;
-          const retryable = !isDirect && e && (e.status === 429 || (e.status >= 500 && e.status <= 599)) && attempt < 2;
-          if (retryable) { attempt++; await STL.api._sleep(1500 * attempt); continue; }
-          break;
-        }
+    for (let round = 0; round < 2; round++) {
+      if (round > 0) await STL.api._jitterSleep(350, 450);
+      try {
+        const data = await raceTargets(proxyUrls);
+        store(data);
+        return data;
+      } catch (e) {
+        lastErr = e;
       }
+    }
+    try {
+      const directData = await load(url);
+      store(directData);
+      return directData;
+    } catch (e) {
+      lastErr = lastErr || e;
     }
     throw lastErr || new Error('fetch failed');
   },
