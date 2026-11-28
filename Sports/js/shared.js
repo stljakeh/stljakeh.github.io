@@ -51,15 +51,59 @@ STL.shared = {
     return STL.shared.sleep(ms);
   },
 
-  fetchWithTimeout: function(url, ms) {
-    ms = ms || 10000;
-    if (typeof AbortController === 'undefined') return fetch(url);
+  fetchWithTimeout: function(url, ms, fetchOpts) {
+    ms = ms || 8000;
+    if (typeof AbortController === 'undefined') return fetch(url, fetchOpts);
     var ctrl = new AbortController();
     var t = setTimeout(function() { ctrl.abort(); }, ms);
-    return fetch(url, { signal: ctrl.signal }).then(
+    var opts = fetchOpts ? Object.assign({}, fetchOpts, { signal: ctrl.signal }) : { signal: ctrl.signal };
+    return fetch(url, opts).then(
       function(r) { clearTimeout(t); return r; },
       function(e) { clearTimeout(t); throw e; }
     );
+  },
+
+  // Timeout covers the ENTIRE request including resp.text() body streaming so
+  // a proxy that sends HTTP 200 headers and stalls mid-body never hangs forever.
+  fetchTextWithTimeout: function(url, ms, fetchOpts) {
+    ms = ms || 6500;
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var opts = ctrl
+      ? (fetchOpts ? Object.assign({}, fetchOpts, { signal: ctrl.signal }) : { signal: ctrl.signal })
+      : fetchOpts;
+    return new Promise(function(resolve, reject) {
+      var done = false;
+      var timer = setTimeout(function() {
+        if (done) return;
+        done = true;
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        var err = new Error('timeout');
+        err.name = 'AbortError';
+        reject(err);
+      }, ms);
+      var finishOk = function(val) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(val);
+      };
+      var finishErr = function(err) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(err);
+      };
+      fetch(url, opts).then(function(resp) {
+        if (!resp.ok) {
+          if (resp.body && resp.body.cancel) { try { resp.body.cancel(); } catch (e) {} }
+          finishErr(new Error('HTTP ' + resp.status));
+          return;
+        }
+        resp.text().then(function(text) {
+          finishOk(text);
+        }, finishErr);
+      }, finishErr);
+    });
   },
 
   ensureJson: async function(resp) {
@@ -84,19 +128,16 @@ STL.shared = {
         if (--pending === 0 && !settled) reject(lastErr);
       };
       urls.forEach(function(u) {
-        STL.shared.fetchWithTimeout(u, ms).then(function(resp) {
-          if (!resp.ok) { fail(new Error('HTTP ' + resp.status)); return; }
-          resp.text().then(function(text) {
-            if (settled) return;
-            var parsed = null;
-            try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
-            if (parsed && typeof parsed === 'object') {
-              settled = true;
-              resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
-            } else {
-              fail(new Error('non-JSON body'));
-            }
-          }, fail);
+        STL.shared.fetchTextWithTimeout(u, ms).then(function(text) {
+          if (settled) return;
+          var parsed = null;
+          try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+          if (parsed && typeof parsed === 'object') {
+            settled = true;
+            resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          } else {
+            fail(new Error('non-JSON body'));
+          }
         }, fail);
       });
     });
@@ -114,12 +155,19 @@ STL.shared = {
     return false;
   },
 
-  fetchResponseWithFallback: async function(url, ms) {
-    ms = ms || 10000;
+  fetchResponseWithFallback: async function(url, ms, opts) {
+    ms = ms || 6500;
+    var maxRounds = (opts && opts.maxRounds) || 2;
     var directErr = null;
     if (!STL.shared.shouldSkipDirect(url)) {
       try {
-        return await STL.shared.ensureJson(await STL.shared.fetchWithTimeout(url, ms));
+        var text = await STL.shared.fetchTextWithTimeout(url, ms);
+        var parsed = null;
+        try { parsed = JSON.parse(text); } catch (e0) { parsed = null; }
+        if (parsed && typeof parsed === 'object') {
+          return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        throw new Error('non-JSON body');
       } catch (e) {
         directErr = e;
         var isAbort = e && e.name === 'AbortError';
@@ -138,8 +186,8 @@ STL.shared = {
       }
     }
     var urls = STL.shared.PROXIES.map(function(p) { return p + encodeURIComponent(url); });
-    for (var round = 0; round < 2; round++) {
-      if (round > 0) await STL.shared.jitterSleep(350, 450);
+    for (var round = 0; round < maxRounds; round++) {
+      if (round > 0) await STL.shared.jitterSleep(250, 350);
       try {
         return await STL.shared.raceUrls(urls, ms);
       } catch (e2) {

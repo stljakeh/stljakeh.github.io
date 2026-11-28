@@ -7,13 +7,56 @@ STL.api = {
   _summaryInFlight: {},
 
   // Timeout wrapper: delegates to STL.shared when available.
-  fetchWithTimeout: function(url, ms) {
-    if (window.STL && STL.shared) return STL.shared.fetchWithTimeout(url, ms);
-    ms = ms || 10000;
-    if (typeof AbortController === 'undefined') return fetch(url);
+  fetchWithTimeout: function(url, ms, fetchOpts) {
+    if (window.STL && STL.shared) return STL.shared.fetchWithTimeout(url, ms, fetchOpts);
+    ms = ms || 8000;
+    if (typeof AbortController === 'undefined') return fetch(url, fetchOpts);
     const ctrl = new AbortController();
     const t = setTimeout(function() { ctrl.abort(); }, ms);
-    return fetch(url, { signal: ctrl.signal }).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
+    const opts = fetchOpts ? Object.assign({}, fetchOpts, { signal: ctrl.signal }) : { signal: ctrl.signal };
+    return fetch(url, opts).then(function(r) { clearTimeout(t); return r; }, function(e) { clearTimeout(t); throw e; });
+  },
+
+  fetchTextWithTimeout: function(url, ms, fetchOpts) {
+    if (window.STL && STL.shared && STL.shared.fetchTextWithTimeout) {
+      return STL.shared.fetchTextWithTimeout(url, ms, fetchOpts);
+    }
+    ms = ms || 6500;
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const opts = ctrl
+      ? (fetchOpts ? Object.assign({}, fetchOpts, { signal: ctrl.signal }) : { signal: ctrl.signal })
+      : fetchOpts;
+    return new Promise(function(resolve, reject) {
+      let done = false;
+      const timer = setTimeout(function() {
+        if (done) return;
+        done = true;
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        const err = new Error('timeout');
+        err.name = 'AbortError';
+        reject(err);
+      }, ms);
+      const finishOk = function(val) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(val);
+      };
+      const finishErr = function(err) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(err);
+      };
+      fetch(url, opts).then(function(resp) {
+        if (!resp.ok) {
+          if (resp.body && resp.body.cancel) { try { resp.body.cancel(); } catch (e) {} }
+          finishErr(new Error('HTTP ' + resp.status));
+          return;
+        }
+        resp.text().then(finishOk, finishErr);
+      }, finishErr);
+    });
   },
 
   raceUrls: function(urls, ms) {
@@ -28,19 +71,16 @@ STL.api = {
         if (--pending === 0 && !settled) reject(lastErr);
       };
       urls.forEach(function(u) {
-        STL.api.fetchWithTimeout(u, ms).then(function(resp) {
-          if (!resp.ok) { fail(new Error('HTTP ' + resp.status)); return; }
-          resp.text().then(function(text) {
-            if (settled) return;
-            let parsed = null;
-            try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
-            if (parsed && typeof parsed === 'object') {
-              settled = true;
-              resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
-            } else {
-              fail(new Error('non-JSON body'));
-            }
-          }, fail);
+        STL.api.fetchTextWithTimeout(u, ms).then(function(text) {
+          if (settled) return;
+          let parsed = null;
+          try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+          if (parsed && typeof parsed === 'object') {
+            settled = true;
+            resolve(new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          } else {
+            fail(new Error('non-JSON body'));
+          }
         }, fail);
       });
     });
@@ -82,15 +122,22 @@ STL.api = {
 
   _jitterSleep: function(baseMs, spreadMs) {
     if (window.STL && STL.shared) return STL.shared.jitterSleep(baseMs, spreadMs);
-    const ms = (baseMs || 400) + Math.random() * (spreadMs == null ? 500 : spreadMs);
+    const ms = (baseMs || 350) + Math.random() * (spreadMs == null ? 450 : spreadMs);
     return STL.api._sleep(ms);
   },
 
-  fetchWithFallback: async function(url, ms) {
-    if (window.STL && STL.shared) return STL.shared.fetchResponseWithFallback(url, ms);
-    ms = ms || 10000;
+  fetchWithFallback: async function(url, ms, opts) {
+    if (window.STL && STL.shared) return STL.shared.fetchResponseWithFallback(url, ms, opts);
+    ms = ms || 6500;
+    const maxRounds = (opts && opts.maxRounds) || 2;
     try {
-      return await STL.api.ensureJson(await STL.api.fetchWithTimeout(url, ms));
+      const text = await STL.api.fetchTextWithTimeout(url, ms);
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch (e0) { parsed = null; }
+      if (parsed && typeof parsed === 'object') {
+        return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      throw new Error('non-JSON body');
     } catch (e) {
       const isAbort = e && e.name === 'AbortError';
       const isTypeError = (typeof TypeError !== 'undefined' && e instanceof TypeError) ||
@@ -107,8 +154,8 @@ STL.api = {
       if (!isAbort && !isTypeError && !isBadBody && !isRetryableStatus) throw e;
       const proxies = (STL.api.HT && STL.api.HT.proxies) || [];
       const urls = proxies.map(function(p) { return p + encodeURIComponent(url); });
-      for (let round = 0; round < 2; round++) {
-        if (round > 0) await STL.api._jitterSleep(400, 500);
+      for (let round = 0; round < maxRounds; round++) {
+        if (round > 0) await STL.api._jitterSleep(250, 350);
         try {
           return await STL.api.raceUrls(urls, ms);
         } catch (e2) {}
@@ -155,9 +202,9 @@ STL.api = {
       d.setDate(d.getDate() + i);
       dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
     }
-    // Throttled (limit 4): an unbounded burst across sports x dates is what
-    // trips the proxy rate limits and makes random cards fail per refresh.
-    await STL.api.mapLimit([...sports], 4, async function(key) {
+    // Throttled (limit 2): keeps scoreboard enrichment from bursting the
+    // proxies concurrently with fetchTeam on initial load.
+    await STL.api.mapLimit([...sports], 2, async function(key) {
       const sportTeams = teams.filter(function(t) { return t.sport + '/' + t.leagueSlug === key; });
       const prior = {};
       for (const t of sportTeams) {
@@ -175,7 +222,7 @@ STL.api = {
         // sport (not parallel) to stay under proxy burst limits.
         const days = [];
         for (const day of dates) {
-          const resp = await STL.api.fetchWithFallback('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day);
+          const resp = await STL.api.fetchWithFallback('https://site.api.espn.com/apis/site/v2/sports/' + key + '/scoreboard?dates=' + day, 5000, { maxRounds: 1 });
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
           days.push(await resp.json());
         }
@@ -656,7 +703,7 @@ STL.api = {
     for (var start = 0; start < days.length; start += 3) {
       var batch = days.slice(start, start + 3);
       var results = await Promise.all(batch.map(function(dateStr) {
-        return STL.api.fetchWithFallback(base + dateStr, 5000).then(async function(resp) {
+        return STL.api.fetchWithFallback(base + dateStr, 4500, { maxRounds: 1 }).then(async function(resp) {
           if (!resp.ok) return null;
           var data = await resp.json();
           for (var j = 0; j < (data.events || []).length; j++) {
@@ -864,19 +911,16 @@ STL.api = {
         // The tiny meta file gates the large bundle: a stale bundle would be
         // rejected by consumePrefetch, so don't download it at all.
         try {
-          const metaResp = await fetch('data/espn-prefetch-meta.json', { cache: 'no-store' });
-          if (metaResp.ok) {
-            const meta = await metaResp.json();
-            const gen = Date.parse(meta.generated_at);
-            if (isFinite(gen) && now - gen > STL.api.ESPN_CACHE_TTL_MS) return null;
-          }
+          const metaText = await STL.api.fetchTextWithTimeout('data/espn-prefetch-meta.json', 4000, { cache: 'no-store' });
+          const meta = JSON.parse(metaText);
+          const gen = Date.parse(meta.generated_at);
+          if (isFinite(gen) && now - gen > STL.api.ESPN_CACHE_TTL_MS) return null;
         } catch (e) {}
         // no-store: Pages CDN + browser HTTP cache can otherwise serve a
         // >6h-old bundle that consumePrefetch then rejects, dropping us to
         // the flaky live path for no reason.
-        const resp = await fetch('data/espn-prefetch.json', { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
+        const text = await STL.api.fetchTextWithTimeout('data/espn-prefetch.json', 8000, { cache: 'no-store' });
+        const data = JSON.parse(text);
         if (!data || !data.generated_at || now - Date.parse(data.generated_at) > STL.api.ESPN_CACHE_TTL_MS) return null;
         STL.api._espnPrefetch = { at: Date.now(), data: data };
         return data;
@@ -895,9 +939,8 @@ STL.api = {
     if (STL.api._espnStaleBundleLoading) return STL.api._espnStaleBundleLoading;
     STL.api._espnStaleBundleLoading = (async function() {
       try {
-        const resp = await fetch('data/espn-prefetch.json', { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        STL.api._espnStaleBundle = await resp.json();
+        const text = await STL.api.fetchTextWithTimeout('data/espn-prefetch.json', 8000, { cache: 'no-store' });
+        STL.api._espnStaleBundle = JSON.parse(text);
         return STL.api._espnStaleBundle;
       } finally {
         STL.api._espnStaleBundleLoading = null;
@@ -989,23 +1032,43 @@ STL.api = {
     return { lastEvent: lastEvent, nextEvent: nextEvent, completedEvents: completedEvents };
   },
 
+  _notifyHeroPaint: function() {
+    if (window.STL && STL.dashboard && STL.dashboard.scheduleHeroUpdate) {
+      STL.dashboard.scheduleHeroUpdate();
+    }
+  },
+
   fetchTeam: async function(team) {
     if (team.manual) {
       STL.render.renderManual(team);
       team._lastFetchOk = true;
+      STL.api._notifyHeroPaint();
       return;
     }
     if (team.kbo) {
       await STL.api.fetchKboLive(team);
       team._lastFetchOk = true;
+      STL.api._notifyHeroPaint();
       return;
     }
     if (team.npbName) {
       await STL.api.fetchAsiaBaseball(team);
       team._lastFetchOk = true;
+      STL.api._notifyHeroPaint();
       return;
     }
     const baseUrl = 'https://site.api.espn.com/apis/site/v2/sports/' + team.sport + '/' + team.leagueSlug + '/teams/' + team.id;
+
+    // Synchronous 0ms localStorage cache paint BEFORE awaiting network prefetch
+    // so warm reloads populate cards and hero headline instantaneously.
+    const earlyCached = !team._renderedOnce ? STL.api.readEspnCache(team) : { team: null, events: null };
+    if (!team._renderedOnce && earlyCached.team) {
+      const earlyState = STL.api._computeTeamState(team, earlyCached.events || []);
+      await STL.render.renderTeam(team, { team: earlyCached.team }, earlyState.lastEvent, earlyState.nextEvent, { skipNetwork: true });
+      team._renderedOnce = true;
+      STL.api._notifyHeroPaint();
+    }
+
     const pre = await STL.api.consumePrefetch(team);
     let data = pre ? { team: pre.team } : null;
     let allEvents = pre ? (pre.events || []) : [];
@@ -1014,10 +1077,9 @@ STL.api = {
       STL.api.writeEspnCache(team, pre.team, pre.events || []);
     }
     if (!pre) {
-      // Paint any cached or stale-prefetched snapshot immediately so the user
-      // sees populated cards at 0ms while live fetches refresh in parallel.
+      // If localStorage missed on cold load, paint stale-prefetched snapshot
+      // immediately so cards/hero don't wait on slow CORS proxies.
       if (!team._renderedOnce) {
-        const earlyCached = STL.api.readEspnCache(team);
         let earlyData = earlyCached.team ? { team: earlyCached.team } : null;
         let earlyEvents = earlyCached.events || [];
         if (!earlyData || !earlyEvents.length) {
@@ -1031,6 +1093,7 @@ STL.api = {
           const earlyState = STL.api._computeTeamState(team, earlyEvents);
           await STL.render.renderTeam(team, earlyData, earlyState.lastEvent, earlyState.nextEvent, { skipNetwork: true });
           team._renderedOnce = true;
+          STL.api._notifyHeroPaint();
         }
       }
 
@@ -1073,6 +1136,7 @@ STL.api = {
     if (!data) {
       team._lastFetchOk = false;
       if (!team._renderedOnce) STL.render.renderError(team, 'Failed to load: ' + (loadError ? loadError.message : 'network error'));
+      STL.api._notifyHeroPaint();
       return;
     }
 
@@ -1090,6 +1154,7 @@ STL.api = {
     // gameday lineup, offseason scoreboard scan).
     await STL.render.renderTeam(team, data, lastEvent, nextEvent, { skipNetwork: true });
     team._renderedOnce = true;
+    STL.api._notifyHeroPaint();
 
     team._lastGameEventId = lastEvent ? lastEvent.id : null;
     const enrichTasks = [];
@@ -1128,6 +1193,7 @@ STL.api = {
     }
     if (didEnrich) {
       await STL.render.renderTeam(team, data, lastEvent, nextEvent, { skipNetwork: true });
+      STL.api._notifyHeroPaint();
     }
     team._renderedOnce = true;
     team._lastFetchOk = true;
@@ -1179,7 +1245,7 @@ STL.api = {
       const endDate = season + (isComplex ? '-08-15' : '-10-01');
       const url = 'https://statsapi.mlb.com/api/v1/schedule?sportIds=' + sportId +
         '&season=' + season + '&startDate=' + startDate + '&endDate=' + endDate + '&hydrate=team';
-      const resp = await fetch(url);
+      const resp = await STL.api.fetchWithTimeout(url, 8000);
       if (!resp.ok) return null;
       const data = await resp.json();
       const finals = [];
@@ -1227,7 +1293,7 @@ STL.api = {
     try {
       const date = season + (sportId === 16 ? '-07-23' : '-09-20');
       const url = 'https://statsapi.mlb.com/api/v1/standings?leagueId=' + leagueId + '&season=' + season + '&date=' + date;
-      const resp = await fetch(url);
+      const resp = await STL.api.fetchWithTimeout(url, 8000);
       if (!resp.ok) return null;
       const data = await resp.json();
       const recs = (data.records || []).filter(function(r) { return !r.standingsType || r.standingsType === 'regularSeason'; }).slice().reverse();
@@ -1336,8 +1402,8 @@ STL.api = {
     try {
       const base = 'https://statsapi.mlb.com/api/v1/stats?stats=season&season=' + season + '&gameType=R' +
         (sportId ? '&sportIds=' + sportId : '');
-      const hitResp = await fetch(base + '&group=hitting&limit=200&sortStat=onBasePlusSlugging&order=desc');
-      const pitResp = await fetch(base + '&group=pitching&limit=200&sortStat=strikeOuts&order=desc');
+      const hitResp = await STL.api.fetchWithTimeout(base + '&group=hitting&limit=200&sortStat=onBasePlusSlugging&order=desc', 8000);
+      const pitResp = await STL.api.fetchWithTimeout(base + '&group=pitching&limit=200&sortStat=strikeOuts&order=desc', 8000);
       const splitsOf = async function(resp) {
         try {
           if (!resp || !resp.ok) return [];
@@ -1427,7 +1493,7 @@ STL.api = {
     if (STL.api._affPrefetch && now - STL.api._affPrefetch.at < 6 * 3600000) {
       return STL.api._affPrefetch.data;
     }
-    const resp = await fetch('data/blues-affiliates.json');
+    const resp = await STL.api.fetchWithTimeout('data/blues-affiliates.json', 5000);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     STL.api._affPrefetch = { at: now, data: data };
@@ -1441,13 +1507,7 @@ STL.api = {
       if (cached && Date.now() < cached.expiry) return cached.data;
     } catch (e) {}
     const load = async function(u) {
-      const resp = await STL.api.fetchWithTimeout(u, 8000);
-      if (!resp.ok) {
-        const err = new Error('HTTP ' + resp.status);
-        err.status = resp.status;
-        throw err;
-      }
-      const text = await resp.text();
+      const text = await STL.api.fetchTextWithTimeout(u, 6500);
       try {
         return JSON.parse(text);
       } catch (e) {
@@ -1757,7 +1817,7 @@ STL.api = {
     if (STL.api._academy && now - STL.api._academy.at < 6 * 3600000) {
       return STL.api._academy.data;
     }
-    const resp = await fetch('data/city-academy.json');
+    const resp = await STL.api.fetchWithTimeout('data/city-academy.json', 5000);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     STL.api._academy = { at: now, data: data };
@@ -1804,7 +1864,7 @@ STL.api = {
     if (STL.api._city2 && now - STL.api._city2.at < 6 * 3600000) {
       return STL.api._city2.data;
     }
-    const resp = await fetch('data/city2-leaders.json');
+    const resp = await STL.api.fetchWithTimeout('data/city2-leaders.json', 5000);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     STL.api._city2 = { at: now, data: data };
@@ -1932,7 +1992,7 @@ STL.api = {
     if (STL.api._npbLast && now - STL.api._npbLast.at < 6 * 3600000) {
       return STL.api._npbLast.data;
     }
-    const resp = await fetch('data/npb-lastgame.json');
+    const resp = await STL.api.fetchWithTimeout('data/npb-lastgame.json', 5000);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     STL.api._npbLast = { at: now, data: data };
@@ -1948,9 +2008,8 @@ STL.api = {
       if (cached && Date.now() < cached.expiry) rows = cached.data;
     } catch (e) {}
     if (!rows) {
-      const resp = await fetch('https://npb-result.ant-npb.workers.dev/api/pl');
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      rows = await resp.json();
+      const text = await STL.api.fetchTextWithTimeout('https://npb-result.ant-npb.workers.dev/api/pl', 6500);
+      rows = JSON.parse(text);
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: rows, expiry: Date.now() + ttlMs })); } catch (e) {}
     }
     const us = (rows || []).find(r => r.name === team.npbName);
@@ -1978,7 +2037,7 @@ STL.api = {
     if (STL.api._kboLast && now - STL.api._kboLast.at < 6 * 3600000) {
       return STL.api._kboLast.data;
     }
-    const resp = await fetch('data/kbo-lastgame.json');
+    const resp = await STL.api.fetchWithTimeout('data/kbo-lastgame.json', 5000);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     STL.api._kboLast = { at: now, data: data };
@@ -2019,9 +2078,7 @@ STL.api = {
         if (cached && Date.now() < cached.expiry) html = cached.data;
       } catch (e) {}
       if (!html) {
-        const resp = await fetch('https://eng.koreabaseball.com/Standings/TeamStandings.aspx');
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        html = await resp.text();
+        html = await STL.api.fetchTextWithTimeout('https://eng.koreabaseball.com/Standings/TeamStandings.aspx', 6500);
         try { localStorage.setItem(cacheKey, JSON.stringify({ data: html, expiry: Date.now() + ttlMs })); } catch (e) {}
       }
       const doc = new DOMParser().parseFromString(html, 'text/html');

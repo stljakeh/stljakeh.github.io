@@ -33,6 +33,20 @@ STL.dashboard = {
     refreshTimer = setInterval(STL.dashboard.refresh, 60000);
   },
 
+  _heroScheduled: null,
+
+  // Progressive first-paint hero update: updates #heroHeadline as soon as
+  // cached, prefetched, or first-arriving live team data renders, instead of
+  // staying on "Checking the schedules…" until every secondary enrichment completes.
+  scheduleHeroUpdate: function() {
+    if (STL.dashboard._paintedOnce) return;
+    if (STL.dashboard._heroScheduled) return;
+    STL.dashboard._heroScheduled = setTimeout(function() {
+      STL.dashboard._heroScheduled = null;
+      if (!STL.dashboard._paintedOnce) STL.dashboard.updateHero();
+    }, 35);
+  },
+
   refresh: async function() {
     if (isRefreshing) return;
     isRefreshing = true;
@@ -41,9 +55,9 @@ STL.dashboard = {
     const btn = document.getElementById('refreshBtn');
     const spinner = document.getElementById('spinner');
     const label = document.getElementById('btnLabel');
-    btn.disabled = true;
-    spinner.classList.remove('hidden');
-    label.textContent = 'Updating';
+    if (btn) btn.disabled = true;
+    if (spinner) spinner.classList.remove('hidden');
+    if (label) label.textContent = 'Updating';
 
     // try/finally: a single throwing fetch/render must never wedge the
     // refresh button, spinner, or auto-refresh loop.
@@ -61,6 +75,11 @@ STL.dashboard = {
       STL.dashboard.adjustRefreshInterval();
       STL.dashboard.startCountdownTimer();
 
+      if (STL.dashboard._heroScheduled) {
+        clearTimeout(STL.dashboard._heroScheduled);
+        STL.dashboard._heroScheduled = null;
+      }
+
       // Freeze on partial failure: if any team failed this cycle (and this
       // isn't the very first paint), a re-sort + hero recompute would shuffle
       // cards and flicker the headline on half-populated _upcomingEvent data.
@@ -70,17 +89,19 @@ STL.dashboard = {
       const firstPaint = !STL.dashboard._paintedOnce;
       if (failures === 0 || firstPaint) {
         const grid = document.getElementById('cardGrid');
-        const cards = Array.from(grid.children);
-        const live = [], playoffs = [], active = [], offseason = [];
-        for (const card of cards) {
-          const badge = card.querySelector('.tstatus');
-          const cls = badge ? badge.className : '';
-          if (cls.includes('status-live')) live.push(card);
-          else if (cls.includes('status-playoffs')) playoffs.push(card);
-          else if (cls.includes('status-active')) active.push(card);
-          else offseason.push(card);
+        if (grid) {
+          const cards = Array.from(grid.children);
+          const live = [], playoffs = [], active = [], offseason = [];
+          for (const card of cards) {
+            const badge = card.querySelector('.tstatus');
+            const cls = badge ? badge.className : '';
+            if (cls.includes('status-live')) live.push(card);
+            else if (cls.includes('status-playoffs')) playoffs.push(card);
+            else if (cls.includes('status-active')) active.push(card);
+            else offseason.push(card);
+          }
+          [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
         }
-        [...live, ...playoffs, ...active, ...offseason].forEach(c => grid.appendChild(c));
         STL.dashboard.updateHero();
         STL.dashboard._paintedOnce = true;
       }
@@ -90,11 +111,20 @@ STL.dashboard = {
 
       const now = new Date();
       const ts = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      document.getElementById('updateTime').textContent = 'last updated ' + ts;
+      const ut = document.getElementById('updateTime');
+      if (ut) ut.textContent = 'last updated ' + ts;
     } finally {
-      btn.disabled = false;
-      spinner.classList.add('hidden');
-      label.textContent = 'Refresh';
+      if (STL.dashboard._heroScheduled) {
+        clearTimeout(STL.dashboard._heroScheduled);
+        STL.dashboard._heroScheduled = null;
+      }
+      const hl = document.getElementById('heroHeadline');
+      if (hl && hl.textContent === 'Checking the schedules\u2026') {
+        STL.dashboard.updateHero();
+      }
+      if (btn) btn.disabled = false;
+      if (spinner) spinner.classList.add('hidden');
+      if (label) label.textContent = 'Refresh';
       isRefreshing = false;
     }
   },
