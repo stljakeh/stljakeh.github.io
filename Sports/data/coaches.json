@@ -1,0 +1,454 @@
+{
+  "generated_at": "2026-11-28T07:48:48.340844+00:00",
+  "coaches": [
+    {
+      "id": "montgomery",
+      "teamId": "19",
+      "cardClass": "blues",
+      "teamClass": "team-blues",
+      "sport": "hockey",
+      "leagueSlug": "nhl",
+      "initials": "JM",
+      "name": "Jim Montgomery",
+      "aliases": [
+        "Jim Montgomery"
+      ],
+      "team": "St. Louis Blues",
+      "league": "NHL",
+      "role": "Head Coach",
+      "franchiseNumber": "28th head coach in franchise history",
+      "hiredDate": "2024-11-24",
+      "hiredDisplay": "Nov 24, 2024",
+      "birthDate": "1969-06-30",
+      "birthPlace": "Montreal, Quebec, Canada",
+      "almaMater": "University of Maine (NCAA)",
+      "contractNote": "5-year contract (through 2028–29)",
+      "headlineRecord": "86–60–22",
+      "headlineLabel": "STL REG. SEASON",
+      "rateValue": ".577 PTS%",
+      "rateSub": "168 games coached",
+      "postseasonValue": "3–4 Playoffs",
+      "postseasonSub": "Jack Adams Winner ('23)",
+      "highlightTag": "3rd Season in STL",
+      "bio": "Returned to St. Louis on a five-year deal in November 2024 after previously playing for the Blues (1993–94) and serving as an assistant coach (2020–2022). Sparked a mid-season turnaround into the 2025 Stanley Cup Playoffs and has steered a competitive Central Division club into 2026–27.",
+      "seasons": [
+        {
+          "season": "2024–25",
+          "record": "35–18–7",
+          "rate": ".642",
+          "finish": "Wild Card · Lost R1 (3–4)",
+          "live": false,
+          "w": 35,
+          "l": 18,
+          "t": 7
+        },
+        {
+          "season": "2025–26",
+          "record": "37–33–12",
+          "rate": ".524",
+          "finish": "5th Central",
+          "live": false,
+          "w": 37,
+          "l": 33,
+          "t": 12
+        },
+        {
+          "season": "2026–27",
+          "record": "14–9–3",
+          "rate": ".596",
+          "finish": "In progress (26 GP)",
+          "live": true,
+          "w": 14,
+          "l": 9,
+          "t": 3
+        }
+      ],
+      "seasonTotal": {
+        "record": "86–60–22",
+        "rate": ".577",
+        "finish": "168 GP · 3–4 Postseason"
+      },
+      "careerRows": [
+        {
+          "label": "Career NHL Head Coach",
+          "value": "265–144–55 (.630 · 465 GP)"
+        },
+        {
+          "label": "Career NHL Playoffs",
+          "value": "19–21 (40 GP)"
+        },
+        {
+          "label": "Boston Bruins HC (2022–24)",
+          "value": "120–41–23 (.715)"
+        },
+        {
+          "label": "Dallas Stars HC (2018–19)",
+          "value": "60–43–10 (.575)"
+        },
+        {
+          "label": "Prior STL Ties",
+          "value": "Blues Asst. (2020–22) · Blues C (1993–94, 67 GP)"
+        }
+      ],
+      "honors": [
+        "2022–23 Jack Adams Award winner (NHL Coach of the Year, 65–12–5 season)",
+        "2017 NCAA Division I National Champion as head coach of Denver Pioneers",
+        "1993 NCAA National Champion as captain at Maine (42–1–2)"
+      ],
+      "links": [
+        {
+          "text": "Blues Official Site",
+          "href": "https://www.nhl.com/blues"
+        },
+        {
+          "text": "Blues Roster",
+          "href": "rosters.html"
+        },
+        {
+          "text": "NHL Standings",
+          "href": "standings.html"
+        }
+      ],
+      "sources": {
+        "espnRoster": "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/19/roster",
+        "espnTeam": "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/19",
+        "wikiTitle": "St. Louis Blues",
+        "wikiFields": [
+          "head_coach",
+          "coach"
+        ],
+        "coachWikiTitle": "Jim Montgomery (ice hockey)"
+      }
+    },
+    {
+      "id": "marmol",
+      "teamId": "24",
+      "mlbamId": 138,
+      "cardClass": "cardinals",
+      "teamClass": "team-cardinals",
+      "sport": "baseball",
+      "leagueSlug": "mlb",
+      "initials": "OM",
+      "name": "Oli Marmol",
+      "aliases": [
+        "Oli Marmol",
+        "Oliver Marmol"
+      ],
+      "team": "St. Louis Cardinals",
+      "league": "MLB",
+      "role": "Manager",
+      "franchiseNumber": "51st manager in franchise history",
+      "hiredDate": "2021-10-25",
+      "hiredDisplay": "Oct 25, 2021",
+      "birthDate": "1986-07-02",
+      "birthPlace": "Orlando, Florida",
+      "almaMater": "College of Charleston",
+      "contractNote": "Hired ahead of 2022 season",
+      "headlineRecord": "402–408",
+      "headlineLabel": "STL REG. SEASON",
+      "rateValue": ".496 WIN%",
+      "rateSub": "810 games managed",
+      "postseasonValue": "1 Division Title",
+      "postseasonSub": "0–2 Postseason (2022)",
+      "highlightTag": "5 Full Seasons",
+      "bio": "Drafted by St. Louis in 2007 and groomed entirely inside the Cardinals organization from minor league skipper to bench coach before taking over as the youngest manager in MLB at age 35. Guided St. Louis to an NL Central crown in 2022 across five full campaigns at the helm.",
+      "seasons": [
+        {
+          "season": "2022",
+          "record": "93–69",
+          "rate": ".574",
+          "finish": "1st NL Central · Lost NLWC (0–2)",
+          "live": false,
+          "w": 93,
+          "l": 69
+        },
+        {
+          "season": "2023",
+          "record": "71–91",
+          "rate": ".438",
+          "finish": "5th NL Central",
+          "live": false,
+          "w": 71,
+          "l": 91
+        },
+        {
+          "season": "2024",
+          "record": "83–79",
+          "rate": ".512",
+          "finish": "T-2nd NL Central",
+          "live": false,
+          "w": 83,
+          "l": 79
+        },
+        {
+          "season": "2025",
+          "record": "78–84",
+          "rate": ".481",
+          "finish": "4th NL Central",
+          "live": false,
+          "w": 78,
+          "l": 84
+        },
+        {
+          "season": "2026",
+          "record": "77–85",
+          "rate": ".475",
+          "finish": "4th NL Central",
+          "live": false,
+          "w": 77,
+          "l": 85
+        }
+      ],
+      "seasonTotal": {
+        "record": "402–408",
+        "rate": ".496",
+        "finish": "810 G · 1 NL Central Title"
+      },
+      "careerRows": [
+        {
+          "label": "Career MLB Manager",
+          "value": "402–408 (.496 · 5 seasons)"
+        },
+        {
+          "label": "Career MLB Postseason",
+          "value": "0–2 (2022 NL Wild Card)"
+        },
+        {
+          "label": "Cardinals MLB Staff",
+          "value": "Bench Coach (2019–21) · 1B Coach (2017–18)"
+        },
+        {
+          "label": "Minor League Manager",
+          "value": "State College, Palm Beach, Springfield (2012–16)"
+        },
+        {
+          "label": "Playing Career",
+          "value": "2007 6th-rd pick · 4 MiLB seasons in STL org"
+        }
+      ],
+      "honors": [
+        "2022 National League Central Division Champion (93–69)",
+        "Youngest Cardinals manager since Marty Marion (1951) upon hiring at age 35",
+        "2014 New York-Penn League Champion (State College Spikes manager)"
+      ],
+      "links": [
+        {
+          "text": "Cardinals Official Site",
+          "href": "https://www.mlb.com/cardinals"
+        },
+        {
+          "text": "Cardinals Roster",
+          "href": "rosters.html"
+        },
+        {
+          "text": "MLB Standings",
+          "href": "standings.html"
+        }
+      ],
+      "sources": {
+        "mlbCoaches": "https://statsapi.mlb.com/api/v1/teams/138/coaches",
+        "espnRoster": "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/24/roster",
+        "espnTeam": "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/24",
+        "wikiTitle": "St. Louis Cardinals",
+        "wikiFields": [
+          "manager"
+        ],
+        "coachWikiTitle": "Oliver Marmol"
+      }
+    },
+    {
+      "id": "damet",
+      "teamId": "21812",
+      "cardClass": "city-sc",
+      "teamClass": "team-city-sc",
+      "sport": "soccer",
+      "leagueSlug": "usa.1",
+      "initials": "YD",
+      "name": "Yoann Damet",
+      "aliases": [
+        "Yoann Damet"
+      ],
+      "team": "St. Louis CITY SC",
+      "league": "MLS",
+      "role": "Head Coach",
+      "franchiseNumber": "Appointed ahead of 2026 MLS season",
+      "hiredDate": "2025-12-16",
+      "hiredDisplay": "Dec 16, 2025",
+      "birthDate": "1990-03-19",
+      "birthPlace": "Marseille, France",
+      "almaMater": "UEFA / USSF Pro Coaching Pathway",
+      "contractNote": "1st full season as MLS permanent HC",
+      "headlineRecord": "15–10–9",
+      "headlineLabel": "2026 MLS REG. SEASON",
+      "rateValue": "54 PTS",
+      "rateSub": "1.59 PPG · 3rd West",
+      "postseasonValue": "Open Cup 🏆",
+      "postseasonSub": "1–0–0 Playoffs (ongoing)",
+      "highlightTag": "COY Finalist '26",
+      "bio": "Transformed CITY SC in his debut 2026 campaign, engineering an MLS-record 21-match unbeaten run across all competitions and capturing the club’s first-ever major silverware in the U.S. Open Cup. Followed the cup triumph with St. Louis’s first postseason win over LAFC.",
+      "seasons": [
+        {
+          "season": "2026 MLS",
+          "record": "15–10–9",
+          "rate": "54 pts",
+          "finish": "3rd West · 1st Open Cup Title",
+          "live": false,
+          "w": 15,
+          "l": 10,
+          "t": 9
+        },
+        {
+          "season": "2026 Playoffs",
+          "record": "1–0–0",
+          "rate": "3–2 vs LAFC",
+          "finish": "Round One Best-of-3 (active)",
+          "live": true
+        }
+      ],
+      "seasonTotal": {
+        "record": "16–10–9",
+        "rate": "MLS + PO",
+        "finish": "2026 U.S. Open Cup Champions"
+      },
+      "careerRows": [
+        {
+          "label": "Columbus Crew (2023–25)",
+          "value": "Assistant Coach (2023 MLS Cup, 2024 Leagues Cup)"
+        },
+        {
+          "label": "LA Galaxy (2021–22)",
+          "value": "Assistant Coach / LA Galaxy II HC"
+        },
+        {
+          "label": "FC Cincinnati (2017–21)",
+          "value": "Assistant & Interim HC (youngest in MLS at 29)"
+        },
+        {
+          "label": "CF Montreal Academy",
+          "value": "Youth Coach (2014–16)"
+        }
+      ],
+      "honors": [
+        "2026 Lamar Hunt U.S. Open Cup Champion (defeated Columbus Crew on penalties)",
+        "2026 Sigi Schmid MLS Coach of the Year Finalist",
+        "MLS-record 21-match unbeaten streak across all competitions (2026)"
+      ],
+      "links": [
+        {
+          "text": "CITY SC Official Site",
+          "href": "https://www.stlcitysc.com"
+        },
+        {
+          "text": "CITY SC Roster",
+          "href": "rosters.html"
+        },
+        {
+          "text": "MLS Standings",
+          "href": "standings.html"
+        }
+      ],
+      "sources": {
+        "espnTeam": "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/21812",
+        "wikiTitle": "St. Louis City SC",
+        "wikiFields": [
+          "coach",
+          "head_coach"
+        ],
+        "coachWikiTitle": "Yoann Damet"
+      }
+    },
+    {
+      "id": "proehl",
+      "teamId": "112651",
+      "cardClass": "battlehawks",
+      "teamClass": "team-battlehawks",
+      "sport": "football",
+      "leagueSlug": "ufl",
+      "initials": "RP",
+      "name": "Ricky Proehl",
+      "aliases": [
+        "Ricky Proehl"
+      ],
+      "team": "St. Louis Battlehawks",
+      "league": "UFL",
+      "role": "Head Coach",
+      "franchiseNumber": "Previously WR Coach (2023)",
+      "hiredDate": "2025-12-29",
+      "hiredDisplay": "Dec 29, 2025",
+      "birthDate": "1968-03-07",
+      "birthPlace": "The Bronx, New York (raised in Hillsborough, NJ)",
+      "almaMater": "Wake Forest University",
+      "contractNote": "1st season as HC (previously WR Coach in 2023)",
+      "headlineRecord": "6–4",
+      "headlineLabel": "2026 UFL REG. SEASON",
+      "rateValue": ".600 WIN%",
+      "rateSub": "2nd in UFL standings",
+      "postseasonValue": "0–1 Playoffs",
+      "postseasonSub": "2× Super Bowl Champ (player)",
+      "highlightTag": "Year 1 as HC",
+      "bio": "St. Louis Rams “Greatest Show on Turf” hero and Super Bowl XXXIV champion who served as Battlehawks wide receivers coach in 2023 before returning as head coach in December 2025. Guided St. Louis to a 6–4 regular season and second-place finish in 2026.",
+      "seasons": [
+        {
+          "season": "2026 UFL",
+          "record": "6–4",
+          "rate": ".600",
+          "finish": "2nd in UFL · Lost Playoff (0–1)",
+          "live": false,
+          "w": 6,
+          "l": 4
+        }
+      ],
+      "seasonTotal": {
+        "record": "6–5",
+        "rate": ".545",
+        "finish": "6–4 Reg. Season · 0–1 Playoffs"
+      },
+      "careerRows": [
+        {
+          "label": "St. Louis Battlehawks",
+          "value": "Head Coach (2026–pres.) · WR Coach (2023)"
+        },
+        {
+          "label": "Carolina Panthers (NFL)",
+          "value": "WR Coach (2013–16) · Off. Asst. (2011–12)"
+        },
+        {
+          "label": "NFL Playing Career",
+          "value": "17 seasons (1990–2006) · 669 rec, 8,878 yds, 54 TD"
+        },
+        {
+          "label": "St. Louis Rams (1998–2001)",
+          "value": "Super Bowl XXXIV Champion · NFC Champ ('99, '01)"
+        }
+      ],
+      "honors": [
+        "2× Super Bowl Champion as NFL WR (XXXIV with St. Louis Rams, XLI with Colts)",
+        "Helped coach Carolina Panthers receivers to Super Bowl 50 (2015 season)",
+        "Wake Forest Sports Hall of Fame inductee"
+      ],
+      "links": [
+        {
+          "text": "Battlehawks Official Site",
+          "href": "https://www.theufl.com/teams/st-louis"
+        },
+        {
+          "text": "Battlehawks Roster",
+          "href": "rosters.html"
+        },
+        {
+          "text": "UFL Standings",
+          "href": "standings.html"
+        }
+      ],
+      "sources": {
+        "espnTeam": "https://site.api.espn.com/apis/site/v2/sports/football/ufl/teams/112651",
+        "wikiTitle": "St. Louis Battlehawks",
+        "wikiFields": [
+          "coach",
+          "head_coach"
+        ],
+        "coachWikiTitle": "Ricky Proehl"
+      }
+    }
+  ]
+}

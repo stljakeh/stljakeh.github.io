@@ -20,6 +20,12 @@
   flex-wrap: wrap;
 }
 
+.coaches-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .expand-all-btn {
   background: none;
   border: 1px solid var(--line);
@@ -31,8 +37,12 @@
   color: var(--page-ink);
   padding: 5px 13px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .expand-all-btn:hover { background: rgba(var(--ink-rgb), 0.06); }
+.expand-all-btn:disabled { opacity: 0.55; cursor: wait; }
 
 .coach-head-main {
   display: flex;
@@ -77,6 +87,17 @@ html[data-theme="dark"] .team-blues .coach-mono {
   text-transform: uppercase;
   color: var(--card-mute);
   margin-top: 1px;
+}
+
+.coach-change-banner {
+  margin-top: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: rgba(var(--ink-rgb), 0.05);
+  border-left: 3px solid var(--team, var(--accent));
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--card-ink);
 }
 
 .coach-metrics {
@@ -232,6 +253,13 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   background: var(--team, var(--accent));
 }
 
+.loading {
+  text-align: center;
+  color: var(--card-mute);
+  padding: 40px;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 540px) {
   .coach-metrics { grid-template-columns: 1fr; gap: 6px; }
   .trow1 { flex-wrap: wrap; }
@@ -269,9 +297,12 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
     <div class="mini-hero coaches-head">
       <div>
         <h1>Coaches</h1>
-        <div class="sub" id="coachesSub">ST. LOUIS BENCH BOSSES &middot; 4 FRANCHISES</div>
+        <div class="sub" id="coachesSub">ST. LOUIS BENCH BOSSES &middot; AUTO-SYNCED</div>
       </div>
-      <button class="expand-all-btn" id="expandAllBtn" type="button">Expand all</button>
+      <div class="coaches-head-actions">
+        <button class="expand-all-btn" id="syncBtn" type="button">Sync</button>
+        <button class="expand-all-btn" id="expandAllBtn" type="button">Expand all</button>
+      </div>
     </div>
 
     <div class="divider" aria-hidden="true">
@@ -283,10 +314,10 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
       <span>THE BENCH</span>
     </div>
 
-    <main class="cards" id="coachesGrid"></main>
+    <main class="cards" id="coachesGrid"><div class="loading">Loading coaches...</div></main>
 
     <div class="page-foot">
-      <span>Records through current 2026–27 slate</span>
+      <span id="syncFootNote">Sources: ESPN, MLB Stats API, Wikipedia</span>
       <a href="dashboard.html">Back to dashboard</a>
     </div>
   </div>
@@ -297,205 +328,20 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
 <script>
 (function() {
   var esc = STL.utils.escHtml;
-
-  var COACHES = [
-    {
-      id: 'montgomery',
-      teamClass: 'team-blues',
-      cardClass: 'blues',
-      initials: 'JM',
-      name: 'Jim Montgomery',
-      team: 'St. Louis Blues',
-      league: 'NHL',
-      role: 'Head Coach',
-      franchiseNumber: '28th head coach in franchise history',
-      hiredDate: '2024-11-24',
-      hiredDisplay: 'Nov 24, 2024',
-      birthDate: '1969-06-30',
-      birthPlace: 'Montreal, Quebec, Canada',
-      almaMater: 'University of Maine (NCAA)',
-      contractNote: '5-year contract (through 2028–29)',
-      headlineRecord: '85–60–22',
-      headlineLabel: 'STL REG. SEASON',
-      rateValue: '.575 PTS%',
-      rateSub: '167 games coached',
-      postseasonValue: '3–4 Playoffs',
-      postseasonSub: 'Jack Adams Winner (\'23)',
-      highlightTag: '3rd Season in STL',
-      bio: 'Returned to St. Louis on a five-year deal in November 2024 after previously playing for the Blues (1993–94) and serving as an assistant coach (2020–2022). Sparked a mid-season turnaround into the 2025 Stanley Cup Playoffs and has steered a competitive Central Division club into 2026–27.',
-      seasons: [
-        { season: '2024–25', record: '35–18–7', rate: '.642', finish: 'Wild Card · Lost R1 (3–4)', live: false },
-        { season: '2025–26', record: '37–33–12', rate: '.524', finish: '5th Central', live: false },
-        { season: '2026–27', record: '13–9–3', rate: '.580', finish: 'In progress (25 GP)', live: true }
-      ],
-      seasonTotal: { record: '85–60–22', rate: '.575', finish: '167 GP · 3–4 Postseason' },
-      careerRows: [
-        { label: 'Career NHL Head Coach', value: '265–144–55 (.630 · 465 GP)' },
-        { label: 'Career NHL Playoffs', value: '19–21 (40 GP)' },
-        { label: 'Boston Bruins HC (2022–24)', value: '120–41–23 (.715)' },
-        { label: 'Dallas Stars HC (2018–19)', value: '60–43–10 (.575)' },
-        { label: 'Prior STL Ties', value: 'Blues Asst. (2020–22) · Blues C (1993–94, 67 GP)' }
-      ],
-      honors: [
-        '2022–23 Jack Adams Award winner (NHL Coach of the Year, 65–12–5 season)',
-        '2017 NCAA Division I National Champion as head coach of Denver Pioneers',
-        '1993 NCAA National Champion as captain at Maine (42–1–2)'
-      ],
-      links: [
-        { text: 'Blues Official Site', href: 'https://www.nhl.com/blues' },
-        { text: 'Blues Roster', href: 'rosters.html' },
-        { text: 'NHL Standings', href: 'standings.html' }
-      ]
-    },
-    {
-      id: 'marmol',
-      teamClass: 'team-cardinals',
-      cardClass: 'cardinals',
-      initials: 'OM',
-      name: 'Oli Marmol',
-      team: 'St. Louis Cardinals',
-      league: 'MLB',
-      role: 'Manager',
-      franchiseNumber: '51st manager in franchise history',
-      hiredDate: '2021-10-25',
-      hiredDisplay: 'Oct 25, 2021',
-      birthDate: '1986-07-02',
-      birthPlace: 'Orlando, Florida',
-      almaMater: 'College of Charleston',
-      contractNote: 'Hired ahead of 2022 season',
-      headlineRecord: '402–408',
-      headlineLabel: 'STL REG. SEASON',
-      rateValue: '.496 WIN%',
-      rateSub: '810 games managed',
-      postseasonValue: '1 Division Title',
-      postseasonSub: '0–2 Postseason (2022)',
-      highlightTag: '5 Full Seasons',
-      bio: 'Drafted by St. Louis in 2007 and groomed entirely inside the Cardinals organization from minor league skipper to bench coach before taking over as the youngest manager in MLB at age 35. Guided St. Louis to an NL Central crown in 2022 across five full campaigns at the helm.',
-      seasons: [
-        { season: '2022', record: '93–69', rate: '.574', finish: '1st NL Central · Lost NLWC (0–2)', live: false },
-        { season: '2023', record: '71–91', rate: '.438', finish: '5th NL Central', live: false },
-        { season: '2024', record: '83–79', rate: '.512', finish: 'T-2nd NL Central', live: false },
-        { season: '2025', record: '78–84', rate: '.481', finish: '4th NL Central', live: false },
-        { season: '2026', record: '77–85', rate: '.475', finish: '4th NL Central', live: false }
-      ],
-      seasonTotal: { record: '402–408', rate: '.496', finish: '810 G · 1 NL Central Title' },
-      careerRows: [
-        { label: 'Career MLB Manager', value: '402–408 (.496 · 5 seasons)' },
-        { label: 'Career MLB Postseason', value: '0–2 (2022 NL Wild Card)' },
-        { label: 'Cardinals MLB Staff', value: 'Bench Coach (2019–21) · 1B Coach (2017–18)' },
-        { label: 'Minor League Manager', value: 'State College, Palm Beach, Springfield (2012–16)' },
-        { label: 'Playing Career', value: '2007 6th-rd pick · 4 MiLB seasons in STL org' }
-      ],
-      honors: [
-        '2022 National League Central Division Champion (93–69)',
-        'Youngest Cardinals manager since Marty Marion (1951) upon hiring at age 35',
-        '2014 New York-Penn League Champion (State College Spikes manager)'
-      ],
-      links: [
-        { text: 'Cardinals Official Site', href: 'https://www.mlb.com/cardinals' },
-        { text: 'Cardinals Roster', href: 'rosters.html' },
-        { text: 'MLB Standings', href: 'standings.html' }
-      ]
-    },
-    {
-      id: 'damet',
-      teamClass: 'team-city-sc',
-      cardClass: 'city-sc',
-      initials: 'YD',
-      name: 'Yoann Damet',
-      team: 'St. Louis CITY SC',
-      league: 'MLS',
-      role: 'Head Coach',
-      franchiseNumber: 'Appointed ahead of 2026 MLS season',
-      hiredDate: '2025-12-16',
-      hiredDisplay: 'Dec 16, 2025',
-      birthDate: '1990-03-19',
-      birthPlace: 'Marseille, France',
-      almaMater: 'UEFA / USSF Pro Coaching Pathway',
-      contractNote: '1st full season as MLS permanent HC',
-      headlineRecord: '15–9–10',
-      headlineLabel: '2026 MLS REG. SEASON',
-      rateValue: '54 PTS',
-      rateSub: '1.59 PPG · 3rd West',
-      postseasonValue: 'Open Cup 🏆',
-      postseasonSub: '1–0–0 Playoffs (ongoing)',
-      highlightTag: 'COY Finalist \'26',
-      bio: 'Transformed CITY SC in his debut 2026 campaign, engineering an MLS-record 21-match unbeaten run across all competitions and capturing the club’s first-ever major silverware in the U.S. Open Cup. Followed the cup triumph with St. Louis’s first postseason win over LAFC.',
-      seasons: [
-        { season: '2026 MLS', record: '15–9–10', rate: '54 pts', finish: '3rd West · 1st Open Cup Title', live: false },
-        { season: '2026 Playoffs', record: '1–0–0', rate: '3–2 vs LAFC', finish: 'Round One Best-of-3 (active)', live: true }
-      ],
-      seasonTotal: { record: '16–9–10', rate: 'MLS + PO', finish: '2026 U.S. Open Cup Champions' },
-      careerRows: [
-        { label: 'Columbus Crew (2023–25)', value: 'Assistant Coach (2023 MLS Cup, 2024 Leagues Cup)' },
-        { label: 'LA Galaxy (2021–22)', value: 'Assistant Coach / LA Galaxy II HC' },
-        { label: 'FC Cincinnati (2017–21)', value: 'Assistant & Interim HC (youngest in MLS at 29)' },
-        { label: 'CF Montreal Academy', value: 'Youth Coach (2014–16)' }
-      ],
-      honors: [
-        '2026 Lamar Hunt U.S. Open Cup Champion (defeated Columbus Crew on penalties)',
-        '2026 Sigi Schmid MLS Coach of the Year Finalist',
-        'MLS-record 21-match unbeaten streak across all competitions (2026)'
-      ],
-      links: [
-        { text: 'CITY SC Official Site', href: 'https://www.stlcitysc.com' },
-        { text: 'CITY SC Roster', href: 'rosters.html' },
-        { text: 'MLS Standings', href: 'standings.html' }
-      ]
-    },
-    {
-      id: 'proehl',
-      teamClass: 'team-battlehawks',
-      cardClass: 'battlehawks',
-      initials: 'RP',
-      name: 'Ricky Proehl',
-      team: 'St. Louis Battlehawks',
-      league: 'UFL',
-      role: 'Head Coach',
-      franchiseNumber: 'Previously WR Coach (2023)',
-      hiredDate: '2025-12-29',
-      hiredDisplay: 'Dec 29, 2025',
-      birthDate: '1968-03-07',
-      birthPlace: 'The Bronx, New York (raised in Hillsborough, NJ)',
-      almaMater: 'Wake Forest University',
-      contractNote: '1st season as HC (previously WR Coach in 2023)',
-      headlineRecord: '6–4',
-      headlineLabel: '2026 UFL REG. SEASON',
-      rateValue: '.600 WIN%',
-      rateSub: '2nd in UFL standings',
-      postseasonValue: '0–1 Playoffs',
-      postseasonSub: '2× Super Bowl Champ (player)',
-      highlightTag: 'Year 1 as HC',
-      bio: 'St. Louis Rams “Greatest Show on Turf” hero and Super Bowl XXXIV champion who served as Battlehawks wide receivers coach in 2023 before returning as head coach in December 2025. Guided St. Louis to a 6–4 regular season and second-place finish in 2026.',
-      seasons: [
-        { season: '2026 UFL', record: '6–4', rate: '.600', finish: '2nd in UFL · Lost Playoff (0–1)', live: false }
-      ],
-      seasonTotal: { record: '6–5', rate: '.545', finish: '6–4 Reg. Season · 0–1 Playoffs' },
-      careerRows: [
-        { label: 'St. Louis Battlehawks', value: 'Head Coach (2026–pres.) · WR Coach (2023)' },
-        { label: 'Carolina Panthers (NFL)', value: 'WR Coach (2013–16) · Off. Asst. (2011–12)' },
-        { label: 'NFL Playing Career', value: '17 seasons (1990–2006) · 669 rec, 8,878 yds, 54 TD' },
-        { label: 'St. Louis Rams (1998–2001)', value: 'Super Bowl XXXIV Champion · NFC Champ (\'99, \'01)' }
-      ],
-      honors: [
-        '2× Super Bowl Champion as NFL WR (XXXIV with St. Louis Rams, XLI with Colts)',
-        'Helped coach Carolina Panthers receivers to Super Bowl 50 (2015 season)',
-        'Wake Forest Sports Hall of Fame inductee'
-      ],
-      links: [
-        { text: 'Battlehawks Official Site', href: 'https://www.theufl.com/teams/st-louis' },
-        { text: 'Battlehawks Roster', href: 'rosters.html' },
-        { text: 'UFL Standings', href: 'standings.html' }
-      ]
-    }
-  ];
+  var CACHE_KEY = 'stl_coaches_v1';
+  var CACHE_TTL = 10 * 60 * 1000;
+  var openState = {};
+  var currentCoaches = [];
 
   function calcTenure(isoDate) {
+    if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+      return { short: 'Recent', detail: 'Recently appointed', days: 0 };
+    }
     var parts = isoDate.split('-').map(Number);
     var start = new Date(parts[0], parts[1] - 1, parts[2]);
     var now = new Date();
     var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (today < start) return { short: '0 mos', detail: 'Upcoming', days: 0 };
+    if (!isFinite(start) || today < start) return { short: '0 mos', detail: 'Upcoming', days: 0 };
 
     var years = today.getFullYear() - start.getFullYear();
     var months = today.getMonth() - start.getMonth();
@@ -523,6 +369,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   }
 
   function calcAge(birthIso) {
+    if (!birthIso || !/^\d{4}-\d{2}-\d{2}$/.test(birthIso)) return null;
     var parts = birthIso.split('-').map(Number);
     var now = new Date();
     var age = now.getFullYear() - parts[0];
@@ -532,6 +379,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   }
 
   function fmtBirthDate(birthIso) {
+    if (!birthIso || !/^\d{4}-\d{2}-\d{2}$/.test(birthIso)) return '';
     var parts = birthIso.split('-').map(Number);
     var d = new Date(parts[0], parts[1] - 1, parts[2]);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -540,8 +388,10 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   function renderCoachCard(c) {
     var tenure = calcTenure(c.hiredDate);
     var age = calcAge(c.birthDate);
+    var ageText = age != null ? (age + ' (' + fmtBirthDate(c.birthDate) + ')') : '—';
+    var isOpen = !!openState[c.id];
 
-    var seasonRows = c.seasons.map(function(s) {
+    var seasonRows = (c.seasons || []).map(function(s) {
       return '<tr>' +
         '<td>' + esc(s.season) + (s.live ? '<span class="coach-live-pill">Active</span>' : '') + '</td>' +
         '<td class="num">' + esc(s.record) + '</td>' +
@@ -550,23 +400,27 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
       '</tr>';
     }).join('');
 
-    var careerRows = c.careerRows.map(function(r) {
+    var careerRows = (c.careerRows || []).map(function(r) {
       return '<div class="stat-row">' +
         '<span class="stat-label">' + esc(r.label) + '</span>' +
         '<span class="stat-value">' + esc(r.value) + '</span>' +
       '</div>';
     }).join('');
 
-    var honorItems = c.honors.map(function(h) {
+    var honorItems = (c.honors || []).map(function(h) {
       return '<div class="coach-honor-item">' + esc(h) + '</div>';
     }).join('');
 
-    var linksHtml = c.links.map(function(l) {
+    var linksHtml = (c.links || []).map(function(l) {
       var ext = l.href.indexOf('http') === 0 ? ' target="_blank" rel="noopener"' : '';
       return '<a href="' + esc(l.href) + '"' + ext + '>' + esc(l.text) + ' &rarr;</a>';
     }).join('');
 
-    return '<article class="teamcard ' + esc(c.teamClass) + '" data-coach="' + esc(c.id) + '">' +
+    var changeBanner = c.autoUpdated && c.previousCoach
+      ? '<div class="coach-change-banner">Coaching change auto-detected via ' + esc(c.detectedSource || 'live feed') + ' &middot; Succeeds ' + esc(c.previousCoach.name) + ' (' + esc(c.previousCoach.record) + ')</div>'
+      : '';
+
+    return '<article class="teamcard ' + esc(c.teamClass) + (isOpen ? ' open' : '') + '" data-coach="' + esc(c.id) + '">' +
       '<div class="tmain">' +
         '<div class="trow1">' +
           '<div class="coach-head-main">' +
@@ -581,6 +435,8 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
             '<div class="coach-record-label">' + esc(c.headlineLabel) + '</div>' +
           '</div>' +
         '</div>' +
+
+        changeBanner +
 
         '<div class="coach-metrics">' +
           '<div>' +
@@ -603,7 +459,7 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
         '<p class="coach-summary">' + esc(c.bio) + '</p>' +
 
         '<div class="coach-actions">' +
-          '<button class="details-btn" type="button" data-toggle-coach="' + esc(c.id) + '" aria-expanded="false">+ details</button>' +
+          '<button class="details-btn" type="button" data-toggle-coach="' + esc(c.id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' + (isOpen ? '\u2013 close' : '+ details') + '</button>' +
           '<span class="coach-note-tag">' + esc(c.highlightTag) + '</span>' +
         '</div>' +
 
@@ -611,17 +467,17 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
           '<div class="coach-subhead">Profile &amp; Tenure</div>' +
           '<div class="stat-row"><span class="stat-label">Appointment</span><span class="stat-value">' + esc(c.hiredDisplay) + ' &middot; ' + esc(c.franchiseNumber) + '</span></div>' +
           '<div class="stat-row"><span class="stat-label">Tenure Length</span><span class="stat-value">' + esc(tenure.detail) + '</span></div>' +
-          '<div class="stat-row"><span class="stat-label">Age &amp; Born</span><span class="stat-value">' + age + ' (' + esc(fmtBirthDate(c.birthDate)) + ')</span></div>' +
-          '<div class="stat-row"><span class="stat-label">Birthplace</span><span class="stat-value">' + esc(c.birthPlace) + '</span></div>' +
-          '<div class="stat-row"><span class="stat-label">Alma Mater</span><span class="stat-value">' + esc(c.almaMater) + '</span></div>' +
-          '<div class="stat-row"><span class="stat-label">Status</span><span class="stat-value">' + esc(c.contractNote) + '</span></div>' +
+          '<div class="stat-row"><span class="stat-label">Age &amp; Born</span><span class="stat-value">' + esc(ageText) + '</span></div>' +
+          '<div class="stat-row"><span class="stat-label">Birthplace</span><span class="stat-value">' + esc(c.birthPlace || '—') + '</span></div>' +
+          '<div class="stat-row"><span class="stat-label">Alma Mater</span><span class="stat-value">' + esc(c.almaMater || '—') + '</span></div>' +
+          '<div class="stat-row"><span class="stat-label">Status</span><span class="stat-value">' + esc(c.contractNote || '—') + '</span></div>' +
 
           '<div class="coach-subhead">St. Louis Season-by-Season</div>' +
           '<div class="coach-table-wrap">' +
             '<table class="coach-table">' +
               '<thead><tr><th>Season</th><th class="num">Record</th><th class="num">Pct / Pts</th><th>Result</th></tr></thead>' +
               '<tbody>' + seasonRows + '</tbody>' +
-              '<tfoot><tr><td>STL Total</td><td class="num">' + esc(c.seasonTotal.record) + '</td><td class="num">' + esc(c.seasonTotal.rate) + '</td><td>' + esc(c.seasonTotal.finish) + '</td></tr></tfoot>' +
+              '<tfoot><tr><td>STL Total</td><td class="num">' + esc((c.seasonTotal && c.seasonTotal.record) || c.headlineRecord) + '</td><td class="num">' + esc((c.seasonTotal && c.seasonTotal.rate) || '—') + '</td><td>' + esc((c.seasonTotal && c.seasonTotal.finish) || '') + '</td></tr></tfoot>' +
             '</table>' +
           '</div>' +
 
@@ -638,21 +494,249 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
   }
 
   var grid = document.getElementById('coachesGrid');
-  grid.innerHTML = COACHES.map(renderCoachCard).join('');
-
   var expandBtn = document.getElementById('expandAllBtn');
+  var syncBtn = document.getElementById('syncBtn');
+  var subEl = document.getElementById('coachesSub');
+  var footNoteEl = document.getElementById('syncFootNote');
+
   function syncExpandBtn() {
     var cards = grid.querySelectorAll('.teamcard');
+    if (!cards.length) return;
     var allOpen = Array.prototype.every.call(cards, function(el) { return el.classList.contains('open'); });
     expandBtn.textContent = allOpen ? 'Collapse all' : 'Expand all';
+  }
+
+  function renderAll(payload) {
+    currentCoaches = (payload && payload.coaches) || [];
+    if (!currentCoaches.length) return;
+    grid.innerHTML = currentCoaches.map(renderCoachCard).join('');
+    syncExpandBtn();
+
+    var ts = payload.checked_at || payload.generated_at;
+    if (ts) {
+      var d = new Date(ts);
+      if (isFinite(d)) {
+        var timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        var dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        subEl.textContent = 'ST. LOUIS BENCH BOSSES \u00B7 SYNCED ' + dateLabel.toUpperCase() + ' ' + timeLabel.toUpperCase();
+        footNoteEl.textContent = 'Auto-synced with ESPN, MLB Stats API & Wikipedia (' + dateLabel + ', ' + timeLabel + ')';
+      }
+    }
+  }
+
+  function normName(name) {
+    return String(name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function cleanWikiValue(raw) {
+    if (!raw) return '';
+    var s = String(raw)
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '')
+      .replace(/<ref[^>]*\/>/gi, '')
+      .replace(/<br\s*\/?>/gi, ', ')
+      .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1')
+      .replace(/\{\{[^{}]*\}\}/g, '')
+      .replace(/'''?/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/^[,;\s]+|[,;\s]+$/g, '')
+      .trim();
+    return /^(vacant|tbd|tba|none|n\/a|-+|—+)$/i.test(s) ? '' : s;
+  }
+
+  function parseInfoboxField(wt, fields) {
+    if (!wt) return { value: '', linkTitle: '' };
+    for (var i = 0; i < fields.length; i++) {
+      var re = new RegExp('^\\|\\s*' + fields[i] + '\\s*=\\s*(.+)$', 'im');
+      var m = wt.match(re);
+      if (!m) continue;
+      var raw = m[1].split(/\n\|/)[0].trim();
+      var lm = raw.match(/\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/);
+      var val = cleanWikiValue(raw);
+      if (val) return { value: val, linkTitle: lm ? lm[1].trim() : '' };
+    }
+    return { value: '', linkTitle: '' };
+  }
+
+  // Fallback live browser verification when /api/coaches is not available (e.g. static hosting)
+  async function directBrowserVerify(basePayload) {
+    var coaches = (basePayload && basePayload.coaches) ? basePayload.coaches.slice() : [];
+    if (!coaches.length) return basePayload;
+
+    var updated = await Promise.all(coaches.map(async function(coach) {
+      var src = coach.sources || {};
+      var detected = null;
+      var srcLabel = '';
+
+      if (src.mlbCoaches) {
+        try {
+          var r = await STL.shared.fetchWithTimeout(src.mlbCoaches, 5000);
+          if (r.ok) {
+            var md = await r.json();
+            var mgr = (md.roster || []).find(function(x) { return x.jobId === 'MNGR' || /^manager$/i.test(x.job || ''); });
+            if (mgr && mgr.person && mgr.person.fullName) {
+              detected = { name: mgr.person.fullName.trim(), linkTitle: '' };
+              srcLabel = 'MLB Stats API';
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!detected && src.espnRoster) {
+        try {
+          var r2 = await STL.shared.fetchWithTimeout(src.espnRoster, 5000);
+          if (r2.ok) {
+            var ed = await r2.json();
+            var c0 = Array.isArray(ed.coach) ? ed.coach[0] : null;
+            if (c0 && (c0.firstName || c0.lastName)) {
+              detected = { name: [c0.firstName, c0.lastName].filter(Boolean).join(' ').trim(), linkTitle: '' };
+              srcLabel = 'ESPN Roster API';
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!detected && src.wikiTitle) {
+        try {
+          var wUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles=' + encodeURIComponent(src.wikiTitle) +
+            '&redirects=1&prop=revisions&rvprop=content&rvslots=main&rvsection=0&format=json&origin=*';
+          var r3 = await STL.shared.fetchWithTimeout(wUrl, 5000);
+          if (r3.ok) {
+            var wd = await r3.json();
+            var pages = Object.values((wd.query && wd.query.pages) || {});
+            var wt = pages[0] && pages[0].revisions && pages[0].revisions[0] && pages[0].revisions[0].slots && pages[0].revisions[0].slots.main['*'];
+            var parsed = parseInfoboxField(wt, src.wikiFields || ['coach', 'head_coach', 'manager']);
+            if (parsed.value) {
+              detected = parsed;
+              srcLabel = 'Wikipedia';
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (detected) {
+        var known = [coach.name].concat(coach.aliases || []).map(normName);
+        if (known.indexOf(normName(detected.name)) === -1) {
+          var todayIso = new Date().toISOString().slice(0, 10);
+          var todayDisp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          var bio = detected.name + ' was detected via ' + srcLabel + ' as the ' + coach.role.toLowerCase() + ' of the ' + coach.team + '.';
+          try {
+            var sumR = await STL.shared.fetchWithTimeout(
+              'https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent((detected.linkTitle || detected.name).replace(/\s+/g, '_')),
+              4500
+            );
+            if (sumR.ok) {
+              var sd = await sumR.json();
+              if (sd.extract) bio = sd.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+            }
+          } catch (e) {}
+          var parts = detected.name.trim().split(/\s+/);
+          var initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : detected.name.slice(0, 2).toUpperCase();
+          return Object.assign({}, coach, {
+            initials: initials,
+            name: detected.name,
+            aliases: [detected.name],
+            hiredDate: todayIso,
+            hiredDisplay: todayDisp,
+            franchiseNumber: 'Appointed ' + todayDisp + ' (auto-detected via ' + srcLabel + ')',
+            birthDate: '',
+            birthPlace: '—',
+            almaMater: '—',
+            contractNote: 'Replaces ' + coach.name + ' · Detected via ' + srcLabel,
+            headlineRecord: '0–0',
+            headlineLabel: 'CURRENT TENURE',
+            rateValue: 'New Hire',
+            rateSub: 'Newly appointed',
+            postseasonValue: '—',
+            postseasonSub: 'First season in STL',
+            highlightTag: 'New Coach Detected',
+            autoUpdated: true,
+            detectedSource: srcLabel,
+            previousCoach: { name: coach.name, record: coach.headlineRecord, hiredDisplay: coach.hiredDisplay },
+            bio: bio,
+            seasons: [{ season: 'Current', record: '0–0', rate: '—', finish: 'Active tenure', live: true }],
+            seasonTotal: { record: '0–0', rate: '—', finish: 'New coaching tenure' },
+            careerRows: [{ label: 'Prior Tenure', value: 'Succeeded ' + coach.name + ' (' + coach.headlineRecord + ')' }],
+            honors: ['Auto-updated from ' + srcLabel + ' upon coaching change detection']
+          });
+        }
+      }
+      return coach;
+    }));
+
+    return {
+      generated_at: basePayload.generated_at,
+      checked_at: new Date().toISOString(),
+      coaches: updated
+    };
+  }
+
+  async function loadCoaches(forceRefresh) {
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.textContent = 'Syncing…';
+    }
+
+    var cached = !forceRefresh ? STL.shared.readCache(CACHE_KEY) : null;
+    if (cached && cached.coaches && cached.coaches.length) {
+      renderAll(cached);
+    }
+
+    // Fast same-origin baseline paint from Sports/data/coaches.json if cache missed
+    var basePayload = cached;
+    if (!basePayload) {
+      try {
+        var jsonResp = await STL.shared.fetchWithTimeout('data/coaches.json', 5000, { cache: 'no-store' });
+        if (jsonResp.ok) {
+          basePayload = await jsonResp.json();
+          renderAll(basePayload);
+        }
+      } catch (e) {}
+    }
+
+    // Live check via server /api/coaches first, falling back to direct CORS check
+    try {
+      var apiUrl = '/api/coaches' + (forceRefresh ? '?refresh=1' : '');
+      var apiResp = await STL.shared.fetchWithTimeout(apiUrl, 8000, { cache: 'no-store' });
+      if (apiResp.ok) {
+        var livePayload = await apiResp.json();
+        if (livePayload && livePayload.coaches && livePayload.coaches.length) {
+          STL.shared.writeCache(CACHE_KEY, livePayload, CACHE_TTL);
+          renderAll(livePayload);
+          return;
+        }
+      }
+      throw new Error('api unavailable');
+    } catch (e) {
+      if (basePayload) {
+        try {
+          var directPayload = await directBrowserVerify(basePayload);
+          STL.shared.writeCache(CACHE_KEY, directPayload, CACHE_TTL);
+          renderAll(directPayload);
+        } catch (e2) {}
+      }
+    } finally {
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        syncBtn.textContent = 'Sync';
+      }
+    }
   }
 
   grid.addEventListener('click', function(e) {
     var btn = e.target && e.target.closest ? e.target.closest('[data-toggle-coach]') : null;
     if (!btn) return;
+    var id = btn.getAttribute('data-toggle-coach');
     var card = btn.closest('.teamcard');
     if (!card) return;
     var open = card.classList.toggle('open');
+    openState[id] = open;
     btn.textContent = open ? '\u2013 close' : '+ details';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     syncExpandBtn();
@@ -663,6 +747,8 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
     var allOpen = Array.prototype.every.call(cards, function(el) { return el.classList.contains('open'); });
     Array.prototype.forEach.call(cards, function(card) {
       var open = !allOpen;
+      var id = card.getAttribute('data-coach');
+      openState[id] = open;
       card.classList.toggle('open', open);
       var btn = card.querySelector('[data-toggle-coach]');
       if (btn) {
@@ -672,6 +758,12 @@ html[data-theme="dark"] .coach-live-pill { color: var(--live-accent); }
     });
     syncExpandBtn();
   });
+
+  syncBtn.addEventListener('click', function() {
+    loadCoaches(true);
+  });
+
+  loadCoaches(false);
 })();
 </script>
 </body>
